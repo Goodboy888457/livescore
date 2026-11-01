@@ -35,7 +35,7 @@ header{background:#1a2530;padding:12px 15px;display:flex;justify-content:space-b
 </style>
 </head>
 <body>
-<header><div class="logo">KINGDOM <span>2026/27</span></div><div class="live-dot" id="count">● REAL LIVE</div></header>
+<header><div class="logo">KINGDOM <span>2026/27</span></div><div class="live-dot" id="count">● REAL</div></header>
 <div class="verse">📖 Tap LEAGUE for table - Tap MATCH for stats - Matt 6:33</div>
 <div class="tabs">
 <div class="tab active" onclick="switchTab('yesterday',this)">YEST</div>
@@ -46,31 +46,20 @@ header{background:#1a2530;padding:12px 15px;display:flex;justify-content:space-b
 <div class="tab" onclick="openTable()">TABLE</div>
 </div>
 <div class="search"><input id="search" placeholder="🔍 Search team..." onkeyup="searchTeam()"></div>
-<div id="content"><div class="loading">⏳ Loading YESTERDAY REAL SCORES...</div></div>
+<div id="content"><div class="loading">⏳ Loading YESTERDAY REAL...</div></div>
 <div class="refresh" onclick="load()">↻</div>
 <div id="modal" onclick="if(event.target==this)closeModal()"><div class="modal-box"><div class="modal-head"><div id="modalTitle">Details</div><button onclick="closeModal()">X Close</button></div><div id="modalBody" style="padding:15px">Loading...</div></div></div>
 <script>
 let current='yesterday';
-
-// *** THIS FUNCTION FIXES 0-0 BUG - IT FINDS REAL SCORE EVERYWHERE ***
 function getRealScore(f){
   let s = f.state?.score || f.score || {};
-  // Highlightly sometimes returns {home,away} sometimes {current:{home,away}} sometimes string "2-1"
-  let home = s.current?.home ?? s.current?.homeTeam ?? s.home ?? s.homeTeam ?? s.score?.home ?? f.homeScore?.current ?? f.homeScore ?? null;
-  let away = s.current?.away ?? s.current?.awayTeam ?? s.away ?? s.awayTeam ?? s.score?.away ?? f.awayScore?.current ?? f.awayScore ?? null;
-  
-  // Handle string like "2-1"
-  if((home===null||away===null) && typeof s.current==='string' && s.current.includes('-')){
-    let p=s.current.split('-'); home=p[0]; away=p[1];
-  }
-  if((home===null||away===null) && typeof s==='string' && s.includes('-')){
-    let p=s.split('-'); home=p[0]; away=p[1];
-  }
-  // If still null, show real clock? But not 0-0
+  let home = s.current?.home ?? s.home ?? s.homeTeam ?? f.homeScore?.current ?? f.homeScore ?? null;
+  let away = s.current?.away ?? s.away ?? s.awayTeam ?? f.awayScore?.current ?? f.awayScore ?? null;
+  if((home===null||away===null) && typeof s.current==='string' && s.current.includes('-')){let p=s.current.split('-');home=p[0];away=p[1];}
+  if((home===null||away===null) && typeof s==='string' && s.includes('-')){let p=s.split('-');home=p[0];away=p[1];}
   if(home===null) home=0; if(away===null) away=0;
-  return {home, away};
+  return {home,away};
 }
-
 async function load(){
  let c=document.getElementById('content');
  c.innerHTML='<div class=loading>⏳ Loading '+current.toUpperCase()+'...</div>';
@@ -80,10 +69,8 @@ async function load(){
   let f = Array.isArray(d) ? d : (d.data||d.response||[]);
   if(!Array.isArray(f)) f=[];
   let filtered=f;
-  if(current==='live') filtered=f.filter(m=>['First half','Second half','Halftime','Half time','Live'].includes(m.state?.description) || String(m.state?.description||'').includes('half'));
+  if(current==='live') filtered=f.filter(m=>['First half','Second half','Halftime','Half time','Live'].includes(m.state?.description));
   if(current==='finished') filtered=f.filter(m=>String(m.state?.description||'').includes('Finished'));
-  if(current==='yesterday') filtered=f; // show all yesterday
-  if(current==='tomorrow') filtered=f;
   document.getElementById('count').innerText='● '+filtered.length+' '+current.toUpperCase();
   if(filtered.length===0){c.innerHTML='<div class=loading>No '+current+' games</div>';return}
   render(filtered)
@@ -94,18 +81,17 @@ function render(fixtures){
  fixtures.forEach(x=>{let k=x.league?.name||'Football'; if(!groups[k]) groups[k]=[]; groups[k].push(x)});
  let h='';
  for(let k in groups){
-  let safeK = k.replace(/'/g,'').replace(/"/g,'');
+  let safeK = k.replace(/'/g,'');
   h+=`<div class="league" onclick="openTable('${safeK}')"><span>🏆 ${k} 👉 TABLE</span><span>${groups[k].length} ⚽</span></div>`;
   groups[k].forEach(f=>{
    let home=f.homeTeam?.name||'Home'; let away=f.awayTeam?.name||'Away';
-   if(typeof home==='object') home=home.name||'Home';
-   if(typeof away==='object') away=away.name||'Away';
+   if(typeof home==='object') home=home.name; if(typeof away==='object') away=away.name;
    let {home:hs, away:as} = getRealScore(f);
-   let time=String(f.state?.clock??f.state?.description??'FT');
-   let status=String(f.state?.description||'NS');
-   let isLive=['First half','Second half','Halftime','Half time','Live'].includes(status);
+   let time=String(f.state?.clock??f.state?.description??'FT').substring(0,12);
+   let status=String(f.state?.description||'NS').substring(0,5);
+   let isLive=['First half','Second half','Halftime','Half time','Live'].includes(f.state?.description);
    let mid=f.id||'';
-   h+=`<div class="match ${isLive?'live':''}" onclick="openMatch('${mid}','${String(home).replace(/'/g,'')}','${String(away).replace(/'/g,'')}','${k.replace(/'/g,'')}')"><div class="time">${time.substring(0,12)}</div><div class="teams"><div class="team"><span>${home}</span><span class="score">${hs}</span></div><div class="team"><span>${away}</span><span class="score">${as}</span></div></div><div class="status">${status.substring(0,5)}</div></div>`
+   h+=`<div class="match ${isLive?'live':''}" onclick="openMatch('${mid}','${String(home).replace(/'/g,'')}','${String(away).replace(/'/g,'')}','${k.replace(/'/g,'')}')"><div class="time">${time}</div><div class="teams"><div class="team"><span>${home}</span><span class="score">${hs}</span></div><div class="team"><span>${away}</span><span class="score">${as}</span></div></div><div class="status">${status}</div></div>`
   })
  }
  document.getElementById('content').innerHTML=h;
@@ -115,7 +101,7 @@ function searchTeam(){let q=document.getElementById('search').value.toLowerCase(
 async function openMatch(id,home,away,league){
  document.getElementById('modal').classList.add('show');
  document.getElementById('modalTitle').innerText=league;
- document.getElementById('modalBody').innerHTML=`<div style="text-align:center"><div style="font-size:22px;font-weight:900">${home}<br>vs<br>${away}</div><div style="color:#8b9bb4">${league}</div><div style="margin-top:20px">⏳ Loading real score...</div></div>`;
+ document.getElementById('modalBody').innerHTML=`<div style="text-align:center"><div style="font-size:20px;font-weight:900">${home}<br>vs<br>${away}</div><div style="color:#8b9bb4">${league}</div><div style="margin-top:20px">⏳ Loading REAL data...</div></div>`;
  if(!id) return;
  try{
   let r=await fetch('/api/match?id='+id);
@@ -124,47 +110,60 @@ async function openMatch(id,home,away,league){
   if(Array.isArray(data)) data = data[0]||{};
   let {home:hs, away:as} = getRealScore(data);
   let venue = data.venue?.name || 'Stadium';
-  let referee = data.referee?.name || 'TBD';
-  let weather = data.forecast ? `${data.forecast.status||''} ${data.forecast.temperature||''}` : '';
-  let predictions = data.predictions||[];
+  let referee = data.referee?.name || data.referee || 'TBD';
   let events = data.events||[];
-  let html = `<div style="text-align:center"><div style="font-size:32px;font-weight:900;color:#00c853">${hs} - ${as}</div><div style="font-size:18px;font-weight:700">${home} vs ${away}</div><div style="color:#8b9bb4;font-size:12px">${league}</div>
-  <div style="background:#1e2e3e;padding:12px;border-radius:12px;margin-top:12px;font-size:12px;text-align:left">
-  <div>🏟️ ${venue}</div><div>👨‍⚖️ ${referee}</div>${weather?`<div>🌦️ ${weather}</div>`:''}
-  <div style="margin-top:6px;font-weight:700;color:#00c853">${data.state?.description||'Finished'}</div>
-  </div></div>`;
-  if(predictions.length>0){
-    html+=`<div style="margin-top:12px"><b>🔮 Prediction</b>`;
-    predictions.slice(0,1).forEach(p=>{
-      html+=`<div class="stat-row"><span style="font-size:11px">${p.description||''}</span></div><div class="stat-row"><span>Home ${p.probabilities?.home||''}</span><span>Draw ${p.probabilities?.draw||''}</span><span>Away ${p.probabilities?.away||''}</span></div>`;
-    });
-    html+=`</div>`;
-  }
+  let html = `<div style="text-align:center"><div style="font-size:36px;font-weight:900;color:#00c853">${hs} - ${as}</div><div style="font-size:18px;font-weight:700">${home} vs ${away}</div><div style="color:#8b9bb4;font-size:12px">${league}</div><div style="background:#1e2e3e;padding:12px;border-radius:12px;margin-top:12px;font-size:12px;text-align:left"><div>🏟️ ${venue}</div><div>👨‍⚖️ ${referee}</div><div style="margin-top:6px;font-weight:700;color:#00c853">${data.state?.description||'Finished'}</div></div></div>`;
+  
   if(events.length>0){
-    html+=`<div style="margin-top:12px"><b>⚽ Events</b>`;
-    events.slice(-10).forEach(ev=>{
-      html+=`<div class="stat-row"><span>${ev.minute||''}' ${ev.type||''} ${ev.player?.name||''}</span><span style="font-size:10px">${ev.team?.name?.substring(0,12)||''}</span></div>`;
+    html+=`<div style="margin-top:12px"><b>⚽ Events (Real Minutes)</b>`;
+    events.slice(-15).forEach(ev=>{
+      // THIS IS THE FIX - Highlightly uses time not minute
+      let m = ev.time || ev.minute || ev.minuteStr || ev.clock || '';
+      if(m) m = String(m).replace("'","") + "'";
+      let type = ev.type || ev.description || 'Event';
+      let player = ev.player?.name || ev.player || '';
+      let team = ev.team?.name || '';
+      html+=`<div class="stat-row"><span><b>${m}</b> ${type} - ${player}</span><span style="font-size:10px">${team.substring(0,12)}</span></div>`;
     });
     html+=`</div>`;
+  } else {
+    html+=`<div style="margin-top:12px;color:#8b9bb4;font-size:12px">Events will appear after kickoff</div>`;
   }
+  
+  html+=`<div id="h2h" style="margin-top:15px"><b>🔄 H2H</b><div class="loading">Loading H2H...</div></div>`;
+  html+=`<div style="margin-top:15px;text-align:center"><button onclick="openTable('${league}')" style="background:#00c853;color:#000;border:0;padding:10px 20px;border-radius:20px;font-weight:900">📊 VIEW TABLE</button></div>`;
+  
   document.getElementById('modalBody').innerHTML=html;
+  
+  try{
+    let hr=await fetch(`/api/h2h?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`);
+    let hd=await hr.json();
+    let games = hd.data||hd.response||[];
+    let h2hHtml=`<div style="margin-top:8px">`;
+    if(games.length===0) h2hHtml+=`<div style="color:#8b9bb4;font-size:11px">No recent H2H found (Highlightly limited)</div>`;
+    else games.forEach(g=>{
+      let hT=g.homeTeam?.name||''; let aT=g.awayTeam?.name||''; let {home:gh,away:ga}=getRealScore(g); let dt=(g.date||g.startTime||'').substring(0,10);
+      h2hHtml+=`<div class="stat-row"><span>${dt} ${hT} ${gh}-${ga} ${aT}</span></div>`;
+    });
+    h2hHtml+=`</div>`;
+    document.getElementById('h2h').innerHTML=`<b>🔄 Recent Meetings</b>`+h2hHtml;
+  }catch(e){document.getElementById('h2h').innerHTML=`<b>🔄 H2H</b><div style="font-size:11px;color:#8b9bb4">H2H loading...</div>`;}
+  
  }catch(e){document.getElementById('modalBody').innerHTML='Error '+e.message}
 }
 function closeModal(){document.getElementById('modal').classList.remove('show')}
 async function openTable(leagueName){
- if(!leagueName) leagueName=prompt("Type league:\nPremier League\nLa Liga\nSerie A\nBundesliga","Premier League");
- if(!leagueName) return;
+ if(!leagueName) leagueName=prompt("League: Premier League, Primeira Liga, La Liga","Premier League"); if(!leagueName) return;
  document.getElementById('content').innerHTML='<div class=loading>⏳ Loading '+leagueName+' TABLE...</div>';
  try{
   let r=await fetch('/api/table?leagueName='+encodeURIComponent(leagueName));
   let d=await r.json();
-  let table=d.response?.[0]?.league?.standings?.[0]||d.response||d.data||d.standings||[];
-  if(Array.isArray(table)&&table[0]?.standings) table=table[0].standings;
-  if(table?.standings) table=table.standings;
-  let html=`<div class=league onclick="load()"><span>⬅ Back</span><span>${leagueName} Table</span></div>`;
-  (table||[]).forEach((t,i)=>{let rank=t.rank||t.position||i+1; let name=t.team?.name||t.name||'Team'; let pts=t.points||0; let pl=t.all?.played||t.played||0; html+=`<div class="match"><div style="width:30px">${rank}</div><div style="flex:1">${name}</div><div>${pl} GP</div><div style="width:35px;font-weight:900;margin-left:10px">${pts}</div></div>`});
-  document.getElementById('content').innerHTML=html||'<div class=loading>No table data</div>';
- }catch(e){document.getElementById('content').innerHTML='<div class=loading>Error loading table</div>'}
+  let table=d.response||d.data||[];
+  let html=`<div class=league onclick="load()"><span>⬅ Back to ${current}</span><span>${leagueName}</span></div>`;
+  if(table.length===0) html+=`<div class=loading>No table yet - Play more games today</div>`;
+  else table.forEach((t,i)=>{let rank=t.rank||i+1; let name=t.team?.name||t.name||'Team'; let pts=t.points||0; let pl=t.all?.played||t.played||0; html+=`<div class="match"><div style="width:30px">${rank}</div><div style="flex:1">${name}</div><div>${pl} GP</div><div style="width:35px;font-weight:900;margin-left:10px">${pts}</div></div>`});
+  document.getElementById('content').innerHTML=html;
+ }catch(e){document.getElementById('content').innerHTML='<div class=loading>Error table</div>'}
 }
 load();setInterval(load,60000);
 </script>
