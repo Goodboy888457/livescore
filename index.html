@@ -43,7 +43,7 @@ header{background:#1a2530;padding:12px 15px;display:flex;justify-content:space-b
 <div class="tab" onclick="openTable()">TABLE</div>
 </div>
 <div class="search"><input id="search" placeholder="🔍 Search team, league..." onkeyup="searchTeam()"></div>
-<div id="content"><div class="loading">⏳ Loading REAL LIVE 2026/27...</div></div>
+<div id="content"><div class="loading">⏳ Loading REAL LIVE HIGH...</div></div>
 <div class="refresh" onclick="load()">↻</div>
 <div id="modal" onclick="closeModal()"><div id="modalBox" onclick="event.stopPropagation()"><div class="modalHead"><span id="mTitle">Match</span><span class="closeBtn" onclick="closeModal()">X</span></div><div class="modalBody" id="mBody"></div></div></div>
 <script>
@@ -54,43 +54,64 @@ async function load(){
  try{
   let r=await fetch('/api/live?type='+current);
   let d=await r.json();
-  let f=d.response||[];
-  if(f.length==0){c.innerHTML='<div class=loading>✅ No games for '+current.toUpperCase()+' now<br>Try TODAY tab<br><br>2026/27 season starts August 2026</div>';return}
-  document.getElementById('count').innerText='● '+f.length+' LIVE';
-  render(f)
+  // HIGH ONLY format can be array or object with data/matches/response
+  let f = d.response || d.data || d.matches || d || [];
+  if(!Array.isArray(f)) f = f.response || f.data || [];
+  
+  // Filter based on tab for Highlightly state.description
+  let filtered = f;
+  if(f.length>0 && f[0].state){
+    if(current==='live') filtered = f.filter(m=>['First half','Second half','Halftime','Extra time','First half extra','Second half extra'].includes(m.state.description));
+    if(current==='finished') filtered = f.filter(m=>m.state.description==='Finished');
+  }
+  
+  if(filtered.length==0 && current==='live'){
+    // If no live, show today count but message
+    if(f.length>0){
+      document.getElementById('count').innerText='● '+f.length+' TODAY';
+      render(f); return;
+    }
+    c.innerHTML='<div class=loading>✅ No games for LIVE now<br>Try TODAY tab<br><br>2026/27 season starts August 2026</div>';return
+  }
+  if(filtered.length==0){c.innerHTML='<div class=loading>✅ No games for '+current.toUpperCase()+' now<br>Try TODAY tab</div>';return}
+  
+  document.getElementById('count').innerText='● '+filtered.length+' '+current.toUpperCase();
+  render(filtered)
  }catch(e){c.innerHTML='<div class=loading>Error: '+e.message+'<br>Wait 1 min & refresh</div>'}
 }
 function render(fixtures){
- let l={};fixtures.forEach(x=>{let n=x.league.name+' - '+x.league.country;if(!l[n])l[n]=[];l[n].push(x)});
- let h='';for(let k in l){h+=`<div class="league"><span>${k}</span><span>${l[k].length}</span></div>`;l[k].forEach(f=>{let t=f.fixture.status.elapsed?f.fixture.status.elapsed+"'":f.fixture.status.short;let isLive=['1H','2H','HT','LIVE'].includes(f.fixture.status.short)?'live':'';h+=`<div class="match ${isLive}" onclick="openMatch('${f.teams.home.name} vs ${f.teams.away.name}','${t}','${f.goals.home??0}-${f.goals.away??0}','${k}')"><div class="time">${t}</div><div class="teams"><div class="team"><span>${f.teams.home.name}</span><span class="score">${f.goals.home??0}</span></div><div class="team"><span>${f.teams.away.name}</span><span class="score">${f.goals.away??0}</span></div></div><div class="status">${f.fixture.status.short}</div></div>`})}
+ // Support BOTH API-FOOTBALL and HIGHLIGHTLY formats
+ let groups={};
+ fixtures.forEach(x=>{
+  let leagueName = x.league?.name || x.competition?.name || 'Football';
+  let country = x.league?.country || '';
+  let key = leagueName + (country?' - '+country:'');
+  if(!groups[key]) groups[key]=[];
+  groups[key].push(x)
+ });
+ let h='';
+ for(let k in groups){
+  h+=`<div class="league"><span>${k}</span><span>${groups[k].length}</span></div>`;
+  groups[k].forEach(f=>{
+   // HIGH format: homeTeam, awayTeam, state
+   // OLD format: teams.home, fixture.status
+   let isHighlightly = !!f.state;
+   let home = isHighlightly ? (f.homeTeam?.name || f.homeTeam || 'Home') : f.teams.home.name;
+   let away = isHighlightly ? (f.awayTeam?.name || f.awayTeam || 'Away') : f.teams.away.name;
+   let homeScore = isHighlightly ? (f.state?.score?.home ?? f.state?.score?.current?.home ?? 0) : (f.goals.home ?? 0);
+   let awayScore = isHighlightly ? (f.state?.score?.away ?? f.state?.score?.current?.away ?? 0) : (f.goals.away ?? 0);
+   let time = isHighlightly ? (f.state?.clock || f.state?.description || 'NS') : (f.fixture.status.elapsed ? f.fixture.status.elapsed+"'" : f.fixture.status.short);
+   let short = isHighlightly ? f.state.description : f.fixture.status.short;
+   let isLive = isHighlightly ? ['First half','Second half','Halftime'].includes(f.state.description) : ['1H','2H','HT','LIVE'].includes(f.fixture.status.short);
+   
+   h+=`<div class="match ${isLive?'live':''}" onclick="openMatch('${home} vs ${away}','${time}','${homeScore}-${awayScore}','${k}')"><div class="time">${time}</div><div class="teams"><div class="team"><span>${home}</span><span class="score">${homeScore}</span></div><div class="team"><span>${away}</span><span class="score">${awayScore}</span></div></div><div class="status">${short.substring(0,4)}</div></div>`
+  })
+ }
  document.getElementById('content').innerHTML=h;
 }
 function switchTab(t,el){current=t;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');load()}
 function openMatch(ti,time,sc,info){document.getElementById('mTitle').innerText=ti;document.getElementById('mBody').innerHTML=`<div class=stat><span>Score</span><b>${sc}</b></div><div class=stat><span>Time</span><span>${time}</span></div><div class=stat><span>League</span><span>${info}</span></div><br><button onclick="closeModal()" style="width:100%;padding:12px;background:#00c853;border:none;border-radius:8px;font-weight:700">Close</button>`;document.getElementById('modal').style.display='flex'}
 function closeModal(){document.getElementById('modal').style.display='none'}
 function searchTeam(){let q=document.getElementById('search').value.toLowerCase();document.querySelectorAll('.match').forEach(m=>{m.style.display=m.innerText.toLowerCase().includes(q)?'flex':'none'})}
-async function openTable(){
- let leagueId=prompt("KINGDOM TABLE 2026/27\nType number:\n39=Premier League\n140=La Liga\n135=Serie A\n78=Bundesliga\n61=Ligue 1\n2=Champions League\n140 more...","39");
- if(!leagueId)return;
- document.getElementById('content').innerHTML='<div class=loading>⏳ Loading 2026/27 TABLE...</div>';
- try{
-  let r=await fetch('/api/table?league='+leagueId+'&season=2026');
-  let d=await r.json();
-  if(!d.response||d.response.length==0||!d.response[0].league.standings||d.response[0].league.standings[0].length==0){
-   document.getElementById('content').innerHTML='<div class=loading>2026/27 season not started yet (starts Aug 2026)<br>Showing 2025/26 table...</div>';
-   r=await fetch('/api/table?league='+leagueId+'&season=2025');
-   d=await r.json();
-  }
-  let table=d.response[0].league.standings[0];
-  let html=`<div class=league>${d.response[0].league.name} ${d.response[0].league.season}/${d.response[0].league.season+1} Table</div><div style="display:flex;padding:8px 15px;font-size:11px;font-weight:700;background:#1a2530;border-bottom:1px solid #2a3a4a"><span style="width:30px">#</span><span style="flex:1">Team</span><span style="width:25px">P</span><span style="width:25px">W</span><span style="width:35px">Pts</span></div>`;
-  table.forEach(t=>{
-   let color=t.rank<=4?'#00c853':t.rank>=18?'#ff3b30':'#fff';
-   html+=`<div class="match"><div style="width:30px;font-weight:700;color:${color}">${t.rank}</div><div style="flex:1;display:flex;align-items:center"><img src="${t.team.logo}" style="width:18px;height:18px;margin-right:6px">${t.team.name}</div><div style="width:25px">${t.all.played}</div><div style="width:25px">${t.all.win}</div><div style="width:35px;font-weight:900">${t.points}</div></div>`
-  });
-  document.getElementById('content').innerHTML=html;
- }catch(e){document.getElementById('content').innerHTML='<div class=loading>Table error: '+e.message+'<br><br>Note: 2026/27 table go ready from August 2026. For now use 2025 season</div>'}
-}
-load();setInterval(load,60000);
-</script>
-</body>
-</html>
+async function openTable(){alert("TABLE for HIGH ONLY coming soon - Highlightly uses /football/standings endpoint. For now use Live/Today/FT tabs!")}
+load();setInterval(load,
