@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Kingdom Livescore 2026/27</title>
+<title>Kingdom Livescore 2026/27 - ALL LEAGUES</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
 body{background:#0f1419;color:#fff}
@@ -33,7 +33,7 @@ header{background:#1a2530;padding:12px 15px;display:flex;justify-content:space-b
 </style>
 </head>
 <body>
-<header><div class="logo">KINGDOM <span>2026/27</span></div><div class="live-dot" id="count">● REAL</div></header>
+<header><div class="logo">KINGDOM <span>2026/27</span></div><div class="live-dot" id="count">● REAL LIVE</div></header>
 <div class="verse">📖 Tap LEAGUE for table - Tap MATCH for stats - Matt 6:33</div>
 <div class="tabs">
 <div class="tab active" onclick="switchTab('yesterday',this)">YEST</div>
@@ -49,108 +49,45 @@ header{background:#1a2530;padding:12px 15px;display:flex;justify-content:space-b
 <div id="modal" onclick="if(event.target==this)closeModal()"><div class="modal-box"><div class="modal-head"><div id="modalTitle">Details</div><button onclick="closeModal()">X Close</button></div><div id="modalBody" style="padding:15px">Loading...</div></div></div>
 <script>
 let current='yesterday';
-function getRealScore(f){
-  let s = f.state?.score || f.score || {};
-  let home = s.current?.home ?? s.home ?? s.homeTeam ?? f.homeScore?.current ?? f.homeScore ?? null;
-  let away = s.current?.away ?? s.away ?? s.awayTeam ?? f.awayScore?.current ?? f.awayScore ?? null;
-  if((home===null||away===null) && typeof s.current==='string' && s.current.includes('-')){let p=s.current.split('-');home=p[0];away=p[1];}
-  if((home===null||away===null) && typeof s==='string' && s.includes('-')){let p=s.split('-');home=p[0];away=p[1];}
-  if(home===null) home=0; if(away===null) away=0;
-  return {home,away};
-}
-async function load(){
- let c=document.getElementById('content');
- c.innerHTML='<div class=loading>⏳ Loading '+current.toUpperCase()+'...</div>';
- try{
-  let r=await fetch('/api/live?type='+current);
-  let d=await r.json();
-  let f = Array.isArray(d) ? d : (d.data||d.response||[]);
-  if(!Array.isArray(f)) f=[];
-  let filtered=f;
-  if(current==='live') filtered=f.filter(m=>['First half','Second half','Halftime','Half time','Live'].includes(m.state?.description));
-  if(current==='finished') filtered=f.filter(m=>String(m.state?.description||'').includes('Finished'));
-  document.getElementById('count').innerText='● '+filtered.length+' '+current.toUpperCase();
-  if(filtered.length===0){c.innerHTML='<div class=loading>No '+current+' games</div>';return}
-  render(filtered)
- }catch(e){c.innerHTML='<div class=loading>Error '+e.message+'</div>'}
-}
-function render(fixtures){
- let groups={};
- fixtures.forEach(x=>{let k=x.league?.name||'Football'; if(!groups[k]) groups[k]=[]; groups[k].push(x)});
- let h='';
- for(let k in groups){
-  let safeK = k.replace(/'/g,'');
-  h+=`<div class="league" onclick="openTable('${safeK}')"><span>🏆 ${k} 👉 TABLE</span><span>${groups[k].length} ⚽</span></div>`;
-  groups[k].forEach(f=>{
-   let home=f.homeTeam?.name||'Home'; let away=f.awayTeam?.name||'Away';
-   if(typeof home==='object') home=home.name; if(typeof away==='object') away=away.name;
-   let {home:hs, away:as} = getRealScore(f);
-   let time=String(f.state?.clock??f.state?.description??'FT').substring(0,12);
-   let status=String(f.state?.description||'NS').substring(0,5);
-   let isLive=['First half','Second half','Halftime','Half time','Live'].includes(f.state?.description);
-   let mid=f.id||'';
-   h+=`<div class="match ${isLive?'live':''}" onclick="openMatch('${mid}','${String(home).replace(/'/g,'')}','${String(away).replace(/'/g,'')}','${k.replace(/'/g,'')}')"><div class="time">${time}</div><div class="teams"><div class="team"><span>${home}</span><span class="score">${hs}</span></div><div class="team"><span>${away}</span><span class="score">${as}</span></div></div><div class="status">${status}</div></div>`
-  })
- }
- document.getElementById('content').innerHTML=h;
-}
+function getRealScore(f){let s=f.state?.score||f.score||{};let home=s.current?.home??s.home??s.homeTeam??f.homeScore?.current??f.homeScore??null;let away=s.current?.away??s.away??s.awayTeam??f.awayScore?.current??f.awayScore??null;if((home===null||away===null)&&typeof s.current==='string'&&s.current.includes('-')){let p=s.current.split('-');home=p[0];away=p[1];}if((home===null||away===null)&&typeof s==='string'&&s.includes('-')){let p=s.split('-');home=p[0];away=p[1];}if(home===null)home=0;if(away===null)away=0;return{home,away};}
+async function load(){let c=document.getElementById('content');c.innerHTML='<div class=loading>⏳ Loading '+current.toUpperCase()+'...</div>';try{let r=await fetch('/api/live?type='+current);let d=await r.json();let f=Array.isArray(d)?d:(d.data||d.response||[]);if(!Array.isArray(f))f=[];let filtered=f;if(current==='live')filtered=f.filter(m=>['First half','Second half','Halftime','Half time','Live'].includes(m.state?.description));if(current==='finished')filtered=f.filter(m=>String(m.state?.description||'').includes('Finished'));document.getElementById('count').innerText='● '+filtered.length+' '+current.toUpperCase();if(filtered.length===0){c.innerHTML='<div class=loading>No '+current+' games</div>';return}render(filtered)}catch(e){c.innerHTML='<div class=loading>Error '+e.message+'</div>'}}
+function render(fixtures){let groups={};fixtures.forEach(x=>{let k=x.league?.name||'Football';if(!groups[k])groups[k]=[];groups[k].push(x)});let h='';for(let k in groups){let safeK=k.replace(/'/g,'');h+=`<div class="league" onclick="openTable('${safeK}')"><span>🏆 ${k} 👉 TABLE</span><span>${groups[k].length} ⚽</span></div>`;groups[k].forEach(f=>{let home=f.homeTeam?.name||'Home';let away=f.awayTeam?.name||'Away';if(typeof home==='object')home=home.name;if(typeof away==='object')away=away.name;let{home:hs,away:as}=getRealScore(f);let time=String(f.state?.clock??f.state?.description??'FT').substring(0,12);let status=String(f.state?.description||'NS').substring(0,5);let isLive=['First half','Second half','Halftime','Half time','Live'].includes(f.state?.description);let mid=f.id||'';h+=`<div class="match ${isLive?'live':''}" onclick="openMatch('${mid}','${String(home).replace(/'/g,'')}','${String(away).replace(/'/g,'')}','${k.replace(/'/g,'')}')"><div class="time">${time}</div><div class="teams"><div class="team"><span>${home}</span><span class="score">${hs}</span></div><div class="team"><span>${away}</span><span class="score">${as}</span></div></div><div class="status">${status}</div></div>`})}document.getElementById('content').innerHTML=h;}
 function switchTab(t,el){current=t;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');load()}
 function searchTeam(){let q=document.getElementById('search').value.toLowerCase();document.querySelectorAll('.match').forEach(m=>{m.style.display=m.innerText.toLowerCase().includes(q)?'flex':'none'})}
-async function openMatch(id,home,away,league){
- document.getElementById('modal').classList.add('show');
- document.getElementById('modalTitle').innerText=league;
- document.getElementById('modalBody').innerHTML=`<div style="text-align:center"><div style="font-size:20px;font-weight:900">${home}<br>vs<br>${away}</div><div style="color:#8b9bb4">${league}</div><div style="margin-top:20px">⏳ Loading REAL data...</div></div>`;
- if(!id) return;
- try{
-  let r=await fetch('/api/match?id='+id);
-  let d=await r.json();
-  let data = d.data || d || {};
-  if(Array.isArray(data)) data = data[0]||{};
-  let {home:hs, away:as} = getRealScore(data);
-  let venue = data.venue?.name || 'Stadium';
-  let referee = data.referee?.name || data.referee || 'TBD';
-  let events = data.events||[];
-  let html = `<div style="text-align:center"><div style="font-size:36px;font-weight:900;color:#00c853">${hs} - ${as}</div><div style="font-size:18px;font-weight:700">${home} vs ${away}</div><div style="color:#8b9bb4;font-size:12px">${league}</div><div style="background:#1e2e3e;padding:12px;border-radius:12px;margin-top:12px;font-size:12px;text-align:left"><div>🏟️ ${venue}</div><div>👨‍⚖️ ${referee}</div><div style="margin-top:6px;font-weight:700;color:#00c853">${data.state?.description||'Finished'}</div></div></div>`;
-  if(events.length>0){
-    html+=`<div style="margin-top:12px"><b>⚽ Events (Real Minutes)</b>`;
-    events.slice(-15).forEach(ev=>{
-      let m = ev.time || ev.minute || ev.minuteStr || ev.clock || '';
-      if(m) m = String(m).replace("'","") + "'";
-      let type = ev.type || ev.description || 'Event';
-      let player = ev.player?.name || ev.player || '';
-      html+=`<div class="stat-row"><span><b>${m}</b> ${type} - ${player}</span></div>`;
-    });
-    html+=`</div>`;
-  }
-  html+=`<div id="h2h" style="margin-top:15px"><b>🔄 H2H</b><div class="loading">Loading...</div></div>`;
-  html+=`<div style="margin-top:15px;text-align:center"><button onclick="openTable('${league}')" style="background:#00c853;color:#000;border:0;padding:10px 20px;border-radius:20px;font-weight:900">📊 VIEW TABLE</button></div>`;
-  document.getElementById('modalBody').innerHTML=html;
-  try{
-    let hr=await fetch(`/api/h2h?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`);
-    let hd=await hr.json(); let games = hd.data||hd.response||[];
-    let h2hHtml=`<div style="margin-top:8px">`;
-    if(games.length===0) h2hHtml+=`<div style="color:#8b9bb4;font-size:11px">No recent H2H</div>`;
-    else games.forEach(g=>{let hT=g.homeTeam?.name||''; let aT=g.awayTeam?.name||''; let {home:gh,away:ga}=getRealScore(g); let dt=(g.date||'').substring(0,10); h2hHtml+=`<div class="stat-row"><span>${dt} ${hT} ${gh}-${ga} ${aT}</span></div>`;});
-    h2hHtml+=`</div>`; document.getElementById('h2h').innerHTML=`<b>🔄 Recent Meetings</b>`+h2hHtml;
-  }catch(e){}
- }catch(e){document.getElementById('modalBody').innerHTML='Error '+e.message}
-}
+async function openMatch(id,home,away,league){document.getElementById('modal').classList.add('show');document.getElementById('modalTitle').innerText=league;document.getElementById('modalBody').innerHTML=`<div style="text-align:center"><div style="font-size:20px;font-weight:900">${home}<br>vs<br>${away}</div><div style="color:#8b9bb4">${league}</div><div style="margin-top:20px">⏳ Loading REAL data...</div></div>`;if(!id)return;try{let r=await fetch('/api/match?id='+id);let d=await r.json();let data=d.data||d||{};if(Array.isArray(data))data=data[0]||{};let{home:hs,away:as}=getRealScore(data);let venue=data.venue?.name||'Stadium';let referee=data.referee?.name||data.referee||'TBD';let events=data.events||[];let html=`<div style="text-align:center"><div style="font-size:36px;font-weight:900;color:#00c853">${hs} - ${as}</div><div style="font-size:18px;font-weight:700">${home} vs ${away}</div><div style="color:#8b9bb4;font-size:12px">${league}</div><div style="background:#1e2e3e;padding:12px;border-radius:12px;margin-top:12px;font-size:12px;text-align:left"><div>🏟️ ${venue}</div><div>👨‍⚖️ ${referee}</div><div style="margin-top:6px;font-weight:700;color:#00c853">${data.state?.description||'Finished'}</div></div></div>`;if(events.length>0){html+=`<div style="margin-top:12px"><b>⚽ Events</b>`;events.slice(-15).forEach(ev=>{let m=ev.time||ev.minute||ev.minuteStr||ev.clock||'';if(m)m=String(m).replace("'","")+"'";let type=ev.type||ev.description||'Event';let player=ev.player?.name||ev.player||'';html+=`<div class="stat-row"><span><b>${m}</b> ${type} - ${player}</span></div>`;});html+=`</div>`;}html+=`<div id="h2h" style="margin-top:15px"><b>🔄 H2H</b><div class="loading">Loading...</div></div>`;html+=`<div style="margin-top:15px;text-align:center"><button onclick="openTable('${league}')" style="background:#00c853;color:#000;border:0;padding:10px 20px;border-radius:20px;font-weight:900">📊 VIEW TABLE</button></div>`;document.getElementById('modalBody').innerHTML=html;try{let hr=await fetch(`/api/h2h?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`);let hd=await hr.json();let games=hd.data||hd.response||[];let h2hHtml=`<div style="margin-top:8px">`;if(games.length===0)h2hHtml+=`<div style="color:#8b9bb4;font-size:11px">No recent H2H</div>`;else games.forEach(g=>{let hT=g.homeTeam?.name||'';let aT=g.awayTeam?.name||'';let{home:gh,away:ga}=getRealScore(g);let dt=(g.date||'').substring(0,10);h2hHtml+=`<div class="stat-row"><span>${dt} ${hT} ${gh}-${ga} ${aT}</span></div>`;});h2hHtml+=`</div>`;document.getElementById('h2h').innerHTML=`<b>🔄 Recent Meetings</b>`+h2hHtml;}catch(e){}}catch(e){document.getElementById('modalBody').innerHTML='Error '+e.message}}
 function closeModal(){document.getElementById('modal').classList.remove('show')}
 async function openTable(leagueName){
- if(!leagueName) leagueName=prompt("League: Premier League, Primeira Liga, La Liga","Premier League"); if(!leagueName) return;
- document.getElementById('content').innerHTML='<div class=loading>⏳ Loading FULL '+leagueName+' TABLE...</div>';
+ if(!leagueName){
+  document.getElementById('content').innerHTML=`
+   <div class="league"><span>⬅ Back to ${current.toUpperCase()}</span><span>🏆 ALL LEAGUES - FULL TABLE</span></div>
+   <div class="match" onclick="openTable('Premier League')"><div style="flex:1">🏴󠁧󠁢󠁥󠁮󠁧󠁿 ENGLAND - Premier League</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+   <div class="match" onclick="openTable('La Liga')"><div style="flex:1">🇪🇸 SPAIN - La Liga</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+   <div class="match" onclick="openTable('Bundesliga')"><div style="flex:1">🇩🇪 GERMANY - Bundesliga</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+   <div class="match" onclick="openTable('Serie A')"><div style="flex:1">🇮🇹 ITALY - Serie A</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+   <div class="match" onclick="openTable('Ligue 1')"><div style="flex:1">🇫🇷 FRANCE - Ligue 1</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+   <div class="match" onclick="openTable('Primeira Liga')"><div style="flex:1">🇵🇹 PORTUGAL - Primeira Liga</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+   <div class="match" onclick="openTable('Eredivisie')"><div style="flex:1">🇳🇱 NETHERLANDS - Eredivisie</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+   <div class="match" onclick="openTable('Champions League')"><div style="flex:1">🏆 Champions League</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+   <div class="match" onclick="openTable('Jupiler')"><div style="flex:1">🇧🇪 BELGIUM - Jupiler</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+   <div class="match" onclick="openTable('Super Lig')"><div style="flex:1">🇹🇷 TURKEY - Super Lig</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+   <div class="match" onclick="openTable('Saudi')"><div style="flex:1">🇸🇦 SAUDI - Pro League</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+   <div class="match" onclick="openTable('Championship')"><div style="flex:1">🏴󠁧󠁢󠁥󠁮󠁧󠁿 ENGLAND - Championship</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
+  `;
+  return;
+ }
+ document.getElementById('content').innerHTML='<div class=loading>⏳ Loading FULL '+leagueName+' TABLE 1-20 (40 days)...</div>';
  try{
   let r=await fetch('/api/table?leagueName='+encodeURIComponent(leagueName));
   let d=await r.json();
   let table=d.response||d.data||[];
-  let html=`<div class=league onclick="load()"><span>⬅ Back to ${current}</span><span>🏆 ${leagueName} FULL TABLE</span></div>`;
-  html+=`<div style="display:flex;padding:10px 15px;background:#0f1419;font-size:11px;color:#8b9bb4;font-weight:700;border-bottom:1px solid #2a3a4a"><div style="width:30px">#</div><div style="flex:1">Team</div><div style="width:40px">P</div><div style="width:40px">GD</div><div style="width:40px">PTS</div></div>`;
-  if(table.length===0) html+=`<div class=loading>No table yet - Try Premier League / check API key</div>`;
+  let html=`<div class=league onclick="openTable()"><span>⬅ ALL LEAGUES</span><span>🏆 ${leagueName}</span></div>`;
+  html+=`<div style="display:flex;padding:10px 15px;background:#0f1419;font-size:11px;color:#8b9bb4;font-weight:700"><div style="width:25px">#</div><div style="flex:1">Team</div><div style="width:30px">P</div><div style="width:30px">W</div><div style="width:30px">GD</div><div style="width:35px">PTS</div></div>`;
+  if(table.length===0) html+=`<div class=loading>No data for ${leagueName}<br>Try Premier League</div>`;
   else table.forEach((t,i)=>{
-    let rank=t.rank||i+1; let name=t.team?.name||t.name||'Team'; let pts=t.points||0; let pl=t.all?.played||t.played||0; let gd=t.goalsDiff||0; let form=t.form||'';
+    let rank=t.rank||i+1; let name=t.team?.name||t.name||'Team'; let pts=t.points||0; let pl=t.all?.played||0; let gd=t.goalsDiff||0; let w=(t.form||'').split('W')[0]||'0';
     let color = rank<=4 ? '#00c853' : rank>=table.length-2 ? '#ff3b30' : '#fff';
     let border = rank<=4 ? 'border-left:3px solid #00c853' : rank<=6 ? 'border-left:3px solid #ff9800' : rank>=table.length-2 ? 'border-left:3px solid #ff3b30' : '';
-    html+=`<div class="match" style="${border}"><div style="width:30px;font-weight:900;color:${color}">${rank}</div><div style="flex:1"><div style="font-weight:700">${name}</div><div style="font-size:10px;color:#8b9bb4">${form}</div></div><div style="width:40px;text-align:center">${pl}</div><div style="width:40px;text-align:center">${gd>0?'+'+gd:gd}</div><div style="width:40px;text-align:center;font-weight:900;color:#00c853">${pts}</div></div>`;
+    html+=`<div class="match" style="${border}"><div style="width:25px;font-weight:900;color:${color}">${rank}</div><div style="flex:1;font-weight:700;font-size:13px">${name}</div><div style="width:30px;text-align:center">${pl}</div><div style="width:30px;text-align:center">${w}</div><div style="width:30px;text-align:center">${gd>0?'+'+gd:gd}</div><div style="width:35px;text-align:center;font-weight:900;color:#00c853">${pts}</div></div>`;
   });
   document.getElementById('content').innerHTML=html;
  }catch(e){document.getElementById('content').innerHTML='<div class=loading>Error table</div>'}
