@@ -17,9 +17,7 @@ header{background:#1a2530;padding:12px 15px;display:flex;justify-content:space-b
 .search input{width:100%;padding:10px;border-radius:20px;border:1px solid #2a3a4a;background:#1e2e3e;color:#fff;outline:none}
 .verse{background:#00c853;color:#000;padding:6px 15px;text-align:center;font-size:11px;font-weight:700}
 .league{background:#1e2e3e;padding:10px 15px;font-weight:700;font-size:13px;border-top:1px solid #2a3a4a;display:flex;justify-content:space-between;cursor:pointer}
-.league:hover{background:#2a3a4a;color:#00c853}
 .match{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid #1e2e3e;font-size:14px;cursor:pointer;background:#131d27}
-.match:hover{background:#1e2e3e} .match.live{border-left:3px solid #ff3b30}
 .time{width:65px;font-size:11px;color:#00c853;font-weight:700}
 .teams{flex:1}.team{display:flex;justify-content:space-between;padding:1px 0}
 .score{font-weight:900;background:#00c853;color:#000;padding:2px 7px;border-radius:4px;min-width:28px;text-align:center}
@@ -113,55 +111,47 @@ async function openMatch(id,home,away,league){
   let referee = data.referee?.name || data.referee || 'TBD';
   let events = data.events||[];
   let html = `<div style="text-align:center"><div style="font-size:36px;font-weight:900;color:#00c853">${hs} - ${as}</div><div style="font-size:18px;font-weight:700">${home} vs ${away}</div><div style="color:#8b9bb4;font-size:12px">${league}</div><div style="background:#1e2e3e;padding:12px;border-radius:12px;margin-top:12px;font-size:12px;text-align:left"><div>🏟️ ${venue}</div><div>👨‍⚖️ ${referee}</div><div style="margin-top:6px;font-weight:700;color:#00c853">${data.state?.description||'Finished'}</div></div></div>`;
-  
   if(events.length>0){
     html+=`<div style="margin-top:12px"><b>⚽ Events (Real Minutes)</b>`;
     events.slice(-15).forEach(ev=>{
-      // THIS IS THE FIX - Highlightly uses time not minute
       let m = ev.time || ev.minute || ev.minuteStr || ev.clock || '';
       if(m) m = String(m).replace("'","") + "'";
       let type = ev.type || ev.description || 'Event';
       let player = ev.player?.name || ev.player || '';
-      let team = ev.team?.name || '';
-      html+=`<div class="stat-row"><span><b>${m}</b> ${type} - ${player}</span><span style="font-size:10px">${team.substring(0,12)}</span></div>`;
+      html+=`<div class="stat-row"><span><b>${m}</b> ${type} - ${player}</span></div>`;
     });
     html+=`</div>`;
-  } else {
-    html+=`<div style="margin-top:12px;color:#8b9bb4;font-size:12px">Events will appear after kickoff</div>`;
   }
-  
-  html+=`<div id="h2h" style="margin-top:15px"><b>🔄 H2H</b><div class="loading">Loading H2H...</div></div>`;
+  html+=`<div id="h2h" style="margin-top:15px"><b>🔄 H2H</b><div class="loading">Loading...</div></div>`;
   html+=`<div style="margin-top:15px;text-align:center"><button onclick="openTable('${league}')" style="background:#00c853;color:#000;border:0;padding:10px 20px;border-radius:20px;font-weight:900">📊 VIEW TABLE</button></div>`;
-  
   document.getElementById('modalBody').innerHTML=html;
-  
   try{
     let hr=await fetch(`/api/h2h?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`);
-    let hd=await hr.json();
-    let games = hd.data||hd.response||[];
+    let hd=await hr.json(); let games = hd.data||hd.response||[];
     let h2hHtml=`<div style="margin-top:8px">`;
-    if(games.length===0) h2hHtml+=`<div style="color:#8b9bb4;font-size:11px">No recent H2H found (Highlightly limited)</div>`;
-    else games.forEach(g=>{
-      let hT=g.homeTeam?.name||''; let aT=g.awayTeam?.name||''; let {home:gh,away:ga}=getRealScore(g); let dt=(g.date||g.startTime||'').substring(0,10);
-      h2hHtml+=`<div class="stat-row"><span>${dt} ${hT} ${gh}-${ga} ${aT}</span></div>`;
-    });
-    h2hHtml+=`</div>`;
-    document.getElementById('h2h').innerHTML=`<b>🔄 Recent Meetings</b>`+h2hHtml;
-  }catch(e){document.getElementById('h2h').innerHTML=`<b>🔄 H2H</b><div style="font-size:11px;color:#8b9bb4">H2H loading...</div>`;}
-  
+    if(games.length===0) h2hHtml+=`<div style="color:#8b9bb4;font-size:11px">No recent H2H</div>`;
+    else games.forEach(g=>{let hT=g.homeTeam?.name||''; let aT=g.awayTeam?.name||''; let {home:gh,away:ga}=getRealScore(g); let dt=(g.date||'').substring(0,10); h2hHtml+=`<div class="stat-row"><span>${dt} ${hT} ${gh}-${ga} ${aT}</span></div>`;});
+    h2hHtml+=`</div>`; document.getElementById('h2h').innerHTML=`<b>🔄 Recent Meetings</b>`+h2hHtml;
+  }catch(e){}
  }catch(e){document.getElementById('modalBody').innerHTML='Error '+e.message}
 }
 function closeModal(){document.getElementById('modal').classList.remove('show')}
 async function openTable(leagueName){
  if(!leagueName) leagueName=prompt("League: Premier League, Primeira Liga, La Liga","Premier League"); if(!leagueName) return;
- document.getElementById('content').innerHTML='<div class=loading>⏳ Loading '+leagueName+' TABLE...</div>';
+ document.getElementById('content').innerHTML='<div class=loading>⏳ Loading FULL '+leagueName+' TABLE...</div>';
  try{
   let r=await fetch('/api/table?leagueName='+encodeURIComponent(leagueName));
   let d=await r.json();
   let table=d.response||d.data||[];
-  let html=`<div class=league onclick="load()"><span>⬅ Back to ${current}</span><span>${leagueName}</span></div>`;
-  if(table.length===0) html+=`<div class=loading>No table yet - Play more games today</div>`;
-  else table.forEach((t,i)=>{let rank=t.rank||i+1; let name=t.team?.name||t.name||'Team'; let pts=t.points||0; let pl=t.all?.played||t.played||0; html+=`<div class="match"><div style="width:30px">${rank}</div><div style="flex:1">${name}</div><div>${pl} GP</div><div style="width:35px;font-weight:900;margin-left:10px">${pts}</div></div>`});
+  let html=`<div class=league onclick="load()"><span>⬅ Back to ${current}</span><span>🏆 ${leagueName} FULL TABLE</span></div>`;
+  html+=`<div style="display:flex;padding:10px 15px;background:#0f1419;font-size:11px;color:#8b9bb4;font-weight:700;border-bottom:1px solid #2a3a4a"><div style="width:30px">#</div><div style="flex:1">Team</div><div style="width:40px">P</div><div style="width:40px">GD</div><div style="width:40px">PTS</div></div>`;
+  if(table.length===0) html+=`<div class=loading>No table yet - Try Premier League / check API key</div>`;
+  else table.forEach((t,i)=>{
+    let rank=t.rank||i+1; let name=t.team?.name||t.name||'Team'; let pts=t.points||0; let pl=t.all?.played||t.played||0; let gd=t.goalsDiff||0; let form=t.form||'';
+    let color = rank<=4 ? '#00c853' : rank>=table.length-2 ? '#ff3b30' : '#fff';
+    let border = rank<=4 ? 'border-left:3px solid #00c853' : rank<=6 ? 'border-left:3px solid #ff9800' : rank>=table.length-2 ? 'border-left:3px solid #ff3b30' : '';
+    html+=`<div class="match" style="${border}"><div style="width:30px;font-weight:900;color:${color}">${rank}</div><div style="flex:1"><div style="font-weight:700">${name}</div><div style="font-size:10px;color:#8b9bb4">${form}</div></div><div style="width:40px;text-align:center">${pl}</div><div style="width:40px;text-align:center">${gd>0?'+'+gd:gd}</div><div style="width:40px;text-align:center;font-weight:900;color:#00c853">${pts}</div></div>`;
+  });
   document.getElementById('content').innerHTML=html;
  }catch(e){document.getElementById('content').innerHTML='<div class=loading>Error table</div>'}
 }
