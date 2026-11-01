@@ -18,30 +18,48 @@ header{background:#1a2530;padding:12px 15px;display:flex;justify-content:space-b
 .verse{background:#00c853;color:#000;padding:6px 15px;text-align:center;font-size:11px;font-weight:700}
 .league{background:#1e2e3e;padding:10px 15px;font-weight:700;font-size:13px;border-top:1px solid #2a3a4a;display:flex;justify-content:space-between}
 .match{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid #1e2e3e;font-size:14px;cursor:pointer;background:#131d27}
-.match:hover{background:#1a2530}.match.live{border-left:3px solid #ff3b30}
+.match:hover{background:#1e2e3e;transform:scale(1.01)} .match:active{background:#2a3a4a}
+.match.live{border-left:3px solid #ff3b30}
 .time{width:60px;font-size:12px;color:#00c853;font-weight:700}
 .teams{flex:1}.team{display:flex;justify-content:space-between;padding:1px 0}
 .score{font-weight:700;background:#2a3a4a;padding:1px 6px;border-radius:3px;min-width:24px;text-align:center}
 .status{width:45px;text-align:right;font-size:11px;color:#ff3b30}
 .loading{text-align:center;padding:40px;color:#8b9bb4;line-height:1.6}
-.refresh{position:fixed;bottom:20px;right:20px;background:#00c853;color:#000;width:45px;height:45px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;cursor:pointer}
+.refresh{position:fixed;bottom:20px;right:20px;background:#00c853;color:#000;width:45px;height:45px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;cursor:pointer;z-index:50}
+/* MODAL CLICKABLE */
+#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:100;align-items:flex-end}
+#modal.show{display:flex}
+.modal-box{background:#131d27;width:100%;max-height:85vh;border-radius:20px 20px 0 0;overflow:auto;border-top:2px solid #00c853}
+.modal-head{padding:15px;display:flex;justify-content:space-between;align-items:center;background:#1a2530;position:sticky;top:0}
+.modal-head button{background:#2a3a4a;color:#fff;border:0;padding:6px 12px;border-radius:10px}
+.modal-body{padding:15px}
+.event{padding:8px 0;border-bottom:1px solid #1e2e3e;display:flex;gap:10px;font-size:13px}
+.event .min{color:#00c853;font-weight:700;width:35px}
 </style>
 </head>
 <body>
 <header><div class="logo">KINGDOM <span>2026/27</span></div><div class="live-dot" id="count">● REAL LIVE</div></header>
-<div class="verse">📖 2026/27 Season - Seek ye first the Kingdom - Matt 6:33</div>
+<div class="verse">📖 Click any match for details - Matt 6:33</div>
 <div class="tabs">
 <div class="tab active" id="tab-live" onclick="switchTab('live',this)">LIVE</div>
 <div class="tab" id="tab-today" onclick="switchTab('today',this)">TODAY</div>
 <div class="tab" id="tab-finished" onclick="switchTab('finished',this)">FT</div>
 <div class="tab" onclick="openTable()">TABLE</div>
 </div>
-<div class="search"><input id="search" placeholder="🔍 Search team, league..." onkeyup="searchTeam()"></div>
-<div id="content"><div class="loading">⏳ Loading REAL LIVE HIGH...</div></div>
+<div class="search"><input id="search" placeholder="🔍 Search team..." onkeyup="searchTeam()"></div>
+<div id="content"><div class="loading">⏳ Loading...</div></div>
 <div class="refresh" onclick="load()">↻</div>
+
+<div id="modal" onclick="if(event.target==this)closeModal()">
+<div class="modal-box">
+<div class="modal-head"><div id="modalTitle" style="font-weight:900">Match Details</div><button onclick="closeModal()">X Close</button></div>
+<div class="modal-body" id="modalBody">Loading...</div>
+</div>
+</div>
+
 <script>
 let allMatches = [];
-let current='live';
+let current='today';
 async function load(){
  let c=document.getElementById('content');
  c.innerHTML='<div class=loading>⏳ Loading '+current.toUpperCase()+'...</div>';
@@ -51,18 +69,10 @@ async function load(){
   let f = Array.isArray(d) ? d : (d.data || d.response || d.matches || []);
   if(!Array.isArray(f)) f = [];
   allMatches = f;
-  if(f.length===0){c.innerHTML='<div class=loading>✅ No games - Check /api/live</div>';return}
-  
+  if(f.length===0){c.innerHTML='<div class=loading>No games</div>';return}
   let filtered = f;
   if(current==='live') filtered = f.filter(m=>['First half','Second half','Halftime','First half extra','Second half extra','Extra time','Penalties'].includes(m.state?.description));
   if(current==='finished') filtered = f.filter(m=>m.state?.description==='Finished');
-  if(current==='today') filtered = f;
-  
-  if(filtered.length===0 && current==='live'){
-    document.getElementById('count').innerText='● '+f.length+' TODAY';
-    document.getElementById('content').innerHTML='<div class=loading>✅ No LIVE now<br>'+f.length+' games TODAY - Click TODAY tab</div>';
-    return;
-  }
   document.getElementById('count').innerText='● '+filtered.length+' '+current.toUpperCase();
   render(filtered)
  }catch(e){c.innerHTML='<div class=loading>Error: '+e.message+'</div>'}
@@ -83,21 +93,55 @@ function render(fixtures){
    let scoreObj = f.state?.score?.current || f.state?.score || {};
    let homeScore = scoreObj?.home ?? 0;
    let awayScore = scoreObj?.away ?? 0;
-   if(f.state?.description==='Not started'){homeScore=0;awayScore=0;}
    let timeRaw = f.state?.clock != null ? f.state.clock : (f.state?.description || 'NS');
    let time = String(timeRaw);
-   let statusRaw = f.state?.description || 'NS';
-   let status = String(statusRaw);
-   let isLive = ['First half','Second half','Halftime','First half extra','Second half extra','Extra time','Penalties'].includes(f.state?.description);
-   h+=`<div class="match ${isLive?'live':''}"><div class="time">${time.substring(0,12)}</div><div class="teams"><div class="team"><span>${home}</span><span class="score">${homeScore}</span></div><div class="team"><span>${away}</span><span class="score">${awayScore}</span></div></div><div class="status">${status.substring(0,5)}</div></div>`
+   let status = String(f.state?.description || 'NS');
+   let isLive = ['First half','Second half','Halftime'].includes(f.state?.description);
+   let mid = f.id || f.matchId || f._id || '';
+   h+=`<div class="match ${isLive?'live':''}" onclick="openMatch('${mid}','${home.replace(/'/g,'')}','${away.replace(/'/g,'')}','${k.replace(/'/g,'')}')"><div class="time">${time.substring(0,12)}</div><div class="teams"><div class="team"><span>${home}</span><span class="score">${homeScore}</span></div><div class="team"><span>${away}</span><span class="score">${awayScore}</span></div></div><div class="status">${status.substring(0,5)}</div></div>`
   })
  }
  document.getElementById('content').innerHTML=h;
 }
 function switchTab(t,el){current=t;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');load()}
 function searchTeam(){let q=document.getElementById('search').value.toLowerCase();document.querySelectorAll('.match').forEach(m=>{m.style.display=m.innerText.toLowerCase().includes(q)?'flex':'none'})}
+
+function openMatch(id,home,away,league){
+ document.getElementById('modal').classList.add('show');
+ document.getElementById('modalTitle').innerText = league;
+ document.getElementById('modalBody').innerHTML = `
+ <div style="text-align:center;padding:10px 0 20px">
+ <div style="font-size:12px;color:#8b9bb4">${league}</div>
+ <div style="font-size:22px;font-weight:900;margin:10px 0">${home}<br><span style="color:#8b9bb4;font-size:14px">vs</span><br>${away}</div>
+ <div style="background:#1e2e3e;padding:12px;border-radius:12px;margin-top:10px">
+ <div style="font-size:12px;color:#8b9bb4">ID: ${id}</div>
+ <div style="margin-top:10px">⏳ Fetching live events from HIGH...</div>
+ </div>
+ </div>`;
+ // Fetch details
+ if(id){
+  fetch('/api/match?id='+id).then(r=>r.json()).then(d=>{
+   let ev = d.events || d.data || d.response || [];
+   let html = `<div style="text-align:center;padding:10px 0"><div style="font-size:20px;font-weight:900">${home} vs ${away}</div><div style="color:#8b9bb4">${league}</div></div>`;
+   if(ev.length>0){
+    html+=`<div style="margin-top:10px"><div style="font-weight:700;margin-bottom:8px">⚽ Events</div>`;
+    ev.forEach(e=>{
+     let min = e.minute || e.time || e.clock || '';
+     let text = e.description || e.type || e.player || JSON.stringify(e).substring(0,100);
+     html+=`<div class="event"><span class="min">${min}'</span><span>${text}</span></div>`
+    });
+    html+=`</div>`;
+   } else {
+    html+=`<div style="background:#1e2e3e;padding:15px;border-radius:12px;margin-top:15px;text-align:center">📊 Match Center<br><br>Score updates every 60s<br>Stats, Lineups & Events coming from HIGH<br><br>ID: ${id}<br><br>Raw data:<br><div style="font-size:10px;word-break:break-all;text-align:left;background:#0f1419;padding:8px;border-radius:8px;margin-top:8px;max-height:150px;overflow:auto">${JSON.stringify(d).substring(0,800)}</div></div>`;
+   }
+   document.getElementById('modalBody').innerHTML = html;
+  }).catch(()=>{});
+ }
+}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+
 async function openTable(){
- let leagueName=prompt("TABLE - ALL LEAGUES\nType:\nPremier League\nLa Liga\nSerie A\nBundesliga\nLigue 1\nUEFA Champions League","Premier League");
+ let leagueName=prompt("TABLE - Type league:\nPremier League\nLa Liga\nSerie A\nBundesliga\nLigue 1","Premier League");
  if(!leagueName) return;
  document.getElementById('content').innerHTML='<div class=loading>⏳ Loading '+leagueName+' TABLE...</div>';
  try{
@@ -106,18 +150,17 @@ async function openTable(){
   let table = d.data || d.response || d.standings || d;
   if(Array.isArray(table) && table[0]?.standings) table=table[0].standings;
   if(table?.standings) table=table.standings;
-  if(!Array.isArray(table) || table.length==0){document.getElementById('content').innerHTML='<div class=loading>No table for '+leagueName+'<br>Try Premier League</div>';return}
-  let html=`<div class=league>${leagueName} Table - HIGH</div><div style="display:flex;padding:8px 15px;font-size:11px;font-weight:700;background:#1a2530"><span style="width:30px">#</span><span style="flex:1">Team</span><span style="width:25px">P</span><span style="width:35px">Pts</span></div>`;
+  if(!Array.isArray(table)){document.getElementById('content').innerHTML='<div class=loading>No table</div>';return}
+  let html=`<div class=league>${leagueName} Table</div>`;
   table.forEach((t,i)=>{
    let rank=t.position||t.rank||i+1;
-   let name=t.team?.name||t.name||t.teamName||'Team';
-   let pts=t.points||t.pts||0;
-   let pl=t.played||t.matches||0;
-   let color=rank<=4?'#00c853':rank>=18?'#ff3b30':'#fff';
-   html+=`<div class="match"><div style="width:30px;font-weight:700;color:${color}">${rank}</div><div style="flex:1">${name}</div><div style="width:25px">${pl}</div><div style="width:35px;font-weight:900">${pts}</div></div>`
+   let name=t.team?.name||t.name||'Team';
+   let pts=t.points||0;
+   let pl=t.played||0;
+   html+=`<div class="match"><div style="width:30px">${rank}</div><div style="flex:1">${name}</div><div style="width:25px">${pl}</div><div style="width:35px;font-weight:900">${pts}</div></div>`
   });
   document.getElementById('content').innerHTML=html;
- }catch(e){document.getElementById('content').innerHTML='<div class=loading>Error: '+e.message+'</div>'}
+ }catch(e){document.getElementById('content').innerHTML='<div class=loading>Error</div>'}
 }
 load();
 setInterval(load,60000);
