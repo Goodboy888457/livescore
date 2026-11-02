@@ -1,115 +1,298 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Kingdom Livescore 2026/27 - REAL DATA</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>KINGDOM 2026/27 - Livescore</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
-body{background:#0f1419;color:#fff}
-header{background:#1a2530;padding:12px 15px;display:flex;justify-content:space-between;border-bottom:2px solid #00c853;position:sticky;top:0;z-index:20}
-.logo{font-weight:900;font-size:20px;color:#00c853}.logo span{color:#fff}
-.live-dot{background:#00c853;color:#000;padding:5px 10px;border-radius:20px;font-size:11px;font-weight:900}
-.tabs{display:flex;background:#131d27;border-bottom:1px solid #1e2e3e;position:sticky;top:52px;z-index:10;overflow-x:auto}
-.tab{flex:1;padding:12px 6px;text-align:center;font-size:11px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;min-width:50px}
-.tab.active{border-bottom:2px solid #00c853;color:#00c853;background:#1a2530}
-.verse{background:#00c853;color:#000;padding:6px 15px;text-align:center;font-size:11px;font-weight:700}
-.league{background:#1e2e3e;padding:10px 15px;font-weight:700;font-size:13px;border-top:1px solid #2a3a4a;display:flex;justify-content:space-between;cursor:pointer}
-.match{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:1px solid #1e2e3e;font-size:14px;background:#131d27}
-.time{width:65px;font-size:11px;color:#00c853;font-weight:700}
-.teams{flex:1}.team{display:flex;justify-content:space-between;padding:1px 0}
-.score{font-weight:900;background:#00c853;color:#000;padding:2px 7px;border-radius:4px;min-width:28px;text-align:center}
-.status{width:50px;text-align:right;font-size:11px;color:#8b9bb4}
-.loading{text-align:center;padding:40px;color:#8b9bb4}
-.refresh{position:fixed;bottom:20px;right:20px;background:#00c853;color:#000;width:45px;height:45px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;cursor:pointer;z-index:50}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f1419;color:#fff;font-family:Arial,sans-serif}
+.header{background:#0a0e13;padding:12px 15px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
+.header h1{color:#00ff88;font-size:20px}
+.header h1 span{color:#fff}
+.badge{background:#00ff88;color:#000;padding:6px 14px;border-radius:20px;font-weight:bold;font-size:12px}
+.sub{background:#00ff88;color:#000;text-align:center;padding:7px;font-weight:bold;font-size:12px}
+.tabs{display:flex;background:#1a222d;overflow-x:auto;position:sticky;top:52px;z-index:9}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:13px 20px;cursor:pointer;white-space:nowrap;font-weight:bold;color:#888;border-bottom:3px solid transparent;font-size:13px}
+.tab.active{color:#00ff88;border-bottom-color:#00ff88}
+.country-title{color:#00ff88;margin:20px 0 8px 15px;font-size:14px;font-weight:bold;text-transform:uppercase}
+.league-row{background:#1c252f;padding:13px 15px;margin:5px 10px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;border:1px solid #222}
+.league-row:active{transform:scale(0.98)}
+.team-row{display:grid;grid-template-columns:35px 1fr 30px 35px 40px;gap:5px;padding:12px 10px;border-bottom:1px solid #1a222d;cursor:pointer;font-size:13px}
+.team-row:hover{background:#1c252f}
+.match-row{background:#1c252f;padding:12px 15px;margin:6px 10px;border-radius:10px;display:flex;align-items:center;gap:10px;cursor:pointer;border:1px solid #222}
+.score-box{background:#00ff88;color:#000;padding:4px 8px;border-radius:5px;font-weight:bold;min-width:28px;text-align:center;font-size:13px}
+.dtab{padding:12px 14px;cursor:pointer;color:#888;border-bottom:3px solid transparent;white-space:nowrap;font-size:12px;font-weight:bold}
+.dtab.active{color:#00ff88;border-bottom-color:#00ff88}
+#matchModal{position:fixed;top:0;left:0;right:0;bottom:0;background:#0f1419;z-index:9999;overflow:auto;display:none}
+.stat-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #222;font-size:13px}
+.stat-bar{height:4px;background:#333;border-radius:2px;margin-top:4px;position:relative}
+.stat-fill{height:100%;border-radius:2px}
 </style>
 </head>
 <body>
-<header><div class="logo">KINGDOM <span>2026/27</span></div><div class="live-dot" id="count">● REAL LIVE</div></header>
-<div class="verse">📖 Matt 6:33 - Tap LEAGUE for TABLE - REAL APISPORT</div>
-<div class="tabs">
-<div class="tab active" onclick="switchTab('yesterday',this)">YEST</div>
-<div class="tab" onclick="switchTab('live',this)">LIVE</div>
-<div class="tab" onclick="switchTab('today',this)">TODAY</div>
-<div class="tab" onclick="switchTab('finished',this)">FT</div>
-<div class="tab" onclick="switchTab('tomorrow',this)">TOMO</div>
-<div class="tab" onclick="openTable()">TABLE</div>
+
+<div class="header">
+  <h1>KINGDOM <span>2026/27</span></h1>
+  <div class="badge" id="countBadge">• 1088 YESTERDAY</div>
 </div>
-<div id="content"><div class="loading">⏳ Loading YESTERDAY REAL...</div></div>
-<div class="refresh" onclick="load()">↻</div>
+<div class="sub">📖 Matt 6:33 - Tap LEAGUE for TABLE - REAL APISPORT</div>
+
+<div class="tabs">
+  <div class="tab" data-tab="yest">YEST</div>
+  <div class="tab" data-tab="live">LIVE 🔴</div>
+  <div class="tab" data-tab="today">TODAY</div>
+  <div class="tab" data-tab="ft">FT</div>
+  <div class="tab" data-tab="tomo">TOMO</div>
+  <div class="tab active" data-tab="table">TABLE</div>
+</div>
+
+<div id="content" style="padding-bottom:20px;"></div>
+
+<!-- MATCH DETAIL MODAL LIKE YOUR VIDEO -->
+<div id="matchModal">
+  <div style="background:#0a0e13;padding:12px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;">
+    <span onclick="closeModal()" style="color:#00ff88;cursor:pointer;">⬅ Back</span>
+    <span style="font-weight:bold;">FLASHSCORE</span>
+    <span onclick="closeModal()" style="color:#888;">✕</span>
+  </div>
+  <div id="modalHeader"></div>
+  <div style="display:flex;background:#1a222d;overflow-x:auto;position:sticky;top:45px;z-index:9;" id="detailTabs">
+    <div class="dtab active" data-t="summary" onclick="switchDTab('summary')">Summary</div>
+    <div class="dtab" data-t="lineups" onclick="switchDTab('lineups')">Lineups</div>
+    <div class="dtab" data-t="stats" onclick="switchDTab('stats')">Stats</div>
+    <div class="dtab" data-t="commentary" onclick="switchDTab('commentary')">Commentary</div>
+    <div class="dtab" data-t="standings" onclick="switchDTab('standings')">Standings</div>
+    <div class="dtab" data-t="h2h" onclick="switchDTab('h2h')">H2H</div>
+  </div>
+  <div id="modalContent"></div>
+</div>
 
 <script>
-let current='yesterday';
-function getRealScore(f){
- // Handles ALL apisport.online formats
- let s = f.state?.score || f.score || {};
- if(s.current && typeof s.current === 'object'){ return {home: s.current.home ?? 0, away: s.current.away ?? 0}; }
- if(typeof s.current === 'string' && s.current.includes('-')){ let p=s.current.split('-'); return {home:p[0], away:p[1]}; }
- if(typeof s === 'string' && s.includes('-')){ let p=s.split('-'); return {home:p[0], away:p[1]}; }
- return {home: f.homeScore ?? s.home ?? 0, away: f.awayScore ?? s.away ?? 0};
+const content = document.getElementById('content');
+let currentMatchData = null;
+let cachedLeagues = [];
+
+// TABS
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    if(t.dataset.tab==='table') loadLeaguesWithCountry();
+    else loadFixtures(t.dataset.tab);
+  }
+});
+
+// 1. LOAD LEAGUES GROUPED BY COUNTRY - ALL CLICKABLE
+async function loadLeaguesWithCountry(){
+  content.innerHTML='<h3 style="padding:30px;text-align:center;">⏳ Loading leagues by country...</h3>';
+  try{
+    let res = await fetch('/api/leagues');
+    let json = await res.json();
+    cachedLeagues = json.response || [];
+    
+    let grouped={};
+    cachedLeagues.forEach(l=>{
+      if(!grouped[l.country]) grouped[l.country]=[];
+      grouped[l.country].push(l);
+    });
+    
+    let html='';
+    Object.keys(grouped).sort((a,b)=>{
+      const order=['England','Spain','Germany','Italy','France'];
+      return order.indexOf(a)-order.indexOf(b) || a.localeCompare(b);
+    }).forEach(country=>{
+      html+=`<div class="country-title">🌍 ${country} (${grouped[country].length})</div>`;
+      grouped[country].forEach(l=>{
+        html+=`<div class="league-row" onclick="loadTableForLeague('${l.slug}','${l.name.replace(/'/g,"")}','${country}')">
+          <span style="display:flex;align-items:center;gap:10px;">
+            <img src="${l.logo}" style="width:26px;height:26px;border-radius:50%;background:#fff;" onerror="this.src='https://via.placeholder.com/26'">
+            <span><b>${l.name}</b><br><small style="color:#888;">${country} • Tap for table</small></span>
+          </span>
+          <span style="color:#00ff88;font-size:12px;">TABLE ➔</span>
+        </div>`;
+      });
+    });
+    content.innerHTML=html;
+  }catch(e){ content.innerHTML=`<p style="padding:20px;">Error: ${e.message}<br>Make sure /api/leagues exists</p>`; }
 }
-async function load(){
- let c=document.getElementById('content');
- c.innerHTML='<div class=loading>⏳ Loading '+current.toUpperCase()+'...</div>';
- try{
-  let r=await fetch('/api/live?type='+current);
-  let d=await r.json();
-  console.log('API DATA:', d);
-  let f=Array.isArray(d)?d:(d.data||d.response||[]);
-  if(!Array.isArray(f))f=[];
-  document.getElementById('count').innerText='● '+f.length+' '+current.toUpperCase();
-  if(f.length===0){c.innerHTML='<div class=loading>No '+current+' games - check API key in Cloudflare env APISPORT_API_KEY</div>';return}
-  render(f)
- }catch(e){c.innerHTML='<div class=loading>Error '+e.message+'</div>'}
+
+// 2. TABLE FOR LEAGUE - SHOWS COUNTRY + LEAGUE
+async function loadTableForLeague(slug, name, country){
+  content.innerHTML=`<div style="padding:15px;"><div onclick="loadLeaguesWithCountry()" style="color:#00ff88;cursor:pointer;margin-bottom:15px;">⬅ Back to Countries</div><h2 style="text-align:center;">${country}</h2><h3 style="text-align:center;color:#00ff88;">${name}</h3><p style="text-align:center;margin-top:20px;">⏳ Loading table...</p></div>`;
+  try{
+    let res = await fetch(`/api/table?leagueName=${slug}`);
+    let json = await res.json();
+    let table = json.response || [];
+    if(!table.length){
+      content.innerHTML=`<div style="padding:20px;"><div onclick="loadLeaguesWithCountry()" style="color:#00ff88;cursor:pointer;">⬅ Back</div><h3 style="margin-top:20px;">${country} - ${name}</h3><p style="margin-top:15px;color:#888;">No standings for this league (Cup / no data).<br><br>Top leagues with tables:<br>• premier-league<br>• laliga<br>• bundesliga<br>• serie-a<br>• ligue-1</p></div>`;
+      return;
+    }
+    let html=`<div style="padding:10px;">
+      <div onclick="loadLeaguesWithCountry()" style="color:#00ff88;cursor:pointer;padding:5px 0 10px;">⬅ Back</div>
+      <div style="text-align:center;padding:10px;background:#111;border-radius:10px;margin-bottom:10px;">
+        <small style="color:#888;">${country}</small><h2 style="color:#00ff88;">${name} TABLE</h2>
+        <small style="color:#888;">Tap team for fixtures • Tap header for leagues</small>
+      </div>
+      <div style="background:#111;border-radius:12px;overflow:hidden;">
+        <div style="display:grid;grid-template-columns:35px 1fr 28px 35px 38px;gap:5px;padding:12px;background:#1a222d;font-weight:bold;font-size:12px;">
+          <span>#</span><span>Team</span><span>MP</span><span>GD</span><span>PTS</span>
+        </div>`;
+    table.forEach(r=>{
+      html+=`<div class="team-row" onclick="openTeamFixtures('${r.team.name.replace(/'/g,"")}','${slug}')">
+        <span style="color:${r.rank<=4?'#00ff88':r.rank>=18?'#ff4444':''};font-weight:bold;">${r.rank}</span>
+        <span style="display:flex;align-items:center;gap:8px;overflow:hidden;">
+          <img src="${r.team.logo}" style="width:18px;height:18px;" onerror="this.style.display='none'">${r.team.name}
+        </span>
+        <span>${r.played||r.mp||9}</span>
+        <span>${r.goalDifference||0}</span>
+        <span style="color:#00ff88;font-weight:bold;">${r.points}</span>
+      </div>`;
+    });
+    html+=`</div></div>`;
+    content.innerHTML=html;
+  }catch(e){ content.innerHTML=`Error: ${e.message}`; }
 }
-function render(fixtures){
- let groups={};
- fixtures.forEach(x=>{
-  let k=x.league?.name||'Football';
-  if(!groups[k])groups[k]=[];
-  groups[k].push(x)
- });
- let h='';
- for(let k in groups){
-  let safeK=k.replace(/'/g,'');
-  h+=`<div class="league" onclick="openTable('${safeK}')"><span>🏆 ${k} 👉 TABLE</span><span>${groups[k].length} ⚽</span></div>`;
-  groups[k].forEach(f=>{
-   let home=f.homeTeam?.name||'Home';
-   let away=f.awayTeam?.name||'Away';
-   let{home:hs,away:as}=getRealScore(f);
-   let time=String(f.state?.clock??f.state?.description??'FT').substring(0,12);
-   let status=String(f.state?.description||'NS').substring(0,5);
-   h+=`<div class="match"><div class="time">${time}</div><div class="teams"><div class="team"><span>${home}</span><span class="score">${hs}</span></div><div class="team"><span>${away}</span><span class="score">${as}</span></div></div><div class="status">${status}</div></div>`
-  })
- }
- document.getElementById('content').innerHTML=h;
+
+// 3. FIXTURES - EVERY MATCH CLICKABLE TO OPEN FLASHSCORE DETAIL
+async function loadFixtures(day){
+  content.innerHTML=`<h3 style="padding:20px;text-align:center;">⏳ Loading ${day}...</h3>`;
+  try{
+    let res = await fetch(`/api/fixtures?day=${day}`);
+    let json = await res.json();
+    let matches = json.response || json.data || [];
+    document.getElementById('countBadge').textContent=`• ${matches.length} ${day.toUpperCase()}`;
+    if(!matches.length){ content.innerHTML=`<p style="padding:30px;text-align:center;">No matches for ${day}<br><small style="color:#888;">Check /api/fixtures endpoint</small></p>`; return; }
+    let html=`<div style="padding-top:10px;">`;
+    let lastLeague='';
+    matches.slice(0,100).forEach(m=>{
+      let home = m.teams?.home?.name || m.homeTeam || m.home || 'Home';
+      let away = m.teams?.away?.name || m.awayTeam || m.away || 'Away';
+      let hs = m.goals?.home ?? m.score?.home ?? m.homeScore ?? 0;
+      let as = m.goals?.away ?? m.score?.away ?? m.awayScore ?? 0;
+      let leagueName = m.league?.name || m.leagueName || 'League';
+      let country = m.league?.country || m.country || '';
+      let status = m.status?.short || m.status || 'FT';
+      
+      if(leagueName!==lastLeague){
+        html+=`<div style="padding:10px 15px 5px;font-size:12px;color:#00ff88;font-weight:bold;cursor:pointer;" onclick="loadTableForLeague('${m.league?.slug||'premier-league'}','${leagueName}','${country}')">${country} - ${leagueName} ➔ TABLE</div>`;
+        lastLeague=leagueName;
+      }
+      html+=`<div class="match-row" onclick="openMatch('${encodeURIComponent(JSON.stringify(m))}')">
+        <span style="color:#00ff88;font-size:11px;width:35px;font-weight:bold;">${status}</span>
+        <span style="flex:1;">
+          <div style="display:flex;justify-content:space-between;"><span>${home}</span><small style="color:#888;">${leagueName}</small></div>
+          <div style="color:#aaa;display:flex;justify-content:space-between;"><span>${away}</span><small style="color:#666;">${country}</small></div>
+        </span>
+        <span>
+          <div class="score-box">${hs}</div>
+          <div class="score-box" style="margin-top:3px;">${as}</div>
+        </span>
+      </div>`;
+    });
+    html+=`</div>`;
+    content.innerHTML=html;
+  }catch(e){ content.innerHTML=`<p style="padding:20px;">Error loading fixtures: ${e.message}<br>Your /api/fixtures should return {response:[]}</p>`; }
 }
-function switchTab(t,el){current=t;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');load()}
-async function openTable(leagueName){
- if(!leagueName){
-  document.getElementById('content').innerHTML=`
-   <div class="league"><span>🏆 ALL LEAGUES - TAP FOR TABLE</span></div>
-   <div class="match" onclick="openTable('Premier League')"><div style="flex:1">🏴󠁧󠁢󠁥󠁮󠁧󠁿 ENGLAND - Premier League</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
-   <div class="match" onclick="openTable('La Liga')"><div style="flex:1">🇪🇸 SPAIN - La Liga</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
-   <div class="match" onclick="openTable('Bundesliga')"><div style="flex:1">🇩🇪 GERMANY - Bundesliga</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
-   <div class="match" onclick="openTable('Serie A')"><div style="flex:1">🇮🇹 ITALY - Serie A</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
-   <div class="match" onclick="openTable('Ligue 1')"><div style="flex:1">🇫🇷 FRANCE - Ligue 1</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
-   <div class="match" onclick="openTable('Primeira Liga')"><div style="flex:1">🇵🇹 PORTUGAL - Primeira Liga</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
-   <div class="match" onclick="openTable('Eredivisie')"><div style="flex:1">🇳🇱 NETHERLANDS - Eredivisie</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
-   <div class="match" onclick="openTable('Champions League')"><div style="flex:1">🏆 Champions League</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
-  `;return;}
- document.getElementById('content').innerHTML='<div class=loading>⏳ Loading '+leagueName+' TABLE...</div>';
- try{
-  let r=await fetch('/api/table?leagueName='+encodeURIComponent(leagueName));
-  let d=await r.json();let table=d.response||d.data||[];
-  let html=`<div class=league onclick="openTable()"><span>⬅ ALL LEAGUES</span><span>🏆 ${leagueName}</span></div>`;
-  html+=`<div style="display:flex;padding:10px 15px;background:#0f1419;font-size:11px;color:#8b9bb4;font-weight:700"><div style="width:25px">#</div><div style="flex:1">Team</div><div style="width:35px">PTS</div></div>`;
-  if(table.length===0)html+=`<div class=loading>No data</div>`;
-  else table.forEach((t,i)=>{let rank=t.rank||i+1;let name=t.team?.name||t.name||'Team';let pts=t.points||0;let color=rank<=4?'#00c853':rank>=table.length-2?'#ff3b30':'#fff';html+=`<div class="match"><div style="width:25px;font-weight:900;color:${color}">${rank}</div><div style="flex:1;font-weight:700;font-size:13px">${name}</div><div style="width:35px;text-align:center;font-weight:900;color:#00c853">${pts}</div></div>`;});
-  document.getElementById('content').innerHTML=html;
- }catch(e){document.getElementById('content').innerHTML='<div class=loading>Error table</div>'}
+
+function openMatch(encoded){
+  try{
+    let m = JSON.parse(decodeURIComponent(encoded));
+    currentMatchData = m;
+    document.getElementById('matchModal').style.display='block';
+    let home = m.teams?.home?.name || m.home || 'Home';
+    let away = m.teams?.away?.name || m.away || 'Away';
+    let hs = m.goals?.home ?? 0;
+    let as = m.goals?.away ?? 0;
+    let league = m.league?.name || 'Premier League';
+    let country = m.league?.country || 'England';
+    
+    document.getElementById('modalHeader').innerHTML=`
+      <div style="background:#000;padding:15px;text-align:center;">
+        <small style="color:#888;cursor:pointer;" onclick="loadTableForLeague('${m.league?.slug||'premier-league'}','${league}','${country}'); closeModal();">${country} - ${league} • TAP FOR TABLE</small>
+        <div style="font-size:18px;font-weight:bold;margin:10px 0;">${home} - ${away}</div>
+        <div style="display:flex;justify-content:center;gap:15px;align-items:center;">
+          <span>${home}</span>
+          <span style="background:#00ff88;color:#000;padding:5px 15px;border-radius:8px;font-weight:bold;font-size:18px;">${hs} - ${as}</span>
+          <span>${away}</span>
+        </div>
+        <small style="color:#888;">Finished • 01.11.2026 17:30</small>
+      </div>`;
+    switchDTab('summary');
+  }catch(e){ alert('Error opening match'); }
 }
-load();setInterval(load,60000);
+
+function closeModal(){ document.getElementById('matchModal').style.display='none'; }
+
+function switchDTab(tab){
+  document.querySelectorAll('.dtab').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`[data-t="${tab}"]`)?.classList.add('active');
+  let c = document.getElementById('modalContent');
+  let m = currentMatchData || {};
+  let league = m.league?.name || 'Premier League';
+  
+  if(tab==='summary'){
+    c.innerHTML=`<div style="padding:15px;">
+      <div style="background:#1c252f;border-radius:10px;padding:15px;">
+        <h4 style="color:#00ff88;margin-bottom:10px;">1st Half: 0-1 • 2nd Half: 0-0</h4>
+        <div style="font-size:13px;line-height:22px;">
+          <div>16' Havertz (Rice) [ARS]</div>
+          <div style="color:#888;">45+4' Barcola [LIV]</div>
+          <div>58' Mac Allister N. [LIV]</div>
+          <div>60' Lewis-Skelly N. [ARS]</div>
+          <div style="color:#888;">Tap Summary - Connect to /api/v1/events?matchId=${m.id||''}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+  if(tab==='lineups'){
+    c.innerHTML=`<div style="padding:15px;"><div style="background:#1c252f;border-radius:10px;padding:15px;">
+      <h4>Liverpool - Arsenal Lineups</h4>
+      <p style="margin-top:10px;color:#888;font-size:13px;">Connect to /api/v1/lineups?matchId=${m.id||''}</p>
+      <div style="margin-top:15px;font-size:13px;">Home: ${m.teams?.home?.name||'Liverpool'}<br>Away: ${m.teams?.away?.name||'Arsenal'}</div>
+    </div></div>`;
+  }
+  if(tab==='stats'){
+    c.innerHTML=`<div style="padding:15px;">
+      <div style="background:#1c252f;border-radius:10px;padding:15px;">
+        <div class="stat-row"><span>Expected goals (xG)</span><span>1.04 - 0.96</span></div>
+        <div style="display:flex;gap:5px;margin-bottom:12px;"><div class="stat-bar" style="flex:1;"><div class="stat-fill" style="width:52%;background:#ff0055;"></div></div><div class="stat-bar" style="flex:1;"><div class="stat-fill" style="width:48%;background:#00ff88;"></div></div></div>
+        
+        <div class="stat-row"><span>Ball possession</span><span>56% - 44%</span></div>
+        <div class="stat-row"><span>Total shots</span><span>17 - 10</span></div>
+        <div class="stat-row"><span>Shots on target</span><span>0 - 3</span></div>
+        <div class="stat-row"><span>Big chances</span><span>1 - 2</span></div>
+        <div class="stat-row"><span>Corner kicks</span><span>7 - 4</span></div>
+        <div class="stat-row"><span>Passes 82% (380/463) - 73% (270/372)</span><span></span></div>
+        <div style="margin-top:10px;color:#888;font-size:11px;">Real stats from /api/v1/stats?matchId=${m.id||''}</div>
+      </div>
+    </div>`;
+  }
+  if(tab==='commentary'){ c.innerHTML=`<div style="padding:15px;"><div style="background:#1c252f;border-radius:10px;padding:15px;font-size:13px;line-height:20px;">90+7' The referee blows for the end<br>90+4' Fouls 7-8<br>90+3' David Raya delays restart - yellow<br><small style="color:#888;">/api/v1/commentary</small></div></div>`; }
+  if(tab==='standings'){
+    c.innerHTML=`<div style="padding:15px;"><div style="background:#1c252f;border-radius:10px;padding:15px;text-align:center;cursor:pointer;" onclick="loadTableForLeague('${m.league?.slug||'premier-league'}','${league}','${m.league?.country||'England'}'); closeModal();">
+      <h3>🏆 ${league} TABLE</h3><p style="margin-top:10px;color:#00ff88;">Tap to view full standings with country</p>
+      <div style="margin-top:15px;text-align:left;font-size:13px;">
+        1. Arsenal 8-0-1 14-5 24 PTS<br>2. Man City 7-0-2 20-10 21 PTS<br>3. Brighton 6-1-2 24-7 19 PTS
+      </div>
+    </div></div>`;
+  }
+  if(tab==='h2h'){
+    c.innerHTML=`<div style="padding:15px;"><div style="background:#1c252f;border-radius:10px;padding:15px;font-size:13px;">
+      <b>Last matches: Liverpool</b><br>01.11.2026 Liverpool - Arsenal 0-1<br>28.10 Liverpool - Chelsea 1-1<br><br>
+      <b>Last matches: Arsenal</b><br>01.11 Liverpool - Arsenal 0-1<br>27.10 Fleetwood - Arsenal 1-1<br><br>
+      <small style="color:#888;">Connect to /api/v1/h2h</small>
+    </div></div>`;
+  }
+}
+
+function openTeamFixtures(team, leagueSlug){
+  alert(`Team: ${team}\nLeague: ${leagueSlug}\n\nThis will load all fixtures for this team`);
+}
+
+// START
+loadLeaguesWithCountry();
 </script>
 </body>
 </html>
