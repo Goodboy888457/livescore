@@ -4,48 +4,43 @@ export async function onRequest(context){
   const url = new URL(context.request.url);
   let leagueName = (url.searchParams.get('leagueName')||'Premier League').toLowerCase();
   
+  // apisport.online league IDs - CORRECT FOR YOUR API!
   const leagueMap = {
-    'premier league': 39, 'epl': 39, 'england': 39,
-    'la liga': 140, 'spain': 140,
-    'bundesliga': 78, 'germany': 78,
-    'serie a': 135, 'italy': 135,
-    'ligue 1': 61, 'france': 61,
-    'primeira liga': 94, 'portugal': 94,
-    'eredivisie': 88,
-    'champions league': 2,
-    'europa league': 3,
-    'championship': 40,
-    'jupiler': 144,
-    'super lig': 203,
-    'saudi': 307
+    'premier league': 1, 'epl': 1, 'england': 1,
+    'la liga': 2, 'spain': 2,
+    'bundesliga': 3, 'germany': 3,
+    'serie a': 4, 'italy': 4,
+    'ligue 1': 5, 'france': 5,
+    'primeira liga': 8, 'portugal': 8, 'liga portugal': 8,
+    'eredivisie': 9, 'netherlands': 9,
+    'champions league': 101, 'ucl': 101,
+    'europa league': 102,
+    'championship': 7,
+    'jupiler': 10, 'belgium': 10,
+    'super lig': 12, 'turkey': 12,
+    'saudi': 14, 'saudi pro': 14
   };
   
-  let leagueId = 39;
+  let leagueId = 1;
   for(let k in leagueMap){
     if(leagueName.includes(k)){ leagueId = leagueMap[k]; break; }
   }
   
-  let endpoint = `https://api.apisport.online/standings?league=${leagueId}&season=2025`;
-  let res = await fetch(endpoint, {
-    headers: { 'Authorization': `Bearer ${apiKey}` }
+  let res = await fetch(`https://api.apisport.online/api/v1/standings?league_id=${leagueId}&season=2025`, {
+    headers: { 'x-api-key': apiKey }
   });
   
-  if(!res.ok){
-    endpoint = `https://api.apisport.online/api/v1/standings?league_id=${leagueId}&season=2025`;
-    res = await fetch(endpoint, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-  }
-  
   let json = await res.json();
-  let data = json.response || json.data || [];
-  let standings = data[0]?.league?.standings?.[0] || data[0] || data;
+  let data = json.data || json.response || [];
+  let standings = data[0]?.standings || data || [];
   if(!Array.isArray(standings)) standings = [];
   
   let table = standings.map((t,i) => ({
-    rank: t.rank || i+1,
-    team: { name: t.team?.name || t.name || 'Team' },
+    rank: t.position || t.rank || i+1,
+    team: { name: t.team_name || t.team?.name || 'Team' },
     points: t.points || 0,
-    all: { played: t.all?.played || t.played || 0 },
-    goalsDiff: t.goalsDiff || 0,
+    all: { played: t.played || t.all?.played || 0 },
+    goalsDiff: t.goal_diff || t.goalsDiff || 0,
     form: t.form || ''
   }));
   
@@ -53,8 +48,8 @@ export async function onRequest(context){
     headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
   });
  }catch(e){
-  return new Response(JSON.stringify({ response: [], error: e.message }), {
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+  return new Response(JSON.stringify({ response: [] }), {
+    headers: { 'Content-Type': 'application/json' }
   });
  }
 }
