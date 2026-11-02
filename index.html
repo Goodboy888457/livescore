@@ -18,7 +18,7 @@ body{background:#000;color:#fff;font-family:Arial;font-weight:600}
 .filter-bar{background:#0a0a0a;display:flex;overflow-x:auto;border-bottom:1px solid #222;position:sticky;top:91px;z-index:14}
 .f{padding:12px 18px;cursor:pointer;font-size:12px;font-weight:800;color:#888;white-space:nowrap;border-bottom:3px solid transparent}
 .f.active{color:#00ff00;border-bottom-color:#00ff00;background:rgba(0,255,0,.08)}
-.country-league{background:#00ff00;color:#000;padding:8px 12px;font-weight:900;font-size:13px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-top:2px;letter-spacing:.3px}
+.country-league{background:#00ff00;color:#000;padding:8px 12px;font-weight:900;font-size:13px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-top:2px}
 .country-league span:last-child{background:#000;color:#00ff00;padding:3px 8px;border-radius:10px;font-size:10px}
 .match{background:#111;padding:10px 12px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
 .match:active{background:#1a1a1a}
@@ -32,260 +32,100 @@ body{background:#000;color:#fff;font-family:Arial;font-weight:600}
 </style>
 </head>
 <body>
-
-<div class="top">
-  <div class="logo">KINGDOM <span>26/27</span></div>
-  <div style="font-size:11px;font-weight:900;color:#00ff00" id="badge">MATT 6:33 • KINGDOM</div>
-</div>
-
+<div class="top"><div class="logo">KINGDOM <span>26/27</span></div><div style="font-size:11px;font-weight:900;color:#00ff00">MATT 6:33 • KINGDOM</div></div>
 <div class="date-bar" id="dateBar"></div>
-
 <div class="filter-bar">
   <div class="f active" data-f="all" onclick="setFilter('all')">ALL GAMES</div>
   <div class="f" data-f="live" onclick="setFilter('live')">LIVE 🔴</div>
   <div class="f" data-f="finished" onclick="setFilter('finished')">FINISHED</div>
   <div class="f" data-f="refresh" onclick="refreshNow()" style="color:#00ff00">REFRESH 🔄</div>
 </div>
-
 <div id="content"></div>
-
-<div id="modal">
-  <div style="background:#000;border-bottom:2px solid #00ff00;padding:12px;display:flex;justify-content:space-between;position:sticky;top:0">
-    <span onclick="closeModal()" style="color:#00ff00;font-weight:900;cursor:pointer">⬅ KINGDOM</span>
-    <span style="font-weight:900;font-size:11px">KINGDOM CENTER</span>
-    <span onclick="closeModal()" style="color:#888;cursor:pointer">✕</span>
-  </div>
-  <div id="modalContent"></div>
-</div>
-
+<div id="modal"><div style="background:#000;border-bottom:2px solid #00ff00;padding:12px;display:flex;justify-content:space-between;position:sticky;top:0"><span onclick="closeModal()" style="color:#00ff00;font-weight:900;cursor:pointer">⬅ KINGDOM</span><span style="font-weight:900;font-size:11px">KINGDOM CENTER</span><span onclick="closeModal()" style="color:#888;cursor:pointer">✕</span></div><div id="modalContent"></div></div>
 <script>
-let currentDateStr = new Date().toISOString().split('T')[0];
-let currentFilter = 'all';
-let allMatchesCache = [];
-let leaguesCache = [];
+let currentDateStr=new Date().toISOString().split('T')[0];
+let currentFilter='all';
+let allMatchesCache=[];
 
 function buildDateBar(){
-  const bar = document.getElementById('dateBar');
-  const days = [];
-  for(let i=-2; i<=2; i++){
-    let d = new Date();
-    d.setDate(d.getDate()+i);
-    days.push(d);
+  const bar=document.getElementById('dateBar');
+  let html='';
+  for(let i=-2;i<=2;i++){
+    let d=new Date(); d.setDate(d.getDate()+i);
+    let str=d.toISOString().split('T')[0];
+    let isToday=str===new Date().toISOString().split('T')[0];
+    let active=str===currentDateStr?'active':'';
+    html+=`<div class="d ${active}" data-date="${str}" onclick="pickDate('${str}')"><b>${isToday?'TODAY':d.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase()}</b><small>${d.getDate()}/${d.getMonth()+1} ${isToday?'•':''}</small></div>`;
   }
-  let html = '';
-  days.forEach(d=>{
-    let str = d.toISOString().split('T')[0];
-    let isToday = str === new Date().toISOString().split('T')[0];
-    let label = d.toLocaleDateString('en-US',{weekday:'short'});
-    let dateNum = d.getDate() + '/' + (d.getMonth()+1);
-    let active = str === currentDateStr ? 'active' : '';
-    html += `<div class="d ${active}" data-date="${str}" onclick="pickDate('${str}')">
-      <b>${isToday ? 'TODAY' : label.toUpperCase()}</b>
-      <small>${dateNum} ${isToday?'•':''}</small>
-    </div>`;
-  });
-  bar.innerHTML = html;
+  bar.innerHTML=html;
 }
+function pickDate(str){ currentDateStr=str; document.querySelectorAll('.d').forEach(el=>el.classList.remove('active')); document.querySelector(`[data-date="${str}"]`)?.classList.add('active'); loadGames(); }
+function setFilter(f){ if(f==='refresh'){refreshNow();return;} currentFilter=f; document.querySelectorAll('.f').forEach(el=>el.classList.remove('active')); document.querySelector(`[data-f="${f}"]`)?.classList.add('active'); renderMatches(); }
+function refreshNow(){ let btn=document.querySelector('[data-f="refresh"]'); let old=btn.innerHTML; btn.innerHTML='LOADING...'; loadGames().then(()=>{btn.innerHTML='REFRESHED ✅'; setTimeout(()=>btn.innerHTML=old,1500);}); if(navigator.vibrate) navigator.vibrate([100,50,100]); }
 
-function pickDate(str){
-  currentDateStr = str;
-  document.querySelectorAll('.d').forEach(el=>el.classList.remove('active'));
-  document.querySelector(`[data-date="${str}"]`)?.classList.add('active');
-  loadGames();
-}
-
-function setFilter(f){
-  if(f==='refresh'){ refreshNow(); return; }
-  if(f==='kingdom'){ showKingdom(); return; }
-  currentFilter = f;
-  document.querySelectorAll('.f').forEach(el=>el.classList.remove('active'));
-  document.querySelector(`[data-f="${f}"]`)?.classList.add('active');
-  renderMatches();
-}
-
-function refreshNow(){
-  const btn = document.querySelector('[data-f="refresh"]');
-  let old = btn.innerHTML;
-  btn.innerHTML = 'LOADING...';
-  loadGames(true).then(()=>{
-    btn.innerHTML = 'REFRESHED ✅';
-    setTimeout(()=>btn.innerHTML = old, 1500);
-  });
-  if(navigator.vibrate) navigator.vibrate([100,50,100]);
-}
-
-async function loadGames(force=false){
-  const content = document.getElementById('content');
-  content.innerHTML = `<div style="padding:30px;text-align:center;color:#00ff00">⏳ Loading ${currentDateStr}...<br><small style="color:#888">KINGDOM APISPORT</small></div>`;
+async function loadGames(){
+  const content=document.getElementById('content');
+  content.innerHTML=`<div style="padding:30px;text-align:center;color:#00ff00">⏳ Loading ${currentDateStr}...<br><small style="color:#888">KINGDOM APISPORT</small></div>`;
   try{
-    let res = await fetch(`/api/fixtures?date=${currentDateStr}`);
-    let json = await res.json();
-    let matches = json.response || json.data || [];
+    let res=await fetch(`/api/fixtures?date=${currentDateStr}`);
+    let json=await res.json();
+    let matches=json.response||json.data||[];
     if(!matches.length){
-      let res2 = await fetch(`/api/fixtures?day=today`);
-      let json2 = await res2.json();
-      matches = json2.response || [];
+      let res2=await fetch(`/api/fixtures?day=today`);
+      let json2=await res2.json();
+      matches=json2.response||[];
     }
-    allMatchesCache = matches;
+    allMatchesCache=matches;
     renderMatches();
-  }catch(e){
-    content.innerHTML = `<div style="padding:20px;color:#ff4444">Error: ${e.message}<br><br><button class="refresh-btn" onclick="loadGames()">RETRY</button></div>`;
-  }
+  }catch(e){ content.innerHTML=`<div style="padding:20px;color:#ff4444">Error: ${e.message}<br><button class="refresh-btn" onclick="loadGames()">RETRY</button></div>`; }
 }
 
 function renderMatches(){
-  const content = document.getElementById('content');
-  if(!allMatchesCache.length){
-    content.innerHTML = `<div style="padding:30px;text-align:center;color:#888">No games for ${currentDateStr}<br><button class="refresh-btn" onclick="loadGames()">REFRESH 🔄</button></div>`;
-    return;
-  }
-  let filtered = allMatchesCache;
-  if(currentFilter==='live') filtered = allMatchesCache.filter(m=> (m.status||'').toLowerCase().includes('live') || m.status==='LIVE' || m.status==='IN_PLAY');
-  if(currentFilter==='finished') filtered = allMatchesCache.filter(m=> (m.status||'FT').toUpperCase()==='FT' || m.status==='FINISHED');
-  let grouped = {};
+  const content=document.getElementById('content');
+  if(!allMatchesCache.length){ content.innerHTML=`<div style="padding:30px;text-align:center;color:#888">No games for ${currentDateStr}<br><button class="refresh-btn" onclick="loadGames()">REFRESH 🔄</button></div>`; return; }
+  let filtered=allMatchesCache;
+  if(currentFilter==='live') filtered=allMatchesCache.filter(m=>(m.status||'').toLowerCase().includes('live')||m.status==='LIVE');
+  if(currentFilter==='finished') filtered=allMatchesCache.filter(m=>(m.status||'FT').toUpperCase()==='FT'||m.status==='FINISHED');
+  let grouped={};
   filtered.forEach(m=>{
-    let country = (m.league?.country || m.country || 'World').replace(' Amateur','').trim();
-    let league = m.league?.name || 'League';
-    let key = `${country}__${league}__${m.league?.slug||'premier-league'}`;
-    if(!grouped[key]) grouped[key] = { country, league, slug: m.league?.slug||'premier-league', matches: [] };
+    let country=(m.league?.country||'World').replace(' Amateur','').trim();
+    let league=m.league?.name||'League';
+    let key=`${country}__${league}__${m.league?.slug||'premier-league'}`;
+    if(!grouped[key]) grouped[key]={country,league,slug:m.league?.slug||'premier-league',matches:[]};
     grouped[key].matches.push(m);
   });
-  let html = `<div style="padding:8px 12px;font-size:11px;color:#00ff00;font-weight:800;display:flex;justify-content:space-between"><span>${currentDateStr} • ${filtered.length} GAMES</span><span style="color:#888" onclick="loadGames()" style="cursor:pointer">REFRESH NOW 🔄</span></div>`;
+  let html=`<div style="padding:8px 12px;font-size:11px;color:#00ff00;font-weight:800;display:flex;justify-content:space-between"><span>${currentDateStr} • ${filtered.length} GAMES</span><span style="color:#888" onclick="loadGames()">REFRESH NOW 🔄</span></div>`;
   Object.values(grouped).forEach(g=>{
-    html += `<div class="country-league" onclick="openTable('${g.slug}','${g.league.replace(/'/g,'')}','${g.country}')">
-      <span>${g.country.toUpperCase()}: ${g.league.toUpperCase()}</span>
-      <span>TABLE →</span>
-    </div>`;
+    html+=`<div class="country-league" onclick="openTable('${g.slug}','${g.league.replace(/'/g,'')}','${g.country}')"><span>${g.country.toUpperCase()}: ${g.league.toUpperCase()}</span><span>TABLE →</span></div>`;
     g.matches.slice(0,10).forEach(m=>{
-      let home = m.teams?.home?.name || m.home || 'Home';
-      let away = m.teams?.away?.name || m.away || 'Away';
-      let hs = m.goals?.home ?? m.score?.home ?? 0;
-      let as = m.goals?.away ?? m.score?.away ?? 0;
-      let status = m.status || 'FT';
-      html += `<div class="match" onclick="openMatch('${encodeURIComponent(JSON.stringify(m))}')">
-        <div style="font-size:10px;color:#00ff00;font-weight:900;min-width:40px">${status}</div>
-        <div class="teams">
-          <div><b>${home}</b></div>
-          <div style="color:#888">${away}</div>
-        </div>
-        <div class="score-box">${hs} : ${as}</div>
-      </div>`;
+      let home=m.teams?.home?.name||'Home'; let away=m.teams?.away?.name||'Away';
+      let hs=m.goals?.home??0; let as=m.goals?.away??0; let status=m.status||'FT';
+      html+=`<div class="match"><div style="font-size:10px;color:#00ff00;font-weight:900;min-width:40px">${status}</div><div class="teams"><div><b>${home}</b></div><div style="color:#888">${away}</div></div><div class="score-box">${hs} : ${as}</div></div>`;
     });
   });
-  html += `<button class="refresh-btn" onclick="loadGames()">REFRESH 🔄 KINGDOM</button>`;
-  content.innerHTML = html;
+  html+=`<button class="refresh-btn" onclick="loadGames()">REFRESH 🔄 KINGDOM</button>`;
+  content.innerHTML=html;
 }
 
-async function showKingdom(){
-  document.querySelectorAll('.f').forEach(f=>f.classList.remove('active'));
-  const content = document.getElementById('content');
-  content.innerHTML = '<div style="padding:30px;text-align:center;color:#00ff00">👑 Loading Kingdom Tables...</div>';
-  try{
-    let res = await fetch('/api/leagues');
-    let json = await res.json();
-    leaguesCache = json.response || [];
-    let byCountry = {};
-    leaguesCache.forEach(l=>{
-      let c = (l.country || 'World').replace(' Amateur','').trim();
-      if(!byCountry[c]) byCountry[c]=[];
-      byCountry[c].push(l);
-    });
-    let html = `<div style="padding:8px 12px;font-size:11px;color:#00ff00;font-weight:800">KINGDOM TABLES • ${leaguesCache.length} LEAGUES • GREEN BLACK DESIGN</div>`;
-    Object.keys(byCountry).sort().forEach(country=>{
-      byCountry[country].forEach(l=>{
-        html += `<div class="country-league" onclick="openTable('${l.slug}','${l.name.replace(/'/g,'')}','${country}')" style="margin-top:1px">
-          <span>${country.toUpperCase()}: ${l.name.toUpperCase()}</span>
-          <span>STANDINGS</span>
-        </div>`;
-      });
-    });
-    content.innerHTML = html;
-  }catch(e){
-    content.innerHTML = `Error: ${e.message}`;
-  }
-}
-
+// TABLE VIEW - BACK GOES TO GAMES, NOT 1000 LEAGUES LIST
 async function openTable(slug,name,country){
-  const content = document.getElementById('content');
-  content.innerHTML = `
-    <div style="background:#000;border-bottom:2px solid #00ff00;padding:10px;display:flex;justify-content:space-between">
-      <span style="color:#00ff00;font-weight:900;cursor:pointer" onclick="showKingdom()">⬅ BACK</span>
-      <span style="font-weight:900;font-size:11px">${country.toUpperCase()}: ${name.toUpperCase()}</span>
-      <span style="color:#888;font-size:11px" onclick="loadGames()">REFRESH</span>
-    </div>
-    <div style="background:#00ff00;color:#000;padding:12px;text-align:center;font-weight:900">
-      ${country.toUpperCase()}: ${name.toUpperCase()} - STANDINGS<br>
-      <small style="font-size:10px">KINGDOM 2026/27 • GREEN BLACK</small>
-    </div>
-    <div style="padding:20px;text-align:center;color:#00ff00">⏳ Loading...</div>
-  `;
+  const content=document.getElementById('content');
+  content.innerHTML=`<div style="background:#000;border-bottom:2px solid #00ff00;padding:10px;display:flex;justify-content:space-between"><span style="color:#00ff00;font-weight:900;cursor:pointer" onclick="loadGames()">⬅ BACK TO GAMES</span><span style="font-weight:900;font-size:11px">${country.toUpperCase()}: ${name.toUpperCase()}</span><span style="color:#888;font-size:11px" onclick="loadGames()">REFRESH</span></div><div style="background:#00ff00;color:#000;padding:12px;text-align:center;font-weight:900">${country.toUpperCase()}: ${name.toUpperCase()} - STANDINGS<br><small style="font-size:10px">KINGDOM 2026/27 • GREEN BLACK</small></div><div style="padding:20px;text-align:center;color:#00ff00">⏳ Loading...</div>`;
   try{
-    let res = await fetch(`/api/table?leagueName=${slug}`);
-    let json = await res.json();
-    let table = json.response || [];
-    if(!table.length){
-      content.innerHTML = `<div style="padding:20px;text-align:center">No table for ${name}<br><br>Try Premier League, LaLiga</div>`;
-      return;
-    }
-    let html = `
-      <div style="background:#000;border-bottom:2px solid #00ff00;padding:10px;display:flex;justify-content:space-between">
-        <span style="color:#00ff00;font-weight:900;cursor:pointer" onclick="showKingdom()">⬅ BACK</span>
-        <span style="font-weight:900;font-size:11px">${country.toUpperCase()}: ${name.toUpperCase()} - STANDINGS</span>
-        <span style="color:#00ff00;font-size:11px;font-weight:900">REFRESH NOW</span>
-      </div>
-      <div style="background:#111;padding:6px;display:grid;grid-template-columns:30px 1fr 28px 28px 28px 28px 40px 40px;gap:4px;font-size:11px;font-weight:900;color:#00ff00;border-bottom:1px solid #00ff00">
-        <span>#</span><span>TEAM</span><span>MP</span><span>W</span><span>D</span><span>L</span><span>G</span><span>PTS</span>
-      </div>
-      <div class="table-wrap" style="margin:0;border-radius:0;border:none">
-    `;
+    let res=await fetch(`/api/table?leagueName=${slug}`);
+    let json=await res.json();
+    let table=json.response||[];
+    if(!table.length){ content.innerHTML=`<div style="padding:20px;text-align:center">No table for ${name}<br><br><button class="refresh-btn" onclick="loadGames()">BACK TO GAMES</button></div>`; return; }
+    let html=`<div style="background:#000;border-bottom:2px solid #00ff00;padding:10px;display:flex;justify-content:space-between"><span style="color:#00ff00;font-weight:900;cursor:pointer" onclick="loadGames()">⬅ BACK TO GAMES</span><span style="font-weight:900;font-size:11px">${country.toUpperCase()}: ${name.toUpperCase()} - STANDINGS</span><span style="color:#00ff00;font-size:11px;font-weight:900">REFRESH NOW</span></div><div style="background:#111;padding:6px;display:grid;grid-template-columns:30px 1fr 28px 28px 28px 28px 40px 40px;gap:4px;font-size:11px;font-weight:900;color:#00ff00;border-bottom:1px solid #00ff00"><span>#</span><span>TEAM</span><span>MP</span><span>W</span><span>D</span><span>L</span><span>G</span><span>PTS</span></div><div class="table-wrap" style="margin:0;border-radius:0;border:none">`;
     table.forEach(r=>{
-      html += `<div class="team-row" style="grid-template-columns:30px 1fr 28px 28px 28px 28px 40px 40px;background:#000;color:#fff">
-        <span style="color:${r.rank<=4?'#00ff00':r.rank>=18?'#ff4444':'#fff'};font-weight:900">${r.rank}</span>
-        <span style="font-weight:800">${r.team.name.toUpperCase()}</span>
-        <span>${r.played||0}</span>
-        <span>${r.won||0}</span>
-        <span>${r.drawn||0}</span>
-        <span>${r.lost||0}</span>
-        <span>${(r.goalsFor||0)}:${(r.goalsAgainst||0)}</span>
-        <span style="color:#00ff00;font-weight:900">${r.points}</span>
-      </div>`;
+      html+=`<div class="team-row" style="grid-template-columns:30px 1fr 28px 28px 28px 28px 40px 40px;background:#000;color:#fff"><span style="color:${r.rank<=4?'#00ff00':r.rank>=18?'#ff4444':'#fff'};font-weight:900">${r.rank}</span><span style="font-weight:800">${r.team.name.toUpperCase()}</span><span>${r.played||0}</span><span>${r.won||0}</span><span>${r.drawn||0}</span><span>${r.lost||0}</span><span>${(r.goalsFor||0)}:${(r.goalsAgainst||0)}</span><span style="color:#00ff00;font-weight:900">${r.points}</span></div>`;
     });
-    html += `</div><div style="padding:10px;background:#000;text-align:center;font-size:10px;color:#666">KINGDOM ORIGINAL • GREEN BLACK DESIGN • NOT FLASHSCORE COPY</div>`;
-    content.innerHTML = html;
-  }catch(e){
-    content.innerHTML = `Error: ${e.message}`;
-  }
+    html+=`</div>`;
+    content.innerHTML=html;
+  }catch(e){ content.innerHTML=`Error: ${e.message}<br><button class="refresh-btn" onclick="loadGames()">BACK TO GAMES</button>`; }
 }
-
-function openMatch(enc){
-  let m = JSON.parse(decodeURIComponent(enc));
-  document.getElementById('modal').style.display='block';
-  document.getElementById('modalContent').innerHTML = `
-    <div style="background:#00ff00;color:#000;padding:14px;text-align:center;font-weight:900">
-      ${ (m.league?.country||'').toUpperCase() }: ${(m.league?.name||'').toUpperCase()}<br>
-      <div style="margin-top:8px;font-size:16px">${(m.teams?.home?.name||'HOME').toUpperCase()} vs ${(m.teams?.away?.name||'AWAY').toUpperCase()}</div>
-      <div style="margin-top:8px;background:#000;color:#00ff00;display:inline-block;padding:8px 20px;border-radius:8px;font-size:20px">${m.goals?.home??0} : ${m.goals?.away??0}</div>
-    </div>
-    <div style="padding:16px">
-      <div style="background:#111;border:1px solid #00ff00;border-radius:10px;padding:14px">
-        <b style="color:#00ff00">KINGDOM MATCH CENTER</b><br><br>
-        Home: ${m.teams?.home?.name||''}<br>
-        Away: ${m.teams?.away?.name||''}<br>
-        Status: ${m.status||'FT'}<br>
-        League: ${m.league?.name||''} - ${m.league?.country||''}<br><br>
-        <div style="background:#000;border:1px solid #222;padding:10px;border-radius:8px;cursor:pointer" onclick="openTable('${m.league?.slug||'premier-league'}','${m.league?.name||'League'}','${m.league?.country||'England'}'); closeModal();">
-          <span style="color:#00ff00;font-weight:900">VIEW ${ (m.league?.name||'').toUpperCase() } TABLE →</span><br>
-          <small style="color:#666">Tap for standings - Green Black Design</small>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
 function closeModal(){ document.getElementById('modal').style.display='none'; }
-
-buildDateBar();
-loadGames();
+buildDateBar(); loadGames();
 </script>
 </body>
 </html>
