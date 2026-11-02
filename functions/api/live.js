@@ -8,24 +8,24 @@ export async function onRequest(context){
   if(type==='tomorrow') date.setDate(date.getDate()+1);
   let dateStr = date.toISOString().split('T')[0];
   
-  let endpoint = `https://api.apisport.online/fixtures?date=${dateStr}`;
-  if(type==='live') endpoint = `https://api.apisport.online/fixtures?live=all`;
+  let endpoint = `https://api.apisport.online/api/v1/fixtures?date=${dateStr}`;
+  if(type==='live') endpoint = `https://api.apisport.online/api/v1/fixtures?live=true`;
   
-  let res = await fetch(endpoint, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+  let res = await fetch(endpoint, { headers: { 'x-api-key': apiKey } });
   let json = await res.json();
-  let data = json.response || json.data || [];
+  let data = json.data || json.response || [];
   
   let mapped = data.map(f=>({
-    id: f.fixture?.id || f.id,
+    id: f.id || f.fixture?.id,
     league: { name: f.league?.name || 'League' },
-    homeTeam: { name: f.teams?.home?.name || f.homeTeam || 'Home' },
-    awayTeam: { name: f.teams?.away?.name || f.awayTeam || 'Away' },
-    state: { description: f.fixture?.status?.short || 'NS', clock: f.fixture?.status?.elapsed || '', score: { current: `${f.goals?.home ?? 0}-${f.goals?.away ?? 0}` } },
-    score: { current: `${f.goals?.home ?? 0}-${f.goals?.away ?? 0}`, home: f.goals?.home, away: f.goals?.away }
+    homeTeam: { name: f.home_team || f.teams?.home?.name || 'Home' },
+    awayTeam: { name: f.away_team || f.teams?.away?.name || 'Away' },
+    state: { description: f.status || 'NS', clock: '', score: { current: `${f.home_score ?? 0}-${f.away_score ?? 0}` } },
+    score: { current: `${f.home_score ?? 0}-${f.away_score ?? 0}` }
   }));
   
   return new Response(JSON.stringify({ data: mapped }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
  }catch(e){
-  return new Response(JSON.stringify({ data: [], error: e.message }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+  return new Response(JSON.stringify({ data: [], error: e.message }), { headers: { 'Content-Type': 'application/json' } });
  }
 }
