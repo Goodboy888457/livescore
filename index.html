@@ -41,13 +41,12 @@ header{background:#1a2530;padding:12px 15px;display:flex;justify-content:space-b
 <script>
 let current='yesterday';
 function getRealScore(f){
- let s=f.state?.score||f.score||{};
- let home=s.current?.home??s.home??f.homeScore?.current??f.homeScore??null;
- let away=s.current?.away??s.away??f.awayScore?.current??f.awayScore??null;
- if((home===null||away===null)&&typeof s.current==='string'&&s.current.includes('-')){let p=s.current.split('-');home=p[0];away=p[1];}
- if((home===null||away===null)&&typeof s==='string'&&s.includes('-')){let p=s.split('-');home=p[0];away=p[1];}
- if(home===null)home=0;if(away===null)away=0;
- return{home,away};
+ // Handles ALL apisport.online formats
+ let s = f.state?.score || f.score || {};
+ if(s.current && typeof s.current === 'object'){ return {home: s.current.home ?? 0, away: s.current.away ?? 0}; }
+ if(typeof s.current === 'string' && s.current.includes('-')){ let p=s.current.split('-'); return {home:p[0], away:p[1]}; }
+ if(typeof s === 'string' && s.includes('-')){ let p=s.split('-'); return {home:p[0], away:p[1]}; }
+ return {home: f.homeScore ?? s.home ?? 0, away: f.awayScore ?? s.away ?? 0};
 }
 async function load(){
  let c=document.getElementById('content');
@@ -55,10 +54,11 @@ async function load(){
  try{
   let r=await fetch('/api/live?type='+current);
   let d=await r.json();
+  console.log('API DATA:', d);
   let f=Array.isArray(d)?d:(d.data||d.response||[]);
   if(!Array.isArray(f))f=[];
   document.getElementById('count').innerText='● '+f.length+' '+current.toUpperCase();
-  if(f.length===0){c.innerHTML='<div class=loading>No '+current+' games - check API key in Cloudflare</div>';return}
+  if(f.length===0){c.innerHTML='<div class=loading>No '+current+' games - check API key in Cloudflare env APISPORT_API_KEY</div>';return}
   render(f)
  }catch(e){c.innerHTML='<div class=loading>Error '+e.message+'</div>'}
 }
@@ -76,8 +76,6 @@ function render(fixtures){
   groups[k].forEach(f=>{
    let home=f.homeTeam?.name||'Home';
    let away=f.awayTeam?.name||'Away';
-   if(typeof home==='object')home=home.name;
-   if(typeof away==='object')away=away.name;
    let{home:hs,away:as}=getRealScore(f);
    let time=String(f.state?.clock??f.state?.description??'FT').substring(0,12);
    let status=String(f.state?.description||'NS').substring(0,5);
@@ -99,9 +97,6 @@ async function openTable(leagueName){
    <div class="match" onclick="openTable('Primeira Liga')"><div style="flex:1">🇵🇹 PORTUGAL - Primeira Liga</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
    <div class="match" onclick="openTable('Eredivisie')"><div style="flex:1">🇳🇱 NETHERLANDS - Eredivisie</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
    <div class="match" onclick="openTable('Champions League')"><div style="flex:1">🏆 Champions League</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
-   <div class="match" onclick="openTable('Jupiler')"><div style="flex:1">🇧🇪 BELGIUM - Jupiler</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
-   <div class="match" onclick="openTable('Super Lig')"><div style="flex:1">🇹🇷 TURKEY - Super Lig</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
-   <div class="match" onclick="openTable('Saudi')"><div style="flex:1">🇸🇦 SAUDI - Pro League</div><div style="color:#00c853;font-weight:900">TABLE 👉</div></div>
   `;return;}
  document.getElementById('content').innerHTML='<div class=loading>⏳ Loading '+leagueName+' TABLE...</div>';
  try{
@@ -109,7 +104,7 @@ async function openTable(leagueName){
   let d=await r.json();let table=d.response||d.data||[];
   let html=`<div class=league onclick="openTable()"><span>⬅ ALL LEAGUES</span><span>🏆 ${leagueName}</span></div>`;
   html+=`<div style="display:flex;padding:10px 15px;background:#0f1419;font-size:11px;color:#8b9bb4;font-weight:700"><div style="width:25px">#</div><div style="flex:1">Team</div><div style="width:35px">PTS</div></div>`;
-  if(table.length===0)html+=`<div class=loading>No data - Check APISPORT_API_KEY</div>`;
+  if(table.length===0)html+=`<div class=loading>No data</div>`;
   else table.forEach((t,i)=>{let rank=t.rank||i+1;let name=t.team?.name||t.name||'Team';let pts=t.points||0;let color=rank<=4?'#00c853':rank>=table.length-2?'#ff3b30':'#fff';html+=`<div class="match"><div style="width:25px;font-weight:900;color:${color}">${rank}</div><div style="flex:1;font-weight:700;font-size:13px">${name}</div><div style="width:35px;text-align:center;font-weight:900;color:#00c853">${pts}</div></div>`;});
   document.getElementById('content').innerHTML=html;
  }catch(e){document.getElementById('content').innerHTML='<div class=loading>Error table</div>'}
