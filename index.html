@@ -44,7 +44,6 @@ body{background:#000;color:#fff;font-family:Arial;font-weight:600}
   <div class="f active" data-f="all" onclick="setFilter('all')">ALL GAMES</div>
   <div class="f" data-f="live" onclick="setFilter('live')">LIVE 🔴</div>
   <div class="f" data-f="finished" onclick="setFilter('finished')">FINISHED</div>
-  <div class="f" data-f="kingdom" onclick="showKingdom()">TABLES 👑</div>
   <div class="f" data-f="refresh" onclick="refreshNow()" style="color:#00ff00">REFRESH 🔄</div>
 </div>
 
@@ -65,7 +64,6 @@ let currentFilter = 'all';
 let allMatchesCache = [];
 let leaguesCache = [];
 
-// BUILD 2 DAYS BACK + 2 DAYS FRONT
 function buildDateBar(){
   const bar = document.getElementById('dateBar');
   const days = [];
@@ -74,7 +72,6 @@ function buildDateBar(){
     d.setDate(d.getDate()+i);
     days.push(d);
   }
-  
   let html = '';
   days.forEach(d=>{
     let str = d.toISOString().split('T')[0];
@@ -82,7 +79,6 @@ function buildDateBar(){
     let label = d.toLocaleDateString('en-US',{weekday:'short'});
     let dateNum = d.getDate() + '/' + (d.getMonth()+1);
     let active = str === currentDateStr ? 'active' : '';
-    
     html += `<div class="d ${active}" data-date="${str}" onclick="pickDate('${str}')">
       <b>${isToday ? 'TODAY' : label.toUpperCase()}</b>
       <small>${dateNum} ${isToday?'•':''}</small>
@@ -108,30 +104,32 @@ function setFilter(f){
 }
 
 function refreshNow(){
-  loadGames(true);
+  const btn = document.querySelector('[data-f="refresh"]');
+  let old = btn.innerHTML;
+  btn.innerHTML = 'LOADING...';
+  loadGames(true).then(()=>{
+    btn.innerHTML = 'REFRESHED ✅';
+    setTimeout(()=>btn.innerHTML = old, 1500);
+  });
+  if(navigator.vibrate) navigator.vibrate([100,50,100]);
 }
 
 async function loadGames(force=false){
   const content = document.getElementById('content');
   content.innerHTML = `<div style="padding:30px;text-align:center;color:#00ff00">⏳ Loading ${currentDateStr}...<br><small style="color:#888">KINGDOM APISPORT</small></div>`;
-  
   try{
-    // Use your fixtures API with date param
     let res = await fetch(`/api/fixtures?date=${currentDateStr}`);
     let json = await res.json();
     let matches = json.response || json.data || [];
-    
-    // If API ignores date param, try day param fallback
     if(!matches.length){
       let res2 = await fetch(`/api/fixtures?day=today`);
       let json2 = await res2.json();
       matches = json2.response || [];
     }
-    
     allMatchesCache = matches;
     renderMatches();
   }catch(e){
-    content.innerHTML = `<div style="padding:20px;color:#ff4444">Error: ${e.message}<br><br>Make sure functions/api/fixtures.js uses ?date= param<br><br><button class="refresh-btn" onclick="loadGames()">RETRY</button></div>`;
+    content.innerHTML = `<div style="padding:20px;color:#ff4444">Error: ${e.message}<br><br><button class="refresh-btn" onclick="loadGames()">RETRY</button></div>`;
   }
 }
 
@@ -141,12 +139,9 @@ function renderMatches(){
     content.innerHTML = `<div style="padding:30px;text-align:center;color:#888">No games for ${currentDateStr}<br><button class="refresh-btn" onclick="loadGames()">REFRESH 🔄</button></div>`;
     return;
   }
-  
   let filtered = allMatchesCache;
   if(currentFilter==='live') filtered = allMatchesCache.filter(m=> (m.status||'').toLowerCase().includes('live') || m.status==='LIVE' || m.status==='IN_PLAY');
   if(currentFilter==='finished') filtered = allMatchesCache.filter(m=> (m.status||'FT').toUpperCase()==='FT' || m.status==='FINISHED');
-  
-  // Group by country + league
   let grouped = {};
   filtered.forEach(m=>{
     let country = (m.league?.country || m.country || 'World').replace(' Amateur','').trim();
@@ -155,23 +150,18 @@ function renderMatches(){
     if(!grouped[key]) grouped[key] = { country, league, slug: m.league?.slug||'premier-league', matches: [] };
     grouped[key].matches.push(m);
   });
-  
   let html = `<div style="padding:8px 12px;font-size:11px;color:#00ff00;font-weight:800;display:flex;justify-content:space-between"><span>${currentDateStr} • ${filtered.length} GAMES</span><span style="color:#888" onclick="loadGames()" style="cursor:pointer">REFRESH NOW 🔄</span></div>`;
-  
   Object.values(grouped).forEach(g=>{
-    // GREEN AND BLACK DESIGN FOR COUNTRY + LEAGUE
     html += `<div class="country-league" onclick="openTable('${g.slug}','${g.league.replace(/'/g,'')}','${g.country}')">
       <span>${g.country.toUpperCase()}: ${g.league.toUpperCase()}</span>
       <span>TABLE →</span>
     </div>`;
-    
     g.matches.slice(0,10).forEach(m=>{
       let home = m.teams?.home?.name || m.home || 'Home';
       let away = m.teams?.away?.name || m.away || 'Away';
       let hs = m.goals?.home ?? m.score?.home ?? 0;
       let as = m.goals?.away ?? m.score?.away ?? 0;
       let status = m.status || 'FT';
-      
       html += `<div class="match" onclick="openMatch('${encodeURIComponent(JSON.stringify(m))}')">
         <div style="font-size:10px;color:#00ff00;font-weight:900;min-width:40px">${status}</div>
         <div class="teams">
@@ -182,31 +172,25 @@ function renderMatches(){
       </div>`;
     });
   });
-  
   html += `<button class="refresh-btn" onclick="loadGames()">REFRESH 🔄 KINGDOM</button>`;
   content.innerHTML = html;
 }
 
 async function showKingdom(){
   document.querySelectorAll('.f').forEach(f=>f.classList.remove('active'));
-  document.querySelector('[data-f="kingdom"]').classList.add('active');
   const content = document.getElementById('content');
   content.innerHTML = '<div style="padding:30px;text-align:center;color:#00ff00">👑 Loading Kingdom Tables...</div>';
-  
   try{
     let res = await fetch('/api/leagues');
     let json = await res.json();
     leaguesCache = json.response || [];
-    
     let byCountry = {};
     leaguesCache.forEach(l=>{
       let c = (l.country || 'World').replace(' Amateur','').trim();
       if(!byCountry[c]) byCountry[c]=[];
       byCountry[c].push(l);
     });
-    
     let html = `<div style="padding:8px 12px;font-size:11px;color:#00ff00;font-weight:800">KINGDOM TABLES • ${leaguesCache.length} LEAGUES • GREEN BLACK DESIGN</div>`;
-    
     Object.keys(byCountry).sort().forEach(country=>{
       byCountry[country].forEach(l=>{
         html += `<div class="country-league" onclick="openTable('${l.slug}','${l.name.replace(/'/g,'')}','${country}')" style="margin-top:1px">
@@ -215,7 +199,6 @@ async function showKingdom(){
         </div>`;
       });
     });
-    
     content.innerHTML = html;
   }catch(e){
     content.innerHTML = `Error: ${e.message}`;
@@ -236,17 +219,14 @@ async function openTable(slug,name,country){
     </div>
     <div style="padding:20px;text-align:center;color:#00ff00">⏳ Loading...</div>
   `;
-  
   try{
     let res = await fetch(`/api/table?leagueName=${slug}`);
     let json = await res.json();
     let table = json.response || [];
-    
     if(!table.length){
       content.innerHTML = `<div style="padding:20px;text-align:center">No table for ${name}<br><br>Try Premier League, LaLiga</div>`;
       return;
     }
-    
     let html = `
       <div style="background:#000;border-bottom:2px solid #00ff00;padding:10px;display:flex;justify-content:space-between">
         <span style="color:#00ff00;font-weight:900;cursor:pointer" onclick="showKingdom()">⬅ BACK</span>
@@ -258,7 +238,6 @@ async function openTable(slug,name,country){
       </div>
       <div class="table-wrap" style="margin:0;border-radius:0;border:none">
     `;
-    
     table.forEach(r=>{
       html += `<div class="team-row" style="grid-template-columns:30px 1fr 28px 28px 28px 28px 40px 40px;background:#000;color:#fff">
         <span style="color:${r.rank<=4?'#00ff00':r.rank>=18?'#ff4444':'#fff'};font-weight:900">${r.rank}</span>
@@ -271,7 +250,6 @@ async function openTable(slug,name,country){
         <span style="color:#00ff00;font-weight:900">${r.points}</span>
       </div>`;
     });
-    
     html += `</div><div style="padding:10px;background:#000;text-align:center;font-size:10px;color:#666">KINGDOM ORIGINAL • GREEN BLACK DESIGN • NOT FLASHSCORE COPY</div>`;
     content.innerHTML = html;
   }catch(e){
@@ -306,44 +284,6 @@ function openMatch(enc){
 
 function closeModal(){ document.getElementById('modal').style.display='none'; }
 
-// FIX YOUR FIXTURES.JS TO SUPPORT ?date=
-/*
-Update your functions/api/fixtures.js to use this:
-
-export async function onRequest(context){
- const apiKey = context.env.APISPORT_API_KEY;
- const url = new URL(context.request.url);
- let dateStr = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
- 
- try{
-  let res = await fetch(`https://api.apisport.online/api/v1/matches?sport=football&date=${dateStr}&limit=500`, {
-    headers: { 'x-api-key': apiKey }
-  });
-  let json = await res.json();
-  let data = json.data || [];
-  
-  let formatted = data.map(m=>({
-    id: m.id,
-    league: { name: m.league?.name || 'League', slug: m.league?.slug || 'premier-league', country: (m.league?.country?.name || 'World').replace(' Amateur','') },
-    teams: { home: {name: m.homeTeam?.name || 'Home'}, away: {name: m.awayTeam?.name || 'Away'} },
-    goals: { home: m.homeScore ?? 0, away: m.awayScore ?? 0 },
-    status: m.status || 'FT'
-  }));
-  
-  if(!formatted.length && dateStr === new Date().toISOString().split('T')[0]){
-    formatted = [{id:'demo', league:{name:'Premier League',slug:'premier-league',country:'England'}, teams:{home:{name:'Liverpool'},away:{name:'Arsenal'}}, goals:{home:0,away:1}, status:'FT'}];
-  }
-  
-  return new Response(JSON.stringify({response: formatted}), {
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-  });
- }catch(e){
-  return new Response(JSON.stringify({response: []}), {headers:{'Content-Type':'application/json'}});
- }
-}
-*/
-
-// START
 buildDateBar();
 loadGames();
 </script>
