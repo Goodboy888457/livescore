@@ -24,7 +24,10 @@ body{background:#000;color:#fff;font-family:Arial;font-weight:600}
 .match:active{background:#1a1a1a}
 .teams{flex:1;font-size:13px;line-height:18px}
 .teams b{font-weight:800}
-.score-box{background:#000;border:1px solid #00ff00;color:#00ff00;padding:5px 10px;border-radius:6px;font-weight:900;min-width:40px;text-align:center}
+.score-box{background:#000;border:1px solid #00ff00;color:#00ff00;padding:5px 10px;border-radius:6px;font-weight:900;min-width:52px;text-align:center;font-size:13px}
+.score-box.ns{background:#222;border-color:#444;color:#888}
+.score-box.live{background:#ff0000;border-color:#ff0000;color:#fff;animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.6}}
 .refresh-btn{background:#00ff00;color:#000;border:none;padding:10px 18px;border-radius:20px;font-weight:900;cursor:pointer;margin:10px auto;display:block}
 .table-wrap{background:#111;margin:10px;border-radius:10px;overflow:hidden;border:1px solid #222}
 .team-row{display:grid;grid-template-columns:30px 1fr 28px 32px 40px;gap:6px;padding:11px 10px;border-bottom:1px solid #222;font-size:12px;align-items:center}
@@ -70,11 +73,6 @@ async function loadGames(){
     let res=await fetch(`/api/fixtures?date=${currentDateStr}`);
     let json=await res.json();
     let matches=json.response||json.data||[];
-    if(!matches.length){
-      let res2=await fetch(`/api/fixtures?day=today`);
-      let json2=await res2.json();
-      matches=json2.response||[];
-    }
     allMatchesCache=matches;
     renderMatches();
   }catch(e){ content.innerHTML=`<div style="padding:20px;color:#ff4444">Error: ${e.message}<br><button class="refresh-btn" onclick="loadGames()">RETRY</button></div>`; }
@@ -83,9 +81,23 @@ async function loadGames(){
 function renderMatches(){
   const content=document.getElementById('content');
   if(!allMatchesCache.length){ content.innerHTML=`<div style="padding:30px;text-align:center;color:#888">No games for ${currentDateStr}<br><button class="refresh-btn" onclick="loadGames()">REFRESH 🔄</button></div>`; return; }
+  
   let filtered=allMatchesCache;
-  if(currentFilter==='live') filtered=allMatchesCache.filter(m=>(m.status||'').toLowerCase().includes('live')||m.status==='LIVE');
-  if(currentFilter==='finished') filtered=allMatchesCache.filter(m=>(m.status||'FT').toUpperCase()==='FT'||m.status==='FINISHED');
+  if(currentFilter==='live') filtered=allMatchesCache.filter(m=> (m.status||'').toUpperCase()==='2H' || (m.status||'').toUpperCase()==='1H' || (m.status||'').toLowerCase().includes('live'));
+  if(currentFilter==='finished') filtered=allMatchesCache.filter(m=> (m.status||'').toUpperCase()==='FT');
+  
+  // REMOVE FAKE 0:0 FT MATCHES WHERE SCORE IS NULL
+  filtered = filtered.filter(m=>{
+    let hs = m.goals?.home;
+    let as = m.goals?.away;
+    let st = (m.status||'').toUpperCase();
+    // If FT and both null, it's fake - hide it (like Qsa Quartiere etc from your screenshot)
+    if(st==='FT' && (hs===null || hs===undefined) && (as===null || as===undefined)){
+      return false;
+    }
+    return true;
+  });
+
   let grouped={};
   filtered.forEach(m=>{
     let country=(m.league?.country||'World').replace(' Amateur','').trim();
@@ -94,20 +106,42 @@ function renderMatches(){
     if(!grouped[key]) grouped[key]={country,league,slug:m.league?.slug||'premier-league',matches:[]};
     grouped[key].matches.push(m);
   });
-  let html=`<div style="padding:8px 12px;font-size:11px;color:#00ff00;font-weight:800;display:flex;justify-content:space-between"><span>${currentDateStr} • ${filtered.length} GAMES</span><span style="color:#888" onclick="loadGames()">REFRESH NOW 🔄</span></div>`;
+  
+  let html=`<div style="padding:8px 12px;font-size:11px;color:#00ff00;font-weight:800;display:flex;justify-content:space-between"><span>${currentDateStr} • ${filtered.length} GAMES - REAL SCORES</span><span style="color:#888" onclick="loadGames()">REFRESH NOW 🔄</span></div>`;
+  
   Object.values(grouped).forEach(g=>{
     html+=`<div class="country-league" onclick="openTable('${g.slug}','${g.league.replace(/'/g,'')}','${g.country}')"><span>${g.country.toUpperCase()}: ${g.league.toUpperCase()}</span><span>TABLE →</span></div>`;
-    g.matches.slice(0,10).forEach(m=>{
-      let home=m.teams?.home?.name||'Home'; let away=m.teams?.away?.name||'Away';
-      let hs=m.goals?.home??0; let as=m.goals?.away??0; let status=m.status||'FT';
-      html+=`<div class="match"><div style="font-size:10px;color:#00ff00;font-weight:900;min-width:40px">${status}</div><div class="teams"><div><b>${home}</b></div><div style="color:#888">${away}</div></div><div class="score-box">${hs} : ${as}</div></div>`;
+    g.matches.slice(0,20).forEach(m=>{
+      let home=m.teams?.home?.name||'Home'; 
+      let away=m.teams?.away?.name||'Away';
+      let hs=m.goals?.home; 
+      let as=m.goals?.away; 
+      let status=(m.status||'FT').toUpperCase();
+      let time=m.time || '';
+      
+      let scoreText='';
+      let scoreClass='score-box';
+      
+      if(status==='NS'){
+        scoreText = time || 'vs';
+        scoreClass += ' ns';
+        status = time || 'NS';
+      } else if(status==='1H' || status==='2H'){
+        if(hs!==null && as!==null) scoreText = `${hs} : ${as}`;
+        else scoreText = `${m.elapsed||''}'`;
+        scoreClass += ' live';
+      } else { // FT
+        if(hs!==null && as!==null) scoreText = `${hs} : ${as}`;
+        else scoreText = 'FT'; // should not happen after filter
+      }
+      
+      html+=`<div class="match"><div style="font-size:10px;color:${status.includes(':')?'#888':'#00ff00'};font-weight:900;min-width:50px">${status}</div><div class="teams"><div><b>${home}</b></div><div style="color:#888">${away}</div></div><div class="${scoreClass}">${scoreText}</div></div>`;
     });
   });
   html+=`<button class="refresh-btn" onclick="loadGames()">REFRESH 🔄 KINGDOM</button>`;
   content.innerHTML=html;
 }
 
-// TABLE VIEW - BACK GOES TO GAMES, NOT 1000 LEAGUES LIST
 async function openTable(slug,name,country){
   const content=document.getElementById('content');
   content.innerHTML=`<div style="background:#000;border-bottom:2px solid #00ff00;padding:10px;display:flex;justify-content:space-between"><span style="color:#00ff00;font-weight:900;cursor:pointer" onclick="loadGames()">⬅ BACK TO GAMES</span><span style="font-weight:900;font-size:11px">${country.toUpperCase()}: ${name.toUpperCase()}</span><span style="color:#888;font-size:11px" onclick="loadGames()">REFRESH</span></div><div style="background:#00ff00;color:#000;padding:12px;text-align:center;font-weight:900">${country.toUpperCase()}: ${name.toUpperCase()} - STANDINGS<br><small style="font-size:10px">KINGDOM 2026/27 • GREEN BLACK</small></div><div style="padding:20px;text-align:center;color:#00ff00">⏳ Loading...</div>`;
