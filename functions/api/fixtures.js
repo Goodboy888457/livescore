@@ -5,73 +5,67 @@ export async function onRequest(context){
  if(dateStr==='today') dateStr = new Date().toISOString().split('T')[0];
 
  try{
-   let realMatches = [];
+   let allMatches = [];
+   let res = await fetch(`https://api.apisport.online/api/v1/fixtures?date=${dateStr}&sport=football&limit=500`, {
+     headers:{'x-api-key': apiKey}
+   });
+   let json = await res.json();
+   let leagues = json.data || [];
 
-   if(apiKey){
-     // Try all APISport endpoints for real fixtures
-     let endpoints = [
-       `https://api.apisport.online/api/v1/fixtures/by-date?date=${dateStr}`,
-       `https://api.apisport.online/api/v1/fixtures?date=${dateStr}&sport=football`,
-       `https://api.apisport.online/api/v1/matches?date=${dateStr}`,
-       `https://api.apisport.online/api/v1/livescore`,
-       `https://api.apisport.online/api/v1/fixtures?day=today`
-     ];
+   leagues.forEach(league=>{
+     let country = (league.country?.name || 'World').replace(' Amateur','').trim();
+     let leagueName = league.name;
+     let leagueSlug = league.slug;
+     let isAmateur = (league.country?.name || '').includes('Amateur') || leagueName.toLowerCase().includes('u19') || leagueName.toLowerCase().includes('u17') || leagueName.toLowerCase().includes('u15') || leagueName.toLowerCase().includes('u20') || leagueName.toLowerCase().includes('veterana');
 
-     for(let ep of endpoints){
-       try{
-         let res = await fetch(ep, {headers:{'x-api-key':apiKey}});
-         let json = await res.json();
-         let data = json.data || json.response || json.result || [];
+     league.fixtures?.forEach(f=>{
+       let hs = f.result?.homeScore;
+       let as = f.result?.awayScore;
+       let status = f.status || 'NS';
 
-         if(!data || !data.length) continue;
+       // FILTER FAKE 0:0 - IF FT BUT SCORE IS NULL, SKIP IT! DON'T SHOW 0:0
+       if(status==='FT' && (hs===null || as===null)){
+         return; // SKIP - This is why you saw Qsa Quartiere 0:0, Colorado 0:0 etc - APISPORT HAS NO SCORE FOR THEM
+       }
 
-         // Parse - APISport returns leagues with fixtures inside
-         data.forEach(item=>{
-           // Format 1: { league: {...}, fixtures: [...] }
-           if(item.fixtures && Array.isArray(item.fixtures)){
-             let leagueName = item.name || item.league?.name || 'League';
-             let country = item.country?.name || item.country || item.league?.country || 'World';
-             let slug = item.slug || leagueName.toLowerCase().replace(/\s+/g,'-');
-             item.fixtures.forEach(f=>{
-               realMatches.push({
-                 id: f.id || `${f.homeTeam?.id}-${f.awayTeam?.id}`,
-                 league: { name: leagueName, slug: slug, country: country.replace(' Amateur','') },
-                 teams: { home:{name: f.homeTeam?.name || f.home?.name || 'Home'}, away:{name: f.awayTeam?.name || f.away?.name || 'Away'} },
-                 goals: { home: f.result?.homeScore ?? f.homeScore ?? f.goals?.home ?? 0, away: f.result?.awayScore ?? f.awayScore ?? f.goals?.away ?? 0 },
-                 status: f.status || f.minute || 'FT'
-               });
-             });
-           } 
-           // Format 2: direct fixture { homeTeam, awayTeam, league }
-           else if(item.homeTeam && item.awayTeam){
-             realMatches.push({
-               id: item.id,
-               league: { name: item.league?.name || item.competition?.name || 'League', slug: (item.league?.slug||'premier-league'), country: (item.league?.country?.name||'World').replace(' Amateur','') },
-               teams: { home:{name: item.homeTeam?.name}, away:{name: item.awayTeam?.name} },
-               goals: { home: item.result?.homeScore ?? 0, away: item.result?.awayScore ?? 0 },
-               status: item.status || 'FT'
-             });
-           }
-         });
+       // ALSO SKIP AMATEUR LEAGUES WITH NULL SCORE IF YOU WANT ONLY REAL LEAGUES
+       // Comment out next 3 lines if you want to keep amateur but with correct score handling
+       if(isAmateur && (hs===null || as===null) && status!=='NS' && status!=='1H' && status!=='2H'){
+         return;
+       }
 
-         if(realMatches.length>0) break;
-       }catch(e){}
-     }
-   }
+       // Format time
+       let timeStr = '';
+       if(f.startTime){
+         let d = new Date(f.startTime);
+         timeStr = d.toLocaleTimeString('en-GB',{hour:'2-digit', minute:'2-digit'});
+       }
 
-   // If still no real games, check if today has no games - don't show old demo
-   if(realMatches.length===0){
-     // Return empty so frontend shows "No games" not fake demo
-     return new Response(JSON.stringify({response: [], data: [], date: dateStr, message:'No fixtures for this date'}), {
-       headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}
+       allMatches.push({
+         id: f.id,
+         league: { name: leagueName, slug: leagueSlug, country: country },
+         teams: { home:{name:f.homeTeam.name}, away:{name:f.awayTeam.name} },
+         goals: { home: hs, away: as },
+         status: status,
+         statusLong: f.statusLong || status,
+         startTime: f.startTime,
+         time: timeStr,
+         elapsed: f.elapsed || f.minute || null
+       });
      });
-   }
+   });
 
-   return new Response(JSON.stringify({response: realMatches, data: realMatches}), {
+   // SORT: LIVE FIRST, THEN FT, THEN NS
+   allMatches.sort((a,b)=>{
+     let order = {'2H':0,'1H':1,'LIVE':2,'FT':3,'NS':4};
+     return (order[a.status]||5) - (order[b.status]||5);
+   });
+
+   return new Response(JSON.stringify({response: allMatches, data: allMatches}), {
      headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*','Cache-Control':'public, max-age=60'}
    });
 
  }catch(e){
-   return new Response(JSON.stringify({response: [], error: e.message}), {headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}});
+   return new Response(JSON.stringify({response:[], error:e.message}), {headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}});
  }
 }
