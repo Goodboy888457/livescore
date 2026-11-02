@@ -9,39 +9,41 @@ export async function onRequest(context){
   let dateStr = date.toISOString().split('T')[0];
   
   let endpoint = `https://api.apisport.online/api/v1/fixtures?date=${dateStr}`;
-  if(type==='live') endpoint = `https://api.apisport.online/api/v1/fixtures?live=true`;
+  if(type==='live') endpoint = `https://api.apisport.online/api/v1/livescore`;
+  if(type==='finished') endpoint = `https://api.apisport.online/api/v1/fixtures?date=${dateStr}`;
+  if(type==='today') endpoint = `https://api.apisport.online/api/v1/fixtures?date=${dateStr}`;
   
-  let res = await fetch(endpoint, { headers: { 'x-api-key': apiKey } });
+  let res = await fetch(endpoint, { 
+    headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' } 
+  });
   let json = await res.json();
-  let data = json.data || json.response || [];
+  let data = json.data || json.response || json || [];
+  if(!Array.isArray(data)) data = [data];
   
   let mapped = data.map(f=>{
-    // TRY ALL POSSIBLE TEAM NAME FIELDS
-    let home = f.home_team || f.homeTeam || f.home_name || f.teams?.home?.name || f.home?.name || (typeof f.homeTeam === 'string' ? f.homeTeam : null) || 'Home';
-    let away = f.away_team || f.awayTeam || f.away_name || f.teams?.away?.name || f.away?.name || (typeof f.awayTeam === 'string' ? f.awayTeam : null) || 'Away';
-    if(typeof home === 'object') home = home.name || 'Home';
-    if(typeof away === 'object') away = away.name || 'Away';
+    let home = f.home_team || f.homeTeam || f.teams?.home?.name || f.home?.name || 'Home';
+    let away = f.away_team || f.awayTeam || f.teams?.away?.name || f.away?.name || 'Away';
+    if(typeof home === 'object') home = home.name||'Home';
+    if(typeof away === 'object') away = away.name||'Away';
     
-    // TRY ALL SCORE FIELDS
-    let hs = f.home_score ?? f.homeScore ?? f.goals?.home ?? f.score?.home ?? f.goals_home ?? 0;
-    let as = f.away_score ?? f.awayScore ?? f.goals?.away ?? f.score?.away ?? f.goals_away ?? 0;
-    if(typeof hs === 'object') hs = hs.current ?? 0;
-    if(typeof as === 'object') as = as.current ?? 0;
-    
-    let status = f.status || f.fixture?.status?.short || 'FT';
-    let clock = f.minute || f.clock || f.fixture?.status?.elapsed || '';
+    let hs = f.home_score ?? f.score?.home ?? f.goals?.home ?? 0;
+    let as = f.away_score ?? f.score?.away ?? f.goals?.away ?? 0;
+    if(typeof hs === 'object') hs = hs.current ?? hs.goals ?? 0;
+    if(typeof as === 'object') as = as.current ?? as.goals ?? 0;
     
     return {
-      id: f.id || f.fixture?.id || f.fixture_id || Math.random(),
-      league: { name: f.league?.name || f.league_name || f.competition || 'Football' },
+      id: f.id || f.fixture_id || Math.random(),
+      league: { name: f.league_name || f.league?.name || f.competition || 'Football' },
       homeTeam: { name: String(home) },
       awayTeam: { name: String(away) },
-      state: { description: status, clock: clock, score: { current: `${hs}-${as}` } },
+      state: { description: f.status || f.state || 'FT', clock: f.minute || f.time || '' , score: { current: `${hs}-${as}` } },
       score: { current: `${hs}-${as}` }
     };
   });
   
-  return new Response(JSON.stringify({ data: mapped }), { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+  return new Response(JSON.stringify({ data: mapped }), { 
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } 
+  });
  }catch(e){
   return new Response(JSON.stringify({ data: [], error: e.message }), { headers: { 'Content-Type': 'application/json' } });
  }
