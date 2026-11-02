@@ -8,37 +8,51 @@ export async function onRequest(context){
   if(type==='tomorrow') date.setDate(date.getDate()+1);
   let dateStr = date.toISOString().split('T')[0];
   
-  let endpoint = `https://api.apisport.online/api/v1/fixtures?date=${dateStr}`;
-  if(type==='live') endpoint = `https://api.apisport.online/api/v1/livescore`;
-  if(type==='finished') endpoint = `https://api.apisport.online/api/v1/fixtures?date=${dateStr}`;
-  if(type==='today') endpoint = `https://api.apisport.online/api/v1/fixtures?date=${dateStr}`;
+  let endpoint;
+  if(type==='live'){
+    endpoint = `https://api.apisport.online/api/v1/livescore`;
+  } else {
+    endpoint = `https://api.apisport.online/api/v1/fixtures/by-date?date=${dateStr}`;
+  }
   
-  let res = await fetch(endpoint, { 
-    headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' } 
-  });
+  let res = await fetch(endpoint, { headers: { 'x-api-key': apiKey } });
   let json = await res.json();
-  let data = json.data || json.response || json || [];
-  if(!Array.isArray(data)) data = [data];
+  let leagues = json.data || json.response || [];
   
-  let mapped = data.map(f=>{
-    let home = f.home_team || f.homeTeam || f.teams?.home?.name || f.home?.name || 'Home';
-    let away = f.away_team || f.awayTeam || f.teams?.away?.name || f.away?.name || 'Away';
-    if(typeof home === 'object') home = home.name||'Home';
-    if(typeof away === 'object') away = away.name||'Away';
-    
-    let hs = f.home_score ?? f.score?.home ?? f.goals?.home ?? 0;
-    let as = f.away_score ?? f.score?.away ?? f.goals?.away ?? 0;
-    if(typeof hs === 'object') hs = hs.current ?? hs.goals ?? 0;
-    if(typeof as === 'object') as = as.current ?? as.goals ?? 0;
-    
-    return {
-      id: f.id || f.fixture_id || Math.random(),
-      league: { name: f.league_name || f.league?.name || f.competition || 'Football' },
-      homeTeam: { name: String(home) },
-      awayTeam: { name: String(away) },
-      state: { description: f.status || f.state || 'FT', clock: f.minute || f.time || '' , score: { current: `${hs}-${as}` } },
-      score: { current: `${hs}-${as}` }
-    };
+  let mapped = [];
+  leagues.forEach(leagueObj=>{
+    let leagueName = leagueObj.name || leagueObj.league?.name || 'Football';
+    let fixtures = leagueObj.fixtures || [];
+    fixtures.forEach(f=>{
+      // Time from startTime e.g. 13:45
+      let time = 'FT';
+      if(f.startTime){
+        try{ time = new Date(f.startTime).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}); }catch{}
+      }
+      if(f.status==='LIVE' || f.status==='1H' || f.status==='2H') time = f.minute ? f.minute+"'" : 'LIVE';
+      if(f.status==='FT') time = 'FT';
+      if(f.status==='NS') time = time; // show kickoff time
+      
+      let hs = f.result?.homeScore ?? f.result?.homeScoreHT ?? 0;
+      let as = f.result?.awayScore ?? f.result?.awayScoreHT ?? 0;
+      if(hs===null) hs = 0;
+      if(as===null) as = 0;
+      
+      mapped.push({
+        id: f.id,
+        league: { name: leagueName },
+        homeTeam: { name: f.homeTeam?.name || 'Home' },
+        awayTeam: { name: f.awayTeam?.name || 'Away' },
+        homeScore: hs,
+        awayScore: as,
+        state: { 
+          description: f.status || 'NS', 
+          clock: time, 
+          score: { home: hs, away: as, current: `${hs}-${as}` } 
+        },
+        score: { current: `${hs}-${as}` }
+      });
+    });
   });
   
   return new Response(JSON.stringify({ data: mapped }), { 
