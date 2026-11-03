@@ -1,0 +1,18 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KINGDOM</title><style>body{background:#000;color:#fff;font-family:Arial;margin:0}.t{display:flex;background:#111;border-bottom:2px solid #0f0;position:sticky;top:0}.b{padding:12px 16px;font-weight:900;font-size:12px;cursor:pointer;color:#888}.b.on{color:#0f0;border-bottom:3px solid #0f0}.m{background:#111;padding:10px;border-bottom:1px solid #222;display:flex;justify-content:space-between}.c{background:#222;color:#0f0;padding:6px 10px;font-weight:900;font-size:11px}</style></head><body>
+<div style="padding:10px;border-bottom:2px solid #0f0;display:flex;justify-content:space-between"><b>KINGDOM 26/27</b><b style="color:#0f0">GOD'S ARMY</b></div>
+<div class="t"><div class="b on" id="a" onclick="s('all')">ALL</div><div class="b" id="l" onclick="s('live')">LIVE</div><div class="b" onclick="lo()">↻</div></div>
+<div id="x" style="padding:20px;text-align:center;color:#0f0">Loading by API KEY...</div>
+<script>
+let cur='all';function s(t){cur=t;document.querySelectorAll('.b').forEach(b=>b.classList.remove('on'));document.getElementById(t[0]).classList.add('on');lo()}
+async function lo(){
+let b=document.getElementById('x');b.innerHTML='Loading '+cur+'...';
+try{
+let u=cur==='live'?'/api/live':'/api/fixtures?type='+cur;
+let r=await fetch(u);let j=await r.json();
+if(j.error){b.innerHTML='SET API KEY IN CLOUDFLARE<br>'+j.error;return}
+let g=j.response||[];if(!g.length){b.innerHTML='No games - Key OK';return}
+let by={};g.forEach(o=>{let k=o.league.country+'|'+o.league.name;if(!by[k])by[k]=[];by[k].push(o)});
+let h='';for(let k in by){let a=by[k];h+=`<div class="c">${a[0].league.country}: ${a[0].league.name}</div>`;a.forEach(m=>{let sc=m.goals.home!=null?m.goals.home+'-'+m.goals.away:'-';h+=`<div class="m"><div>${m.teams.home.name}<br>${m.teams.away.name}</div><div style="font-weight:900;text-align:right">${sc}<br><small style="color:#0f0">${m.status||m.time}</small></div></div>`})}b.innerHTML=h;
+}catch(e){b.innerHTML=e.message}
+}lo();
+</script></body></html>
