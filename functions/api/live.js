@@ -1,43 +1,19 @@
-export async function onRequest(context){
- const apiKey = context.env.APISPORT_API_KEY;
- if(!apiKey){
-   return new Response(JSON.stringify({response:[]}),{
-     headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}
-   });
- }
- try{
-   let res = await fetch(`https://api.apisport.online/api/v1/livescore?sport=football`,{
-     headers:{'x-api-key': apiKey}
-   });
-   let json = await res.json();
-   let leagues = json.data || [];
-   let liveGames = [];
-   leagues.forEach(leagueObj=>{
-     let leagueName = leagueObj.name;
-     let country = leagueObj.country?.name || 'World';
-     let slug = leagueObj.slug;
-     leagueObj.fixtures.forEach(f=>{
-       let hs = f.result?.homeScore ?? 0;
-       let as = f.result?.awayScore ?? 0;
-       let minute = f.minute ? f.minute+"'" : 'LIVE';
-       if(f.status === 'LIVE' || f.status === '1H' || f.status === '2H' || f.status === 'HT'){
-         liveGames.push({
-           id: f.id,
-           league: { name: leagueName, slug: slug, country: country },
-           teams: { home: {name: f.homeTeam?.name}, away: {name: f.awayTeam?.name} },
-           goals: { home: hs, away: as },
-           status: minute,
-           minute: f.minute
-         });
-       }
-     });
-   });
-   return new Response(JSON.stringify({response: liveGames}),{
-     headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}
-   });
- }catch(e){
-   return new Response(JSON.stringify({response:[]}),{
-     headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}
-   });
- }
+export async function onRequestGet(context) {
+  const { request, env } = context;
+  const url = new URL(request.url);
+  const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
+  const API_KEY = env.SPORTAPI_KEY;
+  if (!API_KEY) {
+    return new Response(JSON.stringify({ error: "Missing SPORTAPI_KEY" }), {
+      status: 500, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    });
+  }
+  const apiRes = await fetch(`https://sportapi.ai/api/fixtures/date/${date}`, {
+    headers: { "X-Api-Key": API_KEY }
+  });
+  const data = await apiRes.json();
+  return new Response(JSON.stringify(data), {
+    status: apiRes.status,
+    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Cache-Control": "public, max-age=60" }
+  });
 }
