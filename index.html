@@ -2,61 +2,53 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LiveScore - Yesterday Today Tomorrow</title>
+<title>LiveScore</title>
 <style>
 body{font-family:Arial;background:#0b1220;color:white;margin:0;padding:10px}
-.tabs{display:flex;gap:8px;margin-bottom:15px}
+.tabs{display:flex;gap:8px}
 .tab{flex:1;padding:12px;text-align:center;background:#1a2744;border-radius:10px;cursor:pointer;font-weight:bold}
-.tab.active{background:#00e5a0;color:black}
+.tab.active{background:#00e5a0;color:#000}
 .match{background:#151f35;padding:12px;margin-bottom:8px;border-radius:10px;display:flex;justify-content:space-between}
-.league{font-size:12px;color:#8aa0c0;margin:15px 0 5px 0;font-weight:bold;text-transform:uppercase}
-.score{color:#00e5a0;font-weight:bold}
+.league{font-size:12px;color:#8aa0c0;margin:15px 0 5px 0}
 </style>
 </head>
 <body>
-
 <h2 style="text-align:center">⚽ LiveScore</h2>
 <div class="tabs">
-  <div class="tab" onclick="loadDate('2026-11-03',this)">Yesterday</div>
-  <div class="tab active" onclick="loadDate('2026-11-04',this)">Today</div>
-  <div class="tab" onclick="loadDate('2026-11-05',this)">Tomorrow</div>
+  <div class="tab" id="y">Yesterday</div>
+  <div class="tab active" id="t">Today</div>
+  <div class="tab" id="tm">Tomorrow</div>
 </div>
-
-<div id="results">Loading today...</div>
+<div id="results" style="margin-top:15px">Loading...</div>
 
 <script>
-const API_KEY = "YOUR_NEW_KEY_HERE"; // <-- PUT YOUR NEW KEY HERE
+const API_KEY = "YOUR_NEW_KEY_HERE"; // <-- PUT NEW KEY
 
-async function loadDate(date, el){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  if(el) el.classList.add('active');
-  document.getElementById('results').innerHTML = "Loading "+date+"...";
-  
-  try{
-    const res = await fetch(`https://api.apisport.online/api/v1/fixtures/by-date?date=${date}&key=${API_KEY}`);
-    const json = await res.json();
-    
-    if(!json.success || !json.data || json.data.length===0){
-      document.getElementById('results').innerHTML = "No matches for "+date;
-      return;
-    }
-    
-    let html = "";
-    json.data.forEach(league=>{
-      html += `<div class="league">${league.name} (${league.country.name})</div>`;
-      league.fixtures.forEach(m=>{
-        const score = m.result.homeScore !== null ? `${m.result.homeScore} - ${m.result.awayScore}` : "vs";
-        html += `<div class="match"><span>${m.homeTeam.name} vs ${m.awayTeam.name}</span><span class="score">${score}</span></div>`;
-      });
-    });
-    document.getElementById('results').innerHTML = html;
-  }catch(e){
-    document.getElementById('results').innerHTML = "Error: Check your API Key. "+e;
-  }
+function fmt(d){return d.toISOString().split('T')[0];}
+const today = new Date(); const yd = new Date(); yd.setDate(today.getDate()-1); const td = new Date(); td.setDate(today.getDate()+1);
+const D = {y:fmt(yd), t:fmt(today), tm:fmt(td)};
+
+document.getElementById('y').innerText=`Yesterday\n${D.y}`;
+document.getElementById('t').innerText=`Today\n${D.t}`;
+document.getElementById('tm').innerText=`Tomorrow\n${D.tm}`;
+
+document.getElementById('y').onclick=e=>load(D.y,e.target);
+document.getElementById('t').onclick=e=>load(D.t,e.target);
+document.getElementById('tm').onclick=e=>load(D.tm,e.target);
+
+async function load(date, el){
+ document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active')); el.classList.add('active');
+ document.getElementById('results').innerHTML="Loading "+date+"...";
+ const url=`https://api.apisport.online/api/v1/fixtures/by-date?date=${date}&status=&season=26%2F27&timezone=UTC`;
+ try{
+  const r=await fetch(url,{headers:{"Content-Type":"application/json","x-api-key":API_KEY}});
+  const j=await r.json(); console.log(j);
+  if(!j.data || j.data.length===0){ document.getElementById('results').innerHTML="No matches for "+date; return; }
+  let h=""; j.data.forEach(l=>{ h+=`<div class="league">${l.name}</div>`; l.fixtures.forEach(m=>{ const s=m.result?.homeScore!=null?`${m.result.homeScore}-${m.result.awayScore}`:"vs"; h+=`<div class="match"><span>${m.homeTeam.name} vs ${m.awayTeam.name}</span><span>${s}</span></div>`; }); });
+  document.getElementById('results').innerHTML=h;
+ }catch(err){ document.getElementById('results').innerHTML="Error: "+err+" Check API Key"; }
 }
-
-// Load today by default
-loadDate('2026-11-04', document.querySelector('.tab.active'));
+load(D.t, document.getElementById('t'));
 </script>
 </body>
 </html>
