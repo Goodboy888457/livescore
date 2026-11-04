@@ -8,7 +8,7 @@ body{font-family:Arial;background:#0b1220;color:white;margin:0;padding:10px}
 .tabs{display:flex;gap:8px}
 .tab{flex:1;padding:12px;text-align:center;background:#1a2744;border-radius:10px;cursor:pointer;font-weight:bold;white-space:pre-line}
 .tab.active{background:#00e5a0;color:#000}
-.match{background:#151f35;padding:12px;margin-bottom:8px;border-radius:10px;display:flex;justify-content:space-between}
+.match{background:#151f35;padding:12px;margin-bottom:8px;border-radius:10px;display:flex;justify-content:space-between;align-items:center}
 .league{font-size:12px;color:#8aa0c0;margin:15px 0 5px 0}
 .score{color:#00e5a0;font-weight:bold}
 </style>
@@ -32,22 +32,18 @@ async function load(date, el){
  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');
  const box=document.getElementById('results');box.innerHTML="Loading "+date+"...";
  try{
-  const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();console.log(j);
-  const list=j.data||j.fixtures||j.response||[];
+  const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();
+  console.log(j);
+  const list=j.data||[];
   if(list.length===0){box.innerHTML="No matches for "+date;return;}
-  let h="";
+  let h=""; let lastLeague="";
   list.forEach(m=>{
-    const league = m.league?.name || 'Match';
-    const home = m.home_team?.name || m.homeTeam?.name || m.teams?.home?.name || m.home || 'Home';
-    const away = m.away_team?.name || m.awayTeam?.name || m.teams?.away?.name || m.away || 'Away';
-    let score='vs';
-    if(m.score){ score=`${m.score.home??m.score.homeScore??0}-${m.score.away??m.score.awayScore??0}`; }
-    else if(m.result){ score=`${m.result.homeScore??m.result.home??0}-${m.result.awayScore??m.result.away??0}`; }
-    else if(m.goals){ score=`${m.goals.home}-${m.goals.away}`; }
-    h+=`<div class="league">${league}</div><div class="match"><span>${home} vs ${away}</span><span class="score">${score}</span></div>`;
+    if(m.league_name!==lastLeague){ h+=`<div class="league">${m.league_name}</div>`; lastLeague=m.league_name; }
+    const score = (m.status==="Scheduled" || m.home_score===null) ? `${m.status} ${m.minute||''} vs` : `${m.home_score}-${m.away_score} ${m.minute||m.status}`;
+    h+=`<div class="match"><span>${m.home_team} vs ${m.away_team}</span><span class="score">${score}</span></div>`;
   });
   box.innerHTML=h;
- }catch(err){box.innerHTML="Error: "+err;}
+ }catch(err){box.innerHTML="Error: "+err.message;}
 }
 load(D.t, document.getElementById('t'));
 </script>
