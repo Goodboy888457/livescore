@@ -1,21 +1,71 @@
 <!DOCTYPE html>
-<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>LiveScore</title>
-<style>body{background:#0b1220;color:#fff;font-family:Arial;margin:0;padding:10px}.tabs{display:flex;gap:6px}.tab{flex:1;padding:10px;background:#1a2744;border-radius:20px;text-align:center;cursor:pointer;font-weight:bold;font-size:12px}.tab.active{background:#00e5a0;color:#000}.match{background:#151f35;padding:12px;margin:6px 0;border-radius:10px;display:flex;justify-content:space-between;cursor:pointer}.match:hover{background:#1e2e50}.league{color:#8aa0c0;font-size:11px;margin:12px 0 4px;cursor:pointer}.score{color:#00e5a0;font-weight:bold}#modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.9);display:none;padding:15px;overflow:auto;z-index:99}.card{background:#151f35;border-radius:15px;padding:15px;max-width:500px;margin:auto}</style></head><body>
-<h2 style="text-align:center" onclick="location.reload()">⚽ LiveScore</h2>
-<div class="tabs"><div class="tab" id="y"></div><div class="tab active" id="t"></div><div class="tab" id="tm"></div><div class="tab" id="more">More 📅</div></div>
-<div class="tabs" style="margin-top:8px"><div class="tab active" id="fa" onclick="filter('all',this)">All Games</div><div class="tab" onclick="filter('LIVE',this)">Live</div><div class="tab" onclick="filter('FT',this)">Finished</div><div class="tab" onclick="load(cur,null)">↻ Refresh</div></div>
-<input type="date" id="dp" style="display:none;width:100%;margin-top:8px;background:#1a2744;color:#fff;border:0;padding:10px;border-radius:10px" onchange="load(this.value,document.getElementById('more'))">
-<div id="res" style="margin-top:12px">Loading...</div>
-<div id="modal" onclick="if(event.target==this)this.style.display='none'"><div class="card"><span style="float:right;font-size:22px;cursor:pointer" onclick="document.getElementById('modal').style.display='none'">✕</span><div id="mb">...</div></div></div>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{background:#000;color:#fff;font-family:Arial;margin:0}
+.header{background:#00c853;padding:12px;text-align:center;font-weight:bold;font-size:18px;color:#000}
+.tabs{display:flex;background:#121212;overflow-x:auto}
+.tabs button{background:#121212;color:#aaa;border:0;padding:12px 16px;white-space:nowrap}
+.tabs button.active{color:#00c853;border-bottom:3px solid #00c853}
+.league-head{background:#1a1a1a;color:#00c853;padding:8px 12px;font-weight:bold;margin-top:10px;font-size:13px;text-transform:uppercase}
+.match{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #222;background:#0f0f0f}
+.match:hover{background:#1a1a1a}
+.score{color:#00c853;font-weight:bold}
+.status{font-size:11px;color:#888}
+.live{color:#ff3b30;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:0}}
+</style>
+</head>
+<body>
+<div class="header">⚽ LiveScore</div>
+<div class="tabs">
+  <button onclick="load('2026-11-03')">Yesterday</button>
+  <button class="active" onclick="loadToday()">Today</button>
+  <button onclick="load('2026-11-05')">Tomorrow</button>
+  <button onclick="loadLive()">Live</button>
+</div>
+<div id="list">Loading...</div>
+
 <script>
-let cur,all=[],fil='all';const fmt=d=>d.toISOString().split('T')[0];const td=new Date(),yd=new Date(),tm=new Date();yd.setDate(td.getDate()-1);tm.setDate(td.getDate()+1);const D={y:fmt(yd),t:fmt(td),tm:fmt(tm)};
-document.getElementById('y').innerText='Yesterday\n'+D.y;document.getElementById('t').innerText='Today\n'+D.t;document.getElementById('tm').innerText='Tomorrow\n'+D.tm;
-document.getElementById('y').onclick=e=>load(D.y,e.target);document.getElementById('t').onclick=e=>load(D.t,e.target);document.getElementById('tm').onclick=e=>load(D.tm,e.target);
-document.getElementById('more').onclick=()=>{let p=document.getElementById('dp');p.style.display=p.style.display=='none'?'block':'none';p.showPicker&&p.showPicker()};
-async function load(d,el){if(el){document.querySelectorAll('.tabs:first-of-type .tab').forEach(b=>b.classList.remove('active'));el.classList.add('active')}cur=d;document.getElementById('res').innerHTML='Loading '+d+'...';let r=await fetch('/api/fixtures?date='+d);let j=await r.json();all=j.data||[];draw()}
-function filter(f,el){fil=f;document.querySelectorAll('.tabs:nth-of-type(2) .tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');draw()}
-function draw(){let box=document.getElementById('res');let list=all;if(fil=='LIVE')list=list.filter(m=>m.status=='LIVE');if(fil=='FT')list=list.filter(m=>['FT','AET','PENS'].includes(m.status));if(!list.length){box.innerHTML='No '+fil+' games';return}let h='',last='';list.forEach(m=>{if(m.league_name!=last){h+=`<div class="league" onclick="filterLeague('${m.league_name.replace(/'/g,"\\'")}')">${m.league_name} ➤</div>`;last=m.league_name}let sc=m.home_score==null?'vs':`${m.home_score}-${m.away_score} ${m.minute||m.status}`;h+=`<div class="match" onclick="openM(${m.id})"><span>${m.home_team} vs ${m.away_team}</span><span class="score">${sc}</span></div>`});box.innerHTML=h}
-function filterLeague(n){let list=all.filter(m=>m.league_name==n);let h=`<div style="display:flex;justify-content:space-between"><b>${n}</b><span onclick="draw()" style="cursor:pointer;background:#1a2744;padding:4px 10px;border-radius:10px">✕ Clear</span></div>`;list.forEach(m=>{h+=`<div class="match" onclick="openM(${m.id})"><span>${m.home_team} vs ${m.away_team}</span><span class="score">${m.home_score??'vs'}${m.away_score!=null?'-'+m.away_score:''}</span></div>`});document.getElementById('res').innerHTML=h}
-async function openM(id){let mod=document.getElementById('modal');let mb=document.getElementById('mb');mod.style.display='block';mb.innerHTML='Loading...';let r=await fetch('/api/fixture?id='+id);let j=await r.json();let f=j.fixture||j;let html=`<h3 style="text-align:center">${f.home_team} ${f.home_score??''}-${f.away_score??''} ${f.away_team}</h3><p style="text-align:center;color:#8aa0c0">${f.league_name} • ${f.status} ${f.minute||''}</p>`;if(f.events&&f.events.length){html+='<h4>Events</h4>';f.events.forEach(ev=>{let ic=ev.event_type=='goal'?'⚽':ev.event_type.includes('yellow')?'🟨':ev.event_type.includes('red')?'🟥':'🔄';html+=`<div style="padding:6px 0;border-bottom:1px solid #1a2744;font-size:13px">${ic} ${ev.minute} ${ev.player_name} (${ev.team_side})</div>`})}else html+='<p>No events</p>';html+=`<p style="font-size:12px;color:#8aa0c0">Stadium: ${f.home_stadium||''}<br>Coach: ${f.home_coach||''} vs ${f.away_coach||''}</p><button onclick="document.getElementById('modal').style.display='none'" style="width:100%;padding:12px;background:#00e5a0;border:0;border-radius:10px;font-weight:bold">Close</button>`;mb.innerHTML=html}
-load(D.t,document.getElementById('t'));
-</script></body></html>
+async function load(date){
+  document.getElementById('list').innerHTML='Loading...';
+  const r=await fetch(`/api/fixtures?date=${date}`);
+  const j=await r.json();
+  render(j.data||[]);
+}
+function loadToday(){
+  const d=new Date().toISOString().split('T')[0];
+  load(d);
+}
+async function loadLive(){
+  const r=await fetch(`/api/live`);
+  const j=await r.json();
+  render(j.data||[]);
+}
+function render(data){
+  if(!data.length){document.getElementById('list').innerHTML='<p style="padding:20px;text-align:center">No games</p>';return}
+  // Group by country + league
+  const groups={};
+  data.forEach(m=>{
+    const key=`${m.league_zone||m.league_geo||'World'}: ${m.league_name}`;
+    if(!groups[key]) groups[key]=[];
+    groups[key].push(m);
+  });
+  let html='';
+  for(const league in groups){
+    html+=`<div class="league-head">${league}</div>`;
+    groups[league].forEach(match=>{
+      const live = match.status==='LIVE' ? `<span class="live">● ${match.minute||'LIVE'}</span>` : `<span class="status">${match.status} ${match.minute||''}</span>`;
+      html+=`<div class="match" onclick="location.href='/match.html?id=${match.id}'">
+        <div><div>${match.home_team}</div><div>${match.away_team}</div></div>
+        <div style="text-align:right"><div class="score">${match.home_score!=null?match.home_score+' - '+match.away_score:'-:-'}</div><div>${live}</div></div>
+      </div>`;
+    });
+  }
+  document.getElementById('list').innerHTML=html;
+}
+loadToday();
+</script>
+</body>
+</html>
