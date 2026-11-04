@@ -1,37 +1,48 @@
-export async function onRequest(context){
- const apiKey = context.env.APISPORT_API_KEY;
- const type = new URL(context.request.url).searchParams.get('type') || 'all';
- if(!apiKey) return new Response(JSON.stringify({response:[]}),{headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}});
- try{
-   let res = await fetch(`https://api.apisport.online/api/v1/livescore?sport=football`,{headers:{'x-api-key': apiKey}});
-   let json = await res.json();
-   let leagues = json.data || [];
-   let allGames = [];
-   let liveGames = [];
-   leagues.forEach(leagueObj=>{
-     let leagueName = leagueObj.name;
-     let country = leagueObj.country?.name || 'World';
-     let slug = leagueObj.slug;
-     leagueObj.fixtures.forEach(f=>{
-       let hs = f.result?.homeScore ?? 0;
-       let as = f.result?.awayScore ?? 0;
-       let minute = f.minute ? f.minute+"'" : f.status;
-       let game = {
-         id: f.id,
-         league: { name: leagueName, slug: slug, country: country },
-         teams: { home: {name: f.homeTeam?.name}, away: {name: f.awayTeam?.name} },
-         goals: { home: hs, away: as },
-         status: f.status,
-         time: minute,
-         minute: f.minute || 0
-       };
-       allGames.push(game);
-       if(f.status === 'LIVE' || f.status === '1H' || f.status === '2H' || f.status === 'HT'){
-         liveGames.push({...game, status: minute});
-       }
-     });
-   });
-   let result = type==='live' ? liveGames : allGames;
-   return new Response(JSON.stringify({response: result}),{headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}});
- }catch(e){return new Response(JSON.stringify({response:[]}),{headers:{'Content-Type':'application/json','Access-Control-Allow-Origin':'*'}})}
+export async function onRequestGet(context) {
+  const { request, env } = context;
+  const url = new URL(request.url);
+  
+  // Get date from ?date=2026-11-04 or default to today
+  const date = url.searchParams.get('date') || new Date().toISOString().split('T')[0];
+  const status = url.searchParams.get('status') || '';
+  const season = url.searchParams.get('season') || '26/27';
+  const timezone = url.searchParams.get('timezone') || 'UTC';
+
+  // Your key should be set in Cloudflare Dashboard > Settings > Variables as APISPORT_KEY
+  const API_KEY = env.APISPORT_KEY || env.API_KEY;
+
+  if (!API_KEY) {
+    return new Response(JSON.stringify({ error: "Missing APISPORT_KEY env variable" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    });
+  }
+
+  const apiUrl = `https://api.apisport.online/api/v1/fixtures/by-date?date=${date}&status=${status}&season=${encodeURIComponent(season)}&timezone=${timezone}`;
+
+  try {
+    const res = await fetch(apiUrl, {
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY
+      }
+    });
+
+    const data = await res.json();
+
+    return new Response(JSON.stringify(data), {
+      status: res.status,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "public, max-age=60"
+      }
+    });
+
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    });
+  }
 }
