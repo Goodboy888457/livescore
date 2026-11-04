@@ -6,65 +6,34 @@
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;text-align:center;font-weight:bold;font-size:18px;color:#000}
 .tabs{display:flex;background:#121212;overflow-x:auto}
-.tabs button{background:#121212;color:#aaa;border:0;padding:12px 16px;white-space:nowrap}
-.tabs button.active{color:#00c853;border-bottom:3px solid #00c853}
-.league-head{background:#1a1a1a;color:#00c853;padding:8px 12px;font-weight:bold;margin-top:10px;font-size:13px;text-transform:uppercase}
-.match{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #222;background:#0f0f0f}
-.match:hover{background:#1a1a1a}
-.score{color:#00c853;font-weight:bold}
-.status{font-size:11px;color:#888}
-.live{color:#ff3b30;animation:blink 1s infinite}
+.tabs button{background:#121212;color:#aaa;border:0;padding:12px 16px;white-space:nowrap;flex:1}
+.tabs button.active{color:#00ff66;border-bottom:3px solid #00ff66;background:#1a1a1a}
+.league-head{background:#00ff66;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px;text-transform:uppercase}
+.match{display:flex;align-items:center;padding:12px;border-radius:12px;margin:6px 8px;background:#151515;gap:12px}
+.time-pill{border:2px solid #00ff66;border-radius:20px;padding:5px 12px;font-size:11px;min-width:60px;text-align:center;font-weight:700}
+.teams{flex:1;line-height:20px;font-size:14px}
+.score{color:#fff;font-weight:900;font-size:16px;text-align:right}
+.status{font-size:10px;color:#888;text-align:right}
+.live{color:#ff3b30;animation:blink 1s infinite;font-weight:700}
 @keyframes blink{50%{opacity:0}}
 </style>
 </head>
 <body>
 <div class="header">⚽ LiveScore</div>
 <div class="tabs">
-  <button onclick="load('2026-11-03')">Yesterday</button>
-  <button class="active" onclick="loadToday()">Today</button>
-  <button onclick="load('2026-11-05')">Tomorrow</button>
+  <button onclick="loadOffset(-1)">Yesterday</button>
+  <button id="todayBtn" class="active" onclick="loadToday()">Today</button>
+  <button onclick="loadOffset(1)">Tomorrow</button>
   <button onclick="loadLive()">Live</button>
 </div>
 <div id="list">Loading...</div>
-
 <script>
-async function load(date){
-  document.getElementById('list').innerHTML='Loading...';
-  const r=await fetch(`/api/fixtures?date=${date}`);
-  const j=await r.json();
-  render(j.data||[]);
-}
-function loadToday(){
-  const d=new Date().toISOString().split('T')[0];
-  load(d);
-}
-async function loadLive(){
-  const r=await fetch(`/api/live`);
-  const j=await r.json();
-  render(j.data||[]);
-}
-function render(data){
-  if(!data.length){document.getElementById('list').innerHTML='<p style="padding:20px;text-align:center">No games</p>';return}
-  // Group by country + league
-  const groups={};
-  data.forEach(m=>{
-    const key=`${m.league_zone||m.league_geo||'World'}: ${m.league_name}`;
-    if(!groups[key]) groups[key]=[];
-    groups[key].push(m);
-  });
-  let html='';
-  for(const league in groups){
-    html+=`<div class="league-head">${league}</div>`;
-    groups[league].forEach(match=>{
-      const live = match.status==='LIVE' ? `<span class="live">● ${match.minute||'LIVE'}</span>` : `<span class="status">${match.status} ${match.minute||''}</span>`;
-      html+=`<div class="match" onclick="location.href='/match.html?id=${match.id}'">
-        <div><div>${match.home_team}</div><div>${match.away_team}</div></div>
-        <div style="text-align:right"><div class="score">${match.home_score!=null?match.home_score+' - '+match.away_score:'-:-'}</div><div>${live}</div></div>
-      </div>`;
-    });
-  }
-  document.getElementById('list').innerHTML=html;
-}
+function getDate(o=0){let d=new Date();d.setDate(d.getDate()+o);return d.toISOString().split('T')[0]}
+async function loadOffset(o){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');load(getDate(o))}
+async function load(date){document.getElementById('list').innerHTML='<div style="padding:20px;text-align:center;color:#555">Loading...</div>';const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();render(j.data||[])}
+function loadToday(){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));document.getElementById('todayBtn').classList.add('active');load(getDate(0))}
+async function loadLive(){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');const r=await fetch(`/api/live`);const j=await r.json();render(j.data||[])}
+function render(data){if(!data.length){document.getElementById('list').innerHTML='<p style="padding:20px;text-align:center">No games</p>';return}const groups={};data.forEach(m=>{const c=(m.league_zone||m.league_geo||'World').toUpperCase();const key=`${c} - ${m.league_name}`;if(!groups[key])groups[key]=[];groups[key].push(m)});let html='';for(const l in groups){html+=`<div class="league-head">⚽ ${l}</div>`;groups[l].forEach(x=>{const tm=x.datetime?x.datetime.split(' ')[1].slice(0,5):'--:--';const is=x.status==='LIVE';const live=is?`<span class="live">● ${x.minute||'LIVE'}</span>`:`<span class="status">${x.status}</span>`;html+=`<div class="match" onclick="location.href='/match.html?id=${x.id}'"><div class="time-pill">${is?x.minute:tm}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div style="text-align:right"><div class="score">${x.home_score!=null?x.home_score+' - '+x.away_score:'- : -'}</div><div>${live}</div></div></div>`})}document.getElementById('list').innerHTML=html}
 loadToday();
 </script>
 </body>
