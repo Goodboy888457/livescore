@@ -8,63 +8,46 @@ body{font-family:Arial;background:#0b1220;color:white;margin:0;padding:10px}
 .tabs{display:flex;gap:8px}
 .tab{flex:1;padding:12px;text-align:center;background:#1a2744;border-radius:10px;cursor:pointer;font-weight:bold;white-space:pre-line}
 .tab.active{background:#00e5a0;color:#000}
-.match{background:#151f35;padding:12px;margin-bottom:8px;border-radius:10px;display:flex;justify-content:space-between;align-items:center}
-.league{font-size:12px;color:#8aa0c0;margin:15px 0 5px 0;text-transform:uppercase}
+.match{background:#151f35;padding:12px;margin-bottom:8px;border-radius:10px;display:flex;justify-content:space-between}
+.league{font-size:12px;color:#8aa0c0;margin:15px 0 5px 0}
 .score{color:#00e5a0;font-weight:bold}
 </style>
 </head>
 <body>
 <h2 style="text-align:center">⚽ LiveScore</h2>
 <div class="tabs">
-  <div class="tab" id="y">Yesterday</div>
-  <div class="tab active" id="t">Today</div>
-  <div class="tab" id="tm">Tomorrow</div>
+  <div class="tab" id="y"></div>
+  <div class="tab active" id="t"></div>
+  <div class="tab" id="tm"></div>
 </div>
 <div id="results" style="margin-top:15px">Loading...</div>
-
 <script>
 function fmt(d){return d.toISOString().split('T')[0];}
-const today = new Date(); 
-const yd = new Date(); yd.setDate(today.getDate()-1); 
-const td = new Date(); td.setDate(today.getDate()+1);
-const D = {y:fmt(yd), t:fmt(today), tm:fmt(td)};
-
-document.getElementById('y').innerText=`Yesterday\n${D.y}`;
-document.getElementById('t').innerText=`Today\n${D.t}`;
-document.getElementById('tm').innerText=`Tomorrow\n${D.tm}`;
-
-document.getElementById('y').onclick=e=>load(D.y,e.target);
-document.getElementById('t').onclick=e=>load(D.t,e.target);
-document.getElementById('tm').onclick=e=>load(D.tm,e.target);
+const today=new Date();const yd=new Date();yd.setDate(today.getDate()-1);const td=new Date();td.setDate(today.getDate()+1);
+const D={y:fmt(yd),t:fmt(today),tm:fmt(td)};
+document.getElementById('y').innerText=`Yesterday\n${D.y}`;document.getElementById('t').innerText=`Today\n${D.t}`;document.getElementById('tm').innerText=`Tomorrow\n${D.tm}`;
+document.getElementById('y').onclick=e=>load(D.y,e.target);document.getElementById('t').onclick=e=>load(D.t,e.target);document.getElementById('tm').onclick=e=>load(D.tm,e.target);
 
 async function load(date, el){
- document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active')); el.classList.add('active');
- const box = document.getElementById('results');
- box.innerHTML="Loading "+date+"...";
+ document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));el.classList.add('active');
+ const box=document.getElementById('results');box.innerHTML="Loading "+date+"...";
  try{
-  // SECURE: calls YOUR Cloudflare function, not sportapi directly. No key in browser!
-  const r=await fetch(`/api/fixtures?date=${date}`);
-  const j=await r.json(); 
-  console.log(j);
-  
-  if(j.error){ box.innerHTML="Error: "+j.error; return; }
-  
-  const list = j.data || j.fixtures || [];
-  if(list.length===0){ box.innerHTML="No matches for "+date; return; }
-  
-  let h=""; 
+  const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();console.log(j);
+  const list=j.data||j.fixtures||j.response||[];
+  if(list.length===0){box.innerHTML="No matches for "+date;return;}
+  let h="";
   list.forEach(m=>{
-    const home = m.home_team?.name || m.homeTeam?.name || m.teams?.home?.name || 'Home';
-    const away = m.away_team?.name || m.awayTeam?.name || m.teams?.away?.name || 'Away';
-    const league = m.league?.name || m.competition?.name || m.league_name || '';
-    const score = m.score ? `${m.score.home}-${m.score.away}` : (m.result ? `${m.result.homeScore}-${m.result.awayScore}` : 'vs');
-    if(league) h+=`<div class="league">${league}</div>`;
-    h+=`<div class="match"><span>${home} vs ${away}</span><span class="score">${score}</span></div>`;
+    const league = m.league?.name || 'Match';
+    const home = m.home_team?.name || m.homeTeam?.name || m.teams?.home?.name || m.home || 'Home';
+    const away = m.away_team?.name || m.awayTeam?.name || m.teams?.away?.name || m.away || 'Away';
+    let score='vs';
+    if(m.score){ score=`${m.score.home??m.score.homeScore??0}-${m.score.away??m.score.awayScore??0}`; }
+    else if(m.result){ score=`${m.result.homeScore??m.result.home??0}-${m.result.awayScore??m.result.away??0}`; }
+    else if(m.goals){ score=`${m.goals.home}-${m.goals.away}`; }
+    h+=`<div class="league">${league}</div><div class="match"><span>${home} vs ${away}</span><span class="score">${score}</span></div>`;
   });
   box.innerHTML=h;
- }catch(err){ 
-   box.innerHTML="Error: "+err.message; 
- }
+ }catch(err){box.innerHTML="Error: "+err;}
 }
 load(D.t, document.getElementById('t'));
 </script>
