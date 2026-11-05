@@ -34,12 +34,27 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <div id="list">Loading...</div>
 <script>
 let allData=[]; let curFilter='all'; let curDate='';
-const countryFlags={"AFGHANISTAN":"🇦🇫","ALBANIA":"🇦🇱","ALGERIA":"🇩🇿","ANDORRA":"🇦🇩","ANGOLA":"🇦🇴","ARGENTINA":"🇦🇷","ARMENIA":"🇦🇲","AUSTRALIA":"🇦🇺","AUSTRIA":"🇦🇹","AZERBAIJAN":"🇦🇿","BAHRAIN":"🇧🇭","BANGLADESH":"🇧🇩","BELARUS":"🇧🇾","BELGIUM":"🇧🇪","BELIZE":"🇧🇿","BENIN":"🇧🇯","BOLIVIA":"🇧🇴","BOSNIA":"🇧🇦","BOTSWANA":"🇧🇼","BRAZIL":"🇧🇷","BULGARIA":"🇧🇬","CAMBODIA":"🇰🇭","CAMEROON":"🇨🇲","CANADA":"🇨🇦","CHILE":"🇨🇱","CHINA":"🇨🇳","COLOMBIA":"🇨🇴","COSTA RICA":"🇨🇷","CROATIA":"🇭🇷","CYPRUS":"🇨🇾","CZECH":"🇨🇿","DENMARK":"🇩🇰","DOMINICAN":"🇩🇴","ECUADOR":"🇪🇨","EGYPT":"🇪🇬","EL SALVADOR":"🇸🇻","ENGLAND":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","ESTONIA":"🇪🇪","ETHIOPIA":"🇪🇹","FINLAND":"🇫🇮","FRANCE":"🇫🇷","GEORGIA":"🇬🇪","GERMANY":"🇩🇪","GHANA":"🇬🇭","GREECE":"🇬🇷","GUATEMALA":"🇬🇹","HONDURAS":"🇭🇳","HUNGARY":"🇭🇺","ICELAND":"🇮🇸","INDIA":"🇮🇳","INDONESIA":"🇮🇩","IRAN":"🇮🇷","IRAQ":"🇮🇶","IRELAND":"🇮🇪","ISRAEL":"🇮🇱","ITALY":"🇮🇹","JAMAICA":"🇯🇲","JAPAN":"🇯🇵","JORDAN":"🇯🇴","KAZAKHSTAN":"🇰🇿","KENYA":"🇰🇪","KOREA":"🇰🇷","KOSOVO":"🇽🇰","KUWAIT":"🇰🇼","LATVIA":"🇱🇻","LEBANON":"🇱🇧","LIBYA":"🇱🇾","LITHUANIA":"🇱🇹","LUXEMBOURG":"🇱🇺","MALAYSIA":"🇲🇾","MALI":"🇲🇱","MALTA":"🇲🇹","MEXICO":"🇲🇽","MOLDOVA":"🇲🇩","MOROCCO":"🇲🇦","MOZAMBIQUE":"🇲🇿","NETHERLANDS":"🇳🇱","NEW ZEALAND":"🇳🇿","NICARAGUA":"🇳🇮","NIGERIA":"🇳🇬","NORTH MACEDONIA":"🇲🇰","NORWAY":"🇳🇴","OMAN":"🇴🇲","PAKISTAN":"🇵🇰","PALESTINE":"🇵🇸","PANAMA":"🇵🇦","PARAGUAY":"🇵🇾","PERU":"🇵🇪","PHILIPPINES":"🇵🇭","POLAND":"🇵🇱","PORTUGAL":"🇵🇹","QATAR":"🇶🇦","ROMANIA":"🇷🇴","RUSSIA":"🇷🇺","RWANDA":"🇷🇼","SAUDI ARABIA":"🇸🇦","SAUDI":"🇸🇦","SCOTLAND":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","SENEGAL":"🇸🇳","SERBIA":"🇷🇸","SINGAPORE":"🇸🇬","SLOVAKIA":"🇸🇰","SLOVENIA":"🇸🇮","SOUTH AFRICA":"🇿🇦","SPAIN":"🇪🇸","SWEDEN":"🇸🇪","SWITZERLAND":"🇨🇭","SYRIA":"🇸🇾","TAIWAN":"🇹🇼","TANZANIA":"🇹🇿","THAILAND":"🇹🇭","TUNISIA":"🇹🇳","TURKEY":"🇹🇷","UGANDA":"🇺🇬","UKRAINE":"🇺🇦","UNITED ARAB EMIRATES":"🇦🇪","USA":"🇺🇸","UNITED STATES":"🇺🇸","URUGUAY":"🇺🇾","UZBEKISTAN":"🇺🇿","VENEZUELA":"🇻🇪","VIETNAM":"🇻🇳","WALES":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","ZAMBIA":"🇿🇲","ZIMBABWE":"🇿🇼","ASIA":"🌏","AFRICA":"🌍","EUROPE":"🏆","WORLD":"🌍","CHAMPIONS LEAGUE":"🏆","EUROPA LEAGUE":"🏆","CONFERENCE LEAGUE":"🏆","PREMIER LEAGUE":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","LALIGA":"🇪🇸","BUNDESLIGA":"🇩🇪","SERIE A":"🇮🇹","LIGUE 1":"🇫🇷","EREDIVISIE":"🇳🇱","PRIMEIRA LIGA":"🇵🇹"};
+const countryFlags={"AFGHANISTAN":"🇦🇫","ALBANIA":"🇦🇱","ALGERIA":"🇩🇿","ANDORRA":"🇦🇩","ANGOLA":"🇦🇴","ARGENTINA":"🇦🇷","ARMENIA":"🇦🇲","AUSTRALIA":"🇦🇺","AUSTRIA":"🇦🇹","AZERBAIJAN":"🇦🇿","BAHRAIN":"🇧🇭","BANGLADESH":"🇧🇩","BELARUS":"🇧🇾","BELGIUM":"🇧🇪","BELIZE":"🇧🇿","BENIN":"🇧🇯","BOLIVIA":"🇧🇴","BOSNIA":"🇧🇦","BOTSWANA":"🇧🇼","BRAZIL":"🇧🇷","BULGARIA":"🇧🇬","CAMBODIA":"🇰🇭","CAMEROON":"🇨🇲","CANADA":"🇨🇦","CHILE":"🇨🇱","CHINA":"🇨🇳","COLOMBIA":"🇨🇴","COSTA RICA":"🇨🇷","CROATIA":"🇭🇷","CYPRUS":"🇨🇾","CZECH":"🇨🇿","DENMARK":"🇩🇰","DOMINICAN":"🇩🇴","ECUADOR":"🇪🇨","EGYPT":"🇪🇬","EL SALVADOR":"🇸🇻","ENGLAND":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","ESTONIA":"🇪🇪","ETHIOPIA":"🇪🇹","FINLAND":"🇫🇮","FRANCE":"🇫🇷","GEORGIA":"🇬🇪","GERMANY":"🇩🇪","GHANA":"🇬🇭","GREECE":"🇬🇷","GUATEMALA":"🇬🇹","HONDURAS":"🇭🇳","HUNGARY":"🇭🇺","ICELAND":"🇮🇸","INDIA":"🇮🇳","INDONESIA":"🇮🇩","IRAN":"🇮🇷","IRAQ":"🇮🇶","IRELAND":"🇮🇪","ISRAEL":"🇮🇱","ITALY":"🇮🇹","JAMAICA":"🇯🇲","JAPAN":"🇯🇵","JORDAN":"🇯🇴","KAZAKHSTAN":"🇰🇿","KENYA":"🇰🇪","KOREA":"🇰🇷","KOSOVO":"🇽🇰","KUWAIT":"🇰🇼","LATVIA":"🇱🇻","LEBANON":"🇱🇧","LIBYA":"🇱🇾","LITHUANIA":"🇱🇹","LUXEMBOURG":"🇱🇺","MALAYSIA":"🇲🇾","MALI":"🇲🇱","MALTA":"🇲🇹","MEXICO":"🇲🇽","MOLDOVA":"🇲🇩","MOROCCO":"🇲🇦","MOZAMBIQUE":"🇲🇿","NETHERLANDS":"🇳🇱","NEW ZEALAND":"🇳🇿","NICARAGUA":"🇳🇮","NIGERIA":"🇳🇬","NORTH MACEDONIA":"🇲🇰","NORWAY":"🇳🇴","OMAN":"🇴🇲","PAKISTAN":"🇵🇰","PALESTINE":"🇵🇸","PANAMA":"🇵🇦","PARAGUAY":"🇵🇾","PERU":"🇵🇪","PHILIPPINES":"🇵🇭","POLAND":"🇵🇱","PORTUGAL":"🇵🇹","QATAR":"🇶🇦","ROMANIA":"🇷🇴","RUSSIA":"🇷🇺","RWANDA":"🇷🇼","SAUDI ARABIA":"🇸🇦","SAUDI":"🇸🇦","SCOTLAND":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","SENEGAL":"🇸🇳","SERBIA":"🇷🇸","SINGAPORE":"🇸🇬","SLOVAKIA":"🇸🇰","SLOVENIA":"🇸🇮","SOUTH AFRICA":"🇿🇦","SPAIN":"🇪🇸","SWEDEN":"🇸🇪","SWITZERLAND":"🇨🇭","SYRIA":"🇸🇾","TAIWAN":"🇹🇼","TANZANIA":"🇹🇿","THAILAND":"🇹🇭","TUNISIA":"🇹🇳","TURKEY":"🇹🇷","UGANDA":"🇺🇬","UKRAINE":"🇺🇦","UNITED ARAB EMIRATES":"🇦🇪","USA":"🇺🇸","UNITED STATES":"🇺🇸","URUGUAY":"🇺🇾","UZBEKISTAN":"🇺🇿","VENEZUELA":"🇻🇪","VIETNAM":"🇻🇳","WALES":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","ZAMBIA":"🇿🇲","ZIMBABWE":"🇿🇼","ASIA":"🌏","AFRICA":"🌍","EUROPE":"🏆","WORLD":"🌍"};
 function getFlag(name){let c=(name||'').toUpperCase().trim();if(countryFlags[c]) return countryFlags[c];for(let k in countryFlags){if(c.includes(k)) return countryFlags[k]}return '⚽';}
 
-// === TOP 10 LEAGUES ALWAYS ON TOP ===
-const TOP_ORDER=["CHAMPIONS LEAGUE","EUROPA LEAGUE","CONFERENCE LEAGUE","PREMIER LEAGUE","LALIGA","LA LIGA","LIGUE 1","BUNDESLIGA","SERIE A","EREDIVISIE","PRIMEIRA LIGA"];
-function getRank(full){let u=full.toUpperCase();for(let i=0;i<TOP_ORDER.length;i++){if(u.includes(TOP_ORDER[i])) return i}return 999;}
+// TOP 10 ONLY EUROPE + BIG 5, AFC NEVER TOP
+function getRank(full){
+  let u = full.toUpperCase();
+  if(u.includes("AFC")) return 999;
+  if(u.includes("EUROPE") || u.includes("UEFA")){
+    if(u.includes("CHAMPIONS LEAGUE")) return 0;
+    if(u.includes("EUROPA LEAGUE")) return 1;
+    if(u.includes("CONFERENCE LEAGUE")) return 2;
+  }
+  if(u.includes("ENGLAND") && u.includes("PREMIER LEAGUE")) return 3;
+  if(u.includes("SPAIN") && (u.includes("LALIGA") || u.includes("LA LIGA"))) return 4;
+  if(u.includes("FRANCE") && u.includes("LIGUE 1")) return 5;
+  if(u.includes("GERMANY") && u.includes("BUNDESLIGA")) return 6;
+  if(u.includes("ITALY") && u.includes("SERIE A")) return 7;
+  if(u.includes("NETHERLANDS") && u.includes("EREDIVISIE")) return 8;
+  if(u.includes("PORTUGAL") && u.includes("PRIMEIRA")) return 9;
+  return 500;
+}
 
 function buildDateTabs(){let html='';let today=new Date();for(let i=-3;i<=4;i++){let d=new Date(today);d.setDate(today.getDate()+i);let ds=d.toISOString().split('T')[0];let label=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let act=i==0?'active':'';html+=`<button class="${act}" onclick="selectDate('${ds}',this)">${label}</button>`}document.getElementById('dateTabs').innerHTML=html}
 function selectDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds)}
@@ -58,7 +73,10 @@ function render(){
     if(!groups[full]) groups[full]={zone:c,display:full,games:[],rank:getRank(full)};
     groups[full].games.push(m);
   });
-  let sorted=Object.keys(groups).sort((a,b)=>groups[a].rank-groups[b].rank);
+  let sorted=Object.keys(groups).sort((a,b)=>{
+    if(groups[a].rank !== groups[b].rank) return groups[a].rank - groups[b].rank;
+    return a.localeCompare(b);
+  });
   let html='';
   sorted.forEach(k=>{
     const g=groups[k]; const flag=getFlag(g.display);
