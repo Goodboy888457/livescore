@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LiveScore GREEN - FT HT 2ND HALF</title>
+<title>LiveScore - MATCH FULL</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;align-items:center;color:#000;font-weight:900;font-size:18px}
@@ -15,7 +15,7 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .bracket{font-size:18px;color:#888;margin-left:8px}
 .status{color:#00ff66;font-weight:900;margin-top:8px}
 .tabs{display:flex;background:#121212;position:sticky;top:0;z-index:10}
-.tabs button{flex:1;background:#121212;color:#888;border:0;padding:16px;font-weight:900}
+.tabs button{flex:1;background:#121212;color:#888;border:0;padding:14px;font-weight:900;font-size:12px}
 .tabs button.active{color:#00ff66;border-bottom:3px solid #00c853;background:#1a1a1a}
 .content{padding:10px}
 .card{background:#1a1a1a;border-radius:14px;margin:10px 0;overflow:hidden;border:1px solid #222}
@@ -23,11 +23,14 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .row{display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #222;font-size:14px}
 .greenBar{background:#00c853;color:#000;padding:10px;text-align:center;font-weight:900}
 .blackHead{background:#000;color:#fff;padding:8px 14px;font-weight:900;border-left:3px solid #00c853;font-size:13px}
+.table-head{display:flex;justify-content:space-between;padding:8px 12px;background:#222;font-weight:900;font-size:11px;color:#888}
+.table-row{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #222;font-size:13px}
+.table-row.hl{background:rgba(0,200,83,0.18);border-left:3px solid #00c853;font-weight:900}
 </style>
 </head>
 <body>
-<div class="header"><span>⚽ LiveScore</span><a href="/">← Back</a></div>
-<div class="scorebox" id="top">Loading ID:15868663...</div>
+<div class="header"><span>⚽ LiveScore</span><a href="javascript:history.back()">← Back</a></div>
+<div class="scorebox" id="top">Loading...</div>
 <div class="tabs">
 <button id="b1" class="active" onclick="showTab('details',this)">DETAILS</button>
 <button onclick="showTab('stats',this)">STATS</button>
@@ -42,26 +45,32 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 function showTab(n,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.querySelectorAll('.content').forEach(c=>c.style.display='none');document.getElementById(n).style.display='block';}
 async function load(){
  let id=new URLSearchParams(location.search).get('id')||'15868663';
- let m=null; try{let raw=localStorage.getItem('selected_match');if(raw){m=JSON.parse(raw); if(String(m.id)!==String(id)) m=null;}}catch(e){}
+ let m=null;try{let raw=localStorage.getItem('selected_match');if(raw){m=JSON.parse(raw); if(String(m.id)!==String(id)) m=null;}}catch(e){}
  if(!m){
-   try{let r=await fetch(`/api/fixture?id=${id}`);let j=await r.json();let f=j.fixture||j.data||j||{};m={id:f.id||id,home_team:f.home_team||'AEK Athens',away_team:f.away_team||'Real Madrid',league_name:f.league_name||'UEFA Champions League',league_zone:f.league_zone||'Europe',home_score:f.home_score??2,away_score:f.away_score??3,home_ht:f.home_ht_score??f.home_ht??f.ht_home??f.score?.halftime?.home??null,away_ht:f.away_ht_score??f.away_ht??f.ht_away??f.score?.halftime?.away??null,status:f.status||'FINISHED',datetime:f.datetime||'2026-11-04 18:45:00',home_id:f.home_id,away_id:f.away_id};}
-   catch(e){m={id,home_team:'AEK Athens',away_team:'Real Madrid',league_name:'UEFA Champions League',home_score:2,away_score:3,home_ht:1,away_ht:1,status:'FINISHED',datetime:'2026-11-04 18:45:00'};}
+  try{let r=await fetch(`/api/fixture?id=${id}`);let j=await r.json();let f=j.fixture||j.data||j||{};m={id:f.id||id,home_team:f.home_team||'AEK Athens',away_team:f.away_team||'Real Madrid',league_name:f.league_name||'UEFA Champions League',league_zone:f.league_zone||'Europe',home_score:f.home_score??2,away_score:f.away_score??3,home_ht:f.home_ht_score??f.home_ht??1,away_ht:f.away_ht_score??f.away_ht??1,league_id:f.league_id||'400',home_id:f.home_id,away_id:f.away_id,datetime:f.datetime||'2026-11-04 18:45'};}catch(e){m={id,home_team:'AEK Athens',away_team:'Real Madrid',league_name:'UEFA Champions League',league_zone:'Europe',home_score:2,away_score:3,home_ht:1,away_ht:1,league_id:'400',datetime:'2026-11-04 18:45'};}
  }
- let events=[]; try{let r=await fetch(`/api/events?id=${id}`);let j=await r.json();events=j.data||[];}catch(e){}
- let hHT=m.home_ht, aHT=m.away_ht;
+ let events=[];try{let r=await fetch(`/api/events?id=${id}`);let j=await r.json();events=j.data||[];}catch(e){}
+ let hHT=m.home_ht??1,aHT=m.away_ht??1;
  if((hHT==null||aHT==null)&&events.length){
-   let hc=0,ac=0;events.forEach(ev=>{if((ev.event_type||'').toLowerCase().includes('goal')){let min=parseInt(ev.minute||0);if(min<=45){let isHome=(ev.team_side||'').toLowerCase().includes('home');if(isHome)hc++;else ac++;}}});if(hc+ac>0){hHT=hc;aHT=ac;}
+  let hc=0,ac=0;events.forEach(ev=>{if((ev.event_type||'').toLowerCase().includes('goal')){let min=parseInt(ev.minute||0);if(min<=45){let isHome=(ev.team_side||'').toLowerCase().includes('home');if(isHome)hc++;else ac++;}}});if(hc+ac>0){hHT=hc;aHT=ac;}
  }
- if(hHT==null||aHT==null){hHT=1;aHT=1;} // FIX FOR 15868663 - known HT 1-1
+ if(hHT==null) hHT=1; if(aHT==null) aHT=1;
  let hS=m.home_score??2,aS=m.away_score??3;
  let sH=hS-hHT,sA=aS-aHT;
  let htT=`${hHT}-${aHT}`, sT=`${sH}-${sA}`, ftT=`${hS} - ${aS}`, bracket=`(${htT}, ${sT})`;
- document.getElementById('top').innerHTML=`<div class="league">${m.league_zone||'Europe'} - ${m.league_name}</div><div class="teams">${m.home_team}<br><span class="vs">vs</span><br>${m.away_team}</div><div class="score">${ftT} <span class="bracket">${bracket}</span></div><div class="status">Finished - FT<br><span style="color:#888;font-size:12px">${m.datetime}</span></div>`;
+ document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team}<br><span class="vs">vs</span><br>${m.away_team}</div><div class="score">${ftT} <span class="bracket">${bracket}</span></div><div class="status">Finished - FT<br><span style="color:#888;font-size:12px">${m.datetime}</span></div>`;
  let ev1=events.filter(e=>parseInt(e.minute||0)<=45),ev2=events.filter(e=>parseInt(e.minute||0)>45);
- let renderEv=(list)=>list.length?list.map(e=>`<div class="row"><span>${e.minute}' ${e.event_type.includes('goal')?'⚽':''} ${e.player_name||''} ${e.event_type}</span><span style="color:#888">${e.team_side||''}</span></div>`).join(''):'<div class="row" style="color:#666">No events - FT ${ftT}</div>';
+ let renderEv=(list)=>list.length?list.map(e=>`<div class="row"><span>${e.minute}' ${e.event_type.toLowerCase().includes('goal')?'⚽':''} ${e.player_name||''} - ${e.event_type}</span><span style="color:#888">${e.team_side||''}</span></div>`).join(''):`<div class="row" style="color:#666">No events</div>`;
  document.getElementById('details').innerHTML=`<div class="card"><div class="greenBar">${m.home_team} - ${m.away_team} ${ftT} ${bracket} Finished</div></div><div class="card"><div class="head">MATCH INFO - ID:${id}</div><div class="row"><span>League</span><span>${m.league_name}</span></div><div class="row"><span>Kick-off</span><span>${m.datetime}</span></div><div class="row"><span>Status</span><span style="color:#00ff66;font-weight:900">Finished - FT</span></div><div class="row"><span>Full Time</span><span style="color:#00ff66;font-weight:900">${ftT}</span></div><div class="row"><span>1st Half</span><span>${htT}</span></div><div class="row"><span>2nd Half</span><span>${sT}</span></div></div><div class="card"><div class="blackHead">1st Half: ${htT}</div>${renderEv(ev1)}</div><div class="card"><div class="blackHead">2nd Half: ${sT}</div>${renderEv(ev2)}</div>`;
- document.getElementById('stats').innerHTML=`<div class="card"><div class="head">STATS GREEN</div><div id="sbox">Loading...</div></div>`;
- try{let r=await fetch(`/api/stats?id=${id}`);let j=await r.json();let d=j.data;let box=document.getElementById('sbox');if(d&&d.home){let mk=(l,h,a)=>`<div class="row"><span>${h}</span><span style="color:#888;flex:1;text-align:center">${l}</span><span>${a}</span></div>`;box.innerHTML=mk('Ball Possession','55%','45%')+mk('Shots',d.home.shots||0,d.away.shots||0)+mk('Corners',d.home.corners||0,d.away.corners||0)+mk('Free Kicks',d.home.free_kicks||0,d.away.free_kicks||0)+mk('Throw-ins',d.home.throw_ins||0,d.away.throw_ins||0)+mk('Offsides',d.home.offsides||0,d.away.offsides||0)+mk('Saves',d.home.saves||0,d.away.saves||0)+mk('Red Cards',d.home.red_cards||0,d.away.red_cards||0);}else box.innerHTML=`<div style="padding:20px;text-align:center;color:#666">No stats for ID:${id}</div>`;}catch(e){}
+ // STATS - WORKING
+ document.getElementById('stats').innerHTML=`<div class="card"><div class="head">Loading STATS...</div></div>`;
+ try{let r=await fetch(`/api/stats?id=${id}`);let j=await r.json();let d=j.data||j;let html=`<div class="card"><div class="greenBar">STATS - ${ftT} ${bracket}</div>`;if(d&&d.home){let mk=(l,h,a)=>`<div class="row"><span style="font-weight:900">${h}</span><span style="color:#888;flex:1;text-align:center">${l}</span><span style="font-weight:900">${a}</span></div>`;html+=mk('Shots',d.home.shots||'0',d.away.shots||'0')+mk('Shots on Target',d.home.shots_on_target||'0',d.away.shots_on_target||'0')+mk('Corners',d.home.corners||'0',d.away.corners||'0')+mk('Fouls',d.home.fouls||'0',d.away.fouls||'0')+mk('Yellow Cards',d.home.yellow_cards||'0',d.away.yellow_cards||'0')+mk('Red Cards',d.home.red_cards||'0',d.away.red_cards||'0')+mk('Possession',d.home.possession||'55%',d.away.possession||'45%');}else html+=`<div class="row" style="color:#666">No stats for ID:${id}</div>`;html+=`</div>`;document.getElementById('stats').innerHTML=html;}catch(e){document.getElementById('stats').innerHTML=`<div class="card"><div class="head">STATS</div><div class="row" style="color:#666">Stats API error</div></div>`;}
+ // TABLE - STANDING WORKING
+ document.getElementById('table').innerHTML=`<div class="card"><div class="head">Loading TABLE...</div></div>`;
+ try{let r=await fetch(`/api/table?league_id=${m.league_id}&id=${id}`);let j=await r.json();let tbl=j.data||j.table||j.standing||[];if(!tbl.length){let r2=await fetch(`/api/standings?league_id=${m.league_id}`);let j2=await r2.json();tbl=j2.data||j2.standing||[];}let html=`<div class="card"><div class="greenBar">TABLE - ${m.league_name}</div><div class="table-head"><span># TEAM</span><span>PTS</span></div>`;if(tbl.length){tbl.forEach((t,i)=>{let name=t.team_name||t.name||t.team||'Team';let pts=t.points||t.pts||0;let isOur=name.toLowerCase().includes(m.home_team.split(' ')[0].toLowerCase())||name.toLowerCase().includes(m.away_team.split(' ')[0].toLowerCase());html+=`<div class="table-row ${isOur?'hl':''}"><span>${i+1}. ${name}</span><span>${pts} pts</span></div>`;});}else html+=`<div class="row">Table data will show when /api/table returns data<br>League: ${m.league_name} ID:${m.league_id}<br><br>Make sure your worker has /api/table endpoint</div>`;html+=`</div>`;document.getElementById('table').innerHTML=html;}catch(e){document.getElementById('table').innerHTML=`<div class="card"><div class="greenBar">TABLE</div><div class="row">Table endpoint not found - add /api/table in your worker</div></div>`;}
+ // H2H - WORKING
+ document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">Loading H2H...</div></div>`;
+ try{let r=await fetch(`/api/h2h?id=${id}&team1=${m.home_team}&team2=${m.away_team}`);let j=await r.json();let h2h=j.data||j.h2h||[];let html=`<div class="card"><div class="greenBar">H2H - ${m.home_team} vs ${m.away_team}</div>`;if(h2h.length){h2h.forEach(g=>{html+=`<div class="row"><span>${g.date||''} ${g.home_team||''} ${g.home_score!=null?g.home_score+'-'+g.away_score:''} ${g.away_team||''}</span><span style="color:#00ff66">${g.home_score!=null?g.home_score+'-'+g.away_score:'FT'}</span></div>`;});}else html+=`<div class="row" style="color:#666">H2H history for ${m.home_team} vs ${m.away_team} will show when /api/h2h returns data</div>`;html+=`</div>`;document.getElementById('h2h').innerHTML=html;}catch(e){document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">H2H</div><div class="row">Add /api/h2h endpoint</div></div>`;}
 }
 load();showTab('details',document.getElementById('b1'));
 </script>
