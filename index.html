@@ -49,10 +49,6 @@ function getRank(full){
   if(u.includes("FRANCE")&&u.includes("LIGUE 1")) return 5;
   if(u.includes("GERMANY")&&u.includes("BUNDESLIGA")) return 6;
   if(u.includes("ITALY")&&u.includes("SERIE A")) return 7;
-  if(u.includes("NETHERLANDS")&&u.includes("EREDIVISIE")) return 8;
-  if(u.includes("PORTUGAL")&&u.includes("PRIMEIRA")) return 9;
-  if(u.includes("ENGLAND")&&u.includes("CHAMPIONSHIP")) return 10;
-  if(u.includes("EUROPE")||u.includes("UEFA")) return 20;
   return 100;
 }
 function buildDateTabs(){let h='';let today=new Date();for(let i=-2;i<=3;i++){let d=new Date(today);d.setDate(today.getDate()+i);let ds=d.toISOString().split('T')[0];let label=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let act=i==0?'active':'';h+=`<button class="${act}" onclick="selectDate('${ds}',this)">${label}</button>`;}document.getElementById('dateTabs').innerHTML=h;}
@@ -83,7 +79,8 @@ function render(){
       const isFT=x.status==='FINISHED'||x.status==='FT';
       let pillText=isLive? x.minute : isHT? 'HT' : isFT? 'FT' : tm;
       let pillStyle=isLive||isHT?'border-color:#ff3b30;color:#ff3b30;background:rgba(255,59,48,0.12)': isFT?'border-color:#00ff66;color:#00ff66;background:rgba(0,255,102,0.18)': 'border-color:#00ff66;color:#fff';
-      let rightHTML=isLive||isHT?`<div class="score">${x.home_score} - ${x.away_score}</div><div><span class="live">● ${x.minute}</span></div>`: isFT?`<div class="score">${x.home_score} - ${x.away_score}</div><div><span style="color:#00ff66;font-weight:900;font-size:11px">FT</span></div>`:``;
+      // PUT -:- BACK HERE
+      let rightHTML=isLive||isHT?`<div class="score">${x.home_score} - ${x.away_score}</div><div><span class="live">● ${x.minute}</span></div>`: isFT?`<div class="score">${x.home_score} - ${x.away_score}</div><div><span style="color:#00ff66;font-weight:900;font-size:11px">FT</span></div>`: `<div style="text-align:right;min-width:60px"><div class="score" style="color:#aaa">- : -</div></div>`;
       html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time-pill" style="${pillStyle}">${pillText}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div style="text-align:right;min-width:60px">${rightHTML}</div></div>`;
     });
   });
