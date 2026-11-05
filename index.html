@@ -2,67 +2,102 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match Details</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
-.header{background:#00c853;padding:12px;display:flex;justify-content:space-between;align-items:center;color:#000;font-weight:900}
-.header a{background:#fff;color:#000;padding:6px 14px;border-radius:20px;text-decoration:none;font-size:13px;font-weight:700}
-.scorebox{background:#151515;padding:24px;text-align:center;border-bottom:3px solid #00ff66}
-.teams{font-size:22px;font-weight:900;line-height:30px}
-.score{font-size:50px;color:#00ff66;font-weight:900;margin:12px 0}
-.tabs{display:flex;background:#121212}
-.tabs button{flex:1;background:#121212;color:#aaa;border:0;padding:15px 5px;font-weight:900}
+.header{background:#00c853;padding:12px;text-align:center;font-weight:bold;font-size:18px;color:#000;display:flex;justify-content:space-between;align-items:center}
+.tabs{display:flex;background:#121212;overflow-x:auto;white-space:nowrap}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{background:#121212;color:#aaa;border:0;padding:12px 14px;white-space:nowrap;flex:1}
 .tabs button.active{color:#00ff66;border-bottom:3px solid #00ff66;background:#1a1a1a}
-.content{padding:12px}
-.card{background:#151515;border-radius:14px;padding:14px;margin:10px 0}
-.row{display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #222;font-size:14px}
-.row.head{color:#00ff66;font-weight:900;background:#1f1f1f;border-radius:10px}
+.filter{display:flex;gap:8px;padding:10px;background:#0f0f0f;overflow-x:auto}
+.filter button{background:#222;color:#aaa;border:1px solid #333;padding:6px 14px;border-radius:20px;font-size:12px}
+.filter button.active{background:#00ff66;color:#000;border-color:#00ff66;font-weight:bold}
+.league-head{background:#00ff66;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px;text-transform:uppercase;cursor:pointer;display:flex;justify-content:space-between}
+.match{display:flex;align-items:center;padding:12px;border-radius:12px;margin:6px 8px;background:#151515;gap:12px;cursor:pointer}
+.time-pill{border:2px solid #00ff66;border-radius:20px;padding:5px 12px;font-size:11px;min-width:60px;text-align:center;font-weight:700}
+.teams{flex:1;line-height:20px;font-size:14px}
+.score{color:#fff;font-weight:900;font-size:16px;text-align:right}
+.status{font-size:10px;color:#888;text-align:right}
+.live{color:#ff3b30;animation:blink 1s infinite;font-weight:700}
+@keyframes blink{50%{opacity:0}}
+.refresh{color:#000;background:#fff;padding:4px 10px;border-radius:10px;font-size:12px;cursor:pointer}
 </style>
 </head>
 <body>
-<div class="header"><span>⚽ LiveScore</span><a href="/">← Back</a></div>
-<div id="top" class="scorebox">Loading...</div>
-<div class="tabs">
-<button class="active" onclick="switchTab('details',this)">DETAILS</button>
-<button onclick="switchTab('stats',this)">STATS</button>
-<button onclick="switchTab('table',this)">TABLE</button>
-<button onclick="switchTab('h2h',this)">H2H</button>
+<div class="header"><span>⚽ LiveScore</span><span class="refresh" onclick="reloadNow()">↻ Refresh</span></div>
+<div class="tabs" id="dateTabs"></div>
+<div class="filter">
+<button id="f-all" class="active" onclick="setFilter('all')">All</button>
+<button id="f-live" onclick="setFilter('live')">Live</button>
+<button id="f-fin" onclick="setFilter('finished')">Finished</button>
 </div>
-<div id="details" class="content"></div>
-<div id="stats" class="content" style="display:none"></div>
-<div id="table" class="content" style="display:none"></div>
-<div id="h2h" class="content" style="display:none"></div>
+<div id="list">Loading...</div>
 <script>
-function switchTab(n,el){
-  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active');
-  document.querySelectorAll('.content').forEach(c=>c.style.display='none');
-  document.getElementById(n).style.display='block';
-}
-function load(){
-  let raw = localStorage.getItem('selected_match');
-  if(!raw){
-    document.getElementById('top').innerHTML = "No match saved. Go back and click a match again.";
-    return;
+let allData=[]; let curFilter='all'; let curDate='';
+const countryFlags={"AFGHANISTAN":"🇦🇫","ALBANIA":"🇦🇱","ALGERIA":"🇩🇿","ANDORRA":"🇦🇩","ANGOLA":"🇦🇴","ARGENTINA":"🇦🇷","ARMENIA":"🇦🇲","AUSTRALIA":"🇦🇺","AUSTRIA":"🇦🇹","AZERBAIJAN":"🇦🇿","BAHRAIN":"🇧🇭","BANGLADESH":"🇧🇩","BELARUS":"🇧🇾","BELGIUM":"🇧🇪","BELIZE":"🇧🇿","BENIN":"🇧🇯","BOLIVIA":"🇧🇴","BOSNIA":"🇧🇦","BOTSWANA":"🇧🇼","BRAZIL":"🇧🇷","BULGARIA":"🇧🇬","CAMBODIA":"🇰🇭","CAMEROON":"🇨🇲","CANADA":"🇨🇦","CHILE":"🇨🇱","CHINA":"🇨🇳","COLOMBIA":"🇨🇴","COSTA RICA":"🇨🇷","CROATIA":"🇭🇷","CYPRUS":"🇨🇾","CZECH":"🇨🇿","DENMARK":"🇩🇰","DOMINICAN":"🇩🇴","ECUADOR":"🇪🇨","EGYPT":"🇪🇬","EL SALVADOR":"🇸🇻","ENGLAND":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","ESTONIA":"🇪🇪","ETHIOPIA":"🇪🇹","FINLAND":"🇫🇮","FRANCE":"🇫🇷","GEORGIA":"🇬🇪","GERMANY":"🇩🇪","GHANA":"🇬🇭","GREECE":"🇬🇷","GUATEMALA":"🇬🇹","HONDURAS":"🇭🇳","HUNGARY":"🇭🇺","ICELAND":"🇮🇸","INDIA":"🇮🇳","INDONESIA":"🇮🇩","IRAN":"🇮🇷","IRAQ":"🇮🇶","IRELAND":"🇮🇪","ISRAEL":"🇮🇱","ITALY":"🇮🇹","JAMAICA":"🇯🇲","JAPAN":"🇯🇵","JORDAN":"🇯🇴","KAZAKHSTAN":"🇰🇿","KENYA":"🇰🇪","KOREA":"🇰🇷","KOSOVO":"🇽🇰","KUWAIT":"🇰🇼","LATVIA":"🇱🇻","LEBANON":"🇱🇧","LIBYA":"🇱🇾","LITHUANIA":"🇱🇹","LUXEMBOURG":"🇱🇺","MALAYSIA":"🇲🇾","MALI":"🇲🇱","MALTA":"🇲🇹","MEXICO":"🇲🇽","MOLDOVA":"🇲🇩","MOROCCO":"🇲🇦","MOZAMBIQUE":"🇲🇿","NETHERLANDS":"🇳🇱","NEW ZEALAND":"🇳🇿","NICARAGUA":"🇳🇮","NIGERIA":"🇳🇬","NORTH MACEDONIA":"🇲🇰","NORWAY":"🇳🇴","OMAN":"🇴🇲","PAKISTAN":"🇵🇰","PALESTINE":"🇵🇸","PANAMA":"🇵🇦","PARAGUAY":"🇵🇾","PERU":"🇵🇪","PHILIPPINES":"🇵🇭","POLAND":"🇵🇱","PORTUGAL":"🇵🇹","QATAR":"🇶🇦","ROMANIA":"🇷🇴","RUSSIA":"🇷🇺","RWANDA":"🇷🇼","SAUDI ARABIA":"🇸🇦","SAUDI":"🇸🇦","SCOTLAND":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","SENEGAL":"🇸🇳","SERBIA":"🇷🇸","SINGAPORE":"🇸🇬","SLOVAKIA":"🇸🇰","SLOVENIA":"🇸🇮","SOUTH AFRICA":"🇿🇦","SPAIN":"🇪🇸","SWEDEN":"🇸🇪","SWITZERLAND":"🇨🇭","SYRIA":"🇸🇾","TAIWAN":"🇹🇼","TANZANIA":"🇹🇿","THAILAND":"🇹🇭","TUNISIA":"🇹🇳","TURKEY":"🇹🇷","UGANDA":"🇺🇬","UKRAINE":"🇺🇦","UNITED ARAB EMIRATES":"🇦🇪","USA":"🇺🇸","UNITED STATES":"🇺🇸","URUGUAY":"🇺🇾","UZBEKISTAN":"🇺🇿","VENEZUELA":"🇻🇪","VIETNAM":"🇻🇳","WALES":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","ZAMBIA":"🇿🇲","ZIMBABWE":"🇿🇼","ASIA":"🌏","AFRICA":"🌍","EUROPE":"🏆","WORLD":"🌍"};
+function getFlag(name){let c=(name||'').toUpperCase().trim();if(countryFlags[c]) return countryFlags[c];for(let k in countryFlags){if(c.includes(k)) return countryFlags[k]}return '⚽';}
+function getRank(full){
+  let u = full.toUpperCase();
+  if(u.includes("AFC")) return 999;
+  if(u.includes("EUROPE") || u.includes("UEFA")){
+    if(u.includes("CHAMPIONS LEAGUE")) return 0;
+    if(u.includes("EUROPA LEAGUE")) return 1;
+    if(u.includes("CONFERENCE LEAGUE")) return 2;
   }
-  let m = JSON.parse(raw);
-  let home = m.home_team || m.home || "Home";
-  let away = m.away_team || m.away || "Away";
-  let league = m.league_name || "League";
-  let zone = m.league_zone || m.league_geo || "";
-  let hScore = m.home_score ?? "-";
-  let aScore = m.away_score ?? "-";
-  let status = m.status || "Scheduled";
-  let minute = m.minute || "";
-  let datetime = m.datetime || "";
-
-  document.getElementById('top').innerHTML = `<div style="color:#888;font-size:12px">🏆 ${zone} - ${league}</div><div class="teams">${home}<br><span style="color:#666">vs</span><br>${away}</div><div class="score">${hScore} - ${aScore}</div><div style="color:${status=='LIVE'?'#ff3b30':'#aaa'};font-weight:900">${status} ${minute}</div><div style="color:#666;font-size:11px;margin-top:10px">${datetime}</div>`;
-  document.getElementById('details').innerHTML = `<div class="card"><div class="row head"><span>MATCH INFORMATION</span></div><div class="row"><span>League</span><span>${league}</span></div><div class="row"><span>Zone</span><span>${zone}</span></div><div class="row"><span>Date & Time</span><span>${datetime}</span></div><div class="row"><span>Status</span><span>${status} ${minute}</span></div><div class="row"><span>Home Team</span><span>${home}</span></div><div class="row"><span>Away Team</span><span>${away}</span></div><div class="row"><span>Score</span><span>${hScore} - ${aScore}</span></div></div>`;
-  document.getElementById('stats').innerHTML = `<div class="card"><div class="row head"><span>STATS - ${home} vs ${away}</span></div><div class="row"><span>Possession</span><span>50% - 50%</span></div></div>`;
-  document.getElementById('table').innerHTML = `<div class="card"><div class="row head"><span>${league} TABLE</span></div></div>`;
-  document.getElementById('h2h').innerHTML = `<div class="card"><div class="row head"><span>H2H ${home} vs ${away}</span></div></div>`;
+  if(u.includes("ENGLAND") && u.includes("PREMIER LEAGUE")) return 3;
+  if(u.includes("SPAIN") && (u.includes("LALIGA") || u.includes("LA LIGA"))) return 4;
+  if(u.includes("FRANCE") && u.includes("LIGUE 1")) return 5;
+  if(u.includes("GERMANY") && u.includes("BUNDESLIGA")) return 6;
+  if(u.includes("ITALY") && u.includes("SERIE A")) return 7;
+  if(u.includes("NETHERLANDS") && u.includes("EREDIVISIE")) return 8;
+  if(u.includes("PORTUGAL") && u.includes("PRIMEIRA")) return 9;
+  return 500;
 }
-load();
+function buildDateTabs(){let html='';let today=new Date();for(let i=-3;i<=4;i++){let d=new Date(today);d.setDate(today.getDate()+i);let ds=d.toISOString().split('T')[0];let label=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let act=i==0?'active':'';html+=`<button class="${act}" onclick="selectDate('${ds}',this)">${label}</button>`}document.getElementById('dateTabs').innerHTML=html}
+function selectDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds)}
+async function load(date){curDate=date;document.getElementById('list').innerHTML='<div style="padding:20px;text-align:center;color:#555">Loading...</div>';try{const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();allData=j.data||[];render()}catch(e){document.getElementById('list').innerHTML='<p style="padding:20px;text-align:center">Error</p>'}}
+
+// === NEW FIX ===
+function openMatch(id){
+  let m = allData.find(x=>String(x.id)===String(id));
+  if(m){
+    localStorage.setItem('selected_match', JSON.stringify(m));
+  }
+  location.href='/match.html?id='+id;
+}
+
+function setFilter(f){curFilter=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f)).classList.add('active');render()}
+function reloadNow(){if(curDate) load(curDate)}
+function render(){
+  let data=[...allData];
+  if(curFilter=='live') data=data.filter(m=>m.status=='LIVE');
+  if(curFilter=='finished') data=data.filter(m=>m.status=='FINISHED'||m.status=='FT');
+  if(!data.length){document.getElementById('list').innerHTML=`<p style="padding:30px;text-align:center;color:#666">No ${curFilter} games</p>`;return}
+  const groups={};
+  data.forEach(m=>{
+    const c=(m.league_zone||m.league_geo||'World');
+    const full=`${c.toUpperCase()} - ${m.league_name}`;
+    if(!groups[full]) groups[full]={zone:c,display:full,games:[],rank:getRank(full)};
+    groups[full].games.push(m);
+  });
+  let sorted=Object.keys(groups).sort((a,b)=>{
+    if(groups[a].rank !== groups[b].rank) return groups[a].rank - groups[b].rank;
+    return a.localeCompare(b);
+  });
+  let html='';
+  sorted.forEach(k=>{
+    const g=groups[k]; const flag=getFlag(g.display);
+    html+=`<div class="league-head"><span>${flag} ${g.display}</span><span>›</span></div>`;
+    g.games.forEach(x=>{
+      const tm=x.datetime?x.datetime.split(' ')[1].slice(0,5):'--:--';const is=x.status==='LIVE';const fin=x.status==='FINISHED'||x.status==='FT';
+      const live=is?`<span class="live">● ${x.minute||'LIVE'}</span>`:fin?`<span class="status">FT</span>`:`<span class="status">Scheduled</span>`;
+      const score=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';
+      html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time-pill">${is?x.minute:fin?'FT':tm}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div style="text-align:right"><div class="score">${score}</div><div>${live}</div></div></div>`;
+    });
+  });
+  document.getElementById('list').innerHTML=html;
+}
+buildDateTabs();load(new Date().toISOString().split('T')[0]);setInterval(()=>{if(curFilter!='finished') reloadNow()},30000);
 </script>
 </body>
 </html>
