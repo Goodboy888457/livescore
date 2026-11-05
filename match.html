@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match LIVE</title>
+<title>Match LIVE - STANDINGS</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;align-items:center;color:#000;font-weight:900;font-size:18px}
@@ -19,11 +19,19 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .card{background:#1a1a1a;border-radius:14px;margin:10px 0;overflow:hidden;border:1px solid #222}
 .head{background:#222;color:#00ff66;padding:10px 14px;font-weight:900;font-size:12px}
 .row{display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #222;font-size:13px}
-.greenBar{background:#00c853;color:#000;padding:10px;text-align:center;font-weight:900}
+.greenBar{background:#006400;color:#fff;padding:10px;text-align:center;font-weight:900;font-size:13px}
 .blackHead{background:#000;color:#fff;padding:8px 14px;font-weight:900;border-left:3px solid #00c853;font-size:12px}
 .table-head{display:flex;justify-content:space-between;padding:8px 12px;background:#222;font-weight:900;font-size:11px;color:#888}
 .table-row{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #222;font-size:13px}
 .table-row.hl{background:rgba(0,200,83,0.18);border-left:3px solid #00c853;font-weight:900}
+/* Flashscore style standings */
+.stand-table{width:100%;border-collapse:collapse;background:#fff;color:#000}
+.stand-table th{background:#006400;color:#fff;padding:8px 4px;font-size:11px;text-align:center}
+.stand-table th:nth-child(2){text-align:left}
+.stand-table td{padding:8px 4px;font-size:13px;border-bottom:1px solid #eee;text-align:center}
+.stand-table td:nth-child(2){text-align:left;font-weight:600}
+.stand-table tr.hl{background:#c8e6c9!important;font-weight:900}
+.stand-table tr:nth-child(even){background:#f5f5f5}
 </style>
 </head>
 <body>
@@ -32,7 +40,7 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <div class="tabs">
 <button id="b1" class="active" onclick="showTab('details',this)">DETAILS</button>
 <button onclick="showTab('stats',this)">STATS</button>
-<button onclick="showTab('table',this)">TABLE</button>
+<button onclick="showTab('table',this)">STANDINGS</button>
 <button onclick="showTab('h2h',this)">H2H</button>
 </div>
 <div id="details" class="content"></div>
@@ -45,14 +53,15 @@ async function load(){
  let id=new URLSearchParams(location.search).get('id')||'18612731';
  let m=null;try{let raw=localStorage.getItem('selected_match');if(raw){m=JSON.parse(raw); if(String(m.id)!==String(id)) m=null;}}catch(e){}
  if(!m){
-  try{let r=await fetch(`/api/fixture?id=${id}`);let j=await r.json();let f=j.fixture||j.data||j||{};m={id:f.id||id,home_team:f.home_team||'BG Pathum United',away_team:f.away_team||'Tai Po FC',league_name:f.league_name||'AFC Champions League Two',league_zone:f.league_zone||'Asia',home_score:f.home_score??3,away_score:f.away_score??0,home_ht:f.home_ht_score??3,away_ht:f.away_ht_score??0,status:f.status||'LIVE',minute:f.minute||"59'",league_id:f.league_id||'400',datetime:f.datetime||'2026-11-05 13:15:00'};}catch(e){m={id,home_team:'BG Pathum United',away_team:'Tai Po FC',league_name:'AFC Champions League Two',league_zone:'Asia',home_score:3,away_score:0,home_ht:3,away_ht:0,status:'LIVE',minute:"59'",league_id:'400',datetime:'2026-11-05 13:15:00'};}
+  try{let r=await fetch(`/api/fixture?id=${id}`);let j=await r.json();let f=j.fixture||j.data||j||{};m={id:f.id||id,home_team:f.home_team||'Everton',away_team:f.away_team||'Coventry City',league_name:f.league_name||'Premier League',league_zone:f.league_zone||'England',home_score:f.home_score??3,away_score:f.away_score??0,home_ht:f.home_ht_score??3,away_ht:f.away_ht_score??0,status:f.status||'FT',minute:f.minute||"",league_id:f.league_id||'24',datetime:f.datetime||'2026-11-06 21:00:00'};}catch(e){m={id,home_team:'Everton',away_team:'Coventry City',league_name:'Premier League',league_zone:'England',home_score:3,away_score:0,home_ht:3,away_ht:0,status:'FT',minute:"",league_id:'24',datetime:'2026-11-06 21:00:00'};}
  }
- let hHT=m.home_ht??3,aHT=m.away_ht??0,hS=m.home_score??3,aS=m.away_score??0,sH=hS-hHT,sA=aS-aHT,htT=`${hHT}-${aHT}`,sT=`${sH}-${sA}`,ftT=`${hS} - ${aS}`,bracket=`(${htT})`,isLive=(m.status=='LIVE'||(m.minute&&m.minute.includes("'"))),statusTxt=isLive?`Live ${m.minute||"59'"}`:'Finished - FT',statusColor=isLive?'#ff3b30':'#00ff66';
- document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team}<br><span style="color:#555">VS</span><br>${m.away_team}</div><div class="score">${ftT}<br><span style="font-size:18px;color:#888">(${hS}-${aS})</span></div><div class="live" style="color:${statusColor}">${statusTxt}</div><div style="color:#666;font-size:12px;margin-top:4px">${m.datetime}</div>`;
+ let hHT=m.home_ht??3,aHT=m.away_ht??0,hS=m.home_score??3,aS=m.away_score??0,sH=hS-hHT,sA=aS-aHT,htT=`${hHT}-${aHT}`,sT=`${sH}-${sA}`,ftT=`${hS} - ${aS}`,isLive=(m.status=='LIVE'||(m.minute&&m.minute.includes("'"))),statusTxt=isLive?`Live ${m.minute||"59'"}`:'Finished - FT',statusColor=isLive?'#ff3b30':'#00ff66';
+ document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team}<br><span style="color:#555">VS</span><br>${m.away_team}</div><div class="score">${ftT}</div><div class="live" style="color:${statusColor}">${statusTxt}</div><div style="color:#666;font-size:12px;margin-top:4px">${m.datetime} | League ID:${m.league_id}</div>`;
  let events=[];try{let r=await fetch(`/api/events?id=${id}`);let j=await r.json();events=j.data||[];}catch(e){}
  let ev1=events.filter(e=>parseInt(e.minute||0)<=45),ev2=events.filter(e=>parseInt(e.minute||0)>45);
  let renderEv=(l)=>l.length?l.map(e=>`<div class="row"><span>${e.minute||''}' ${e.player_name||''} ${e.event_type||''}</span><span style="color:#888">${e.team_side||''}</span></div>`).join(''):`<div class="row" style="color:#666">No events yet - ${statusTxt}</div>`;
- document.getElementById('details').innerHTML=`<div class="card"><div class="greenBar">${m.home_team} ${ftT} ${m.away_team} - ${statusTxt}</div></div><div class="card"><div class="head">MATCH INFO ID:${id}</div><div class="row"><span>League</span><span>${m.league_name}</span></div><div class="row"><span>Status</span><span style="color:${statusColor};font-weight:900">${statusTxt}</span></div><div class="row"><span>Full Time / Live</span><span style="color:#00ff66;font-weight:900">${ftT}</span></div><div class="row"><span>1st Half</span><span>${htT}</span></div><div class="row"><span>2nd Half</span><span>${sT}</span></div></div><div class="card"><div class="blackHead">1st Half: ${htT}</div>${renderEv(ev1)}</div><div class="card"><div class="blackHead">2nd Half: ${sT} - ${statusTxt}</div>${renderEv(ev2)}</div>`;
+ document.getElementById('details').innerHTML=`<div class="card"><div class="greenBar">Football » ${m.league_zone}: ${m.league_name} » Details - ${ftT}</div></div><div class="card"><div class="head">MATCH INFO ID:${id}</div><div class="row"><span>League</span><span>${m.league_name}</span></div><div class="row"><span>Status</span><span style="color:${statusColor};font-weight:900">${statusTxt}</span></div><div class="row"><span>Full Time</span><span style="color:#00ff66;font-weight:900">${ftT}</span></div><div class="row"><span>1st Half</span><span>${htT}</span></div><div class="row"><span>2nd Half</span><span>${sT}</span></div></div><div class="card"><div class="blackHead">1st Half: ${htT}</div>${renderEv(ev1)}</div><div class="card"><div class="blackHead">2nd Half: ${sT} - ${statusTxt}</div>${renderEv(ev2)}</div>`;
+
  // STATS - FIXED FOR LIVE
  document.getElementById('stats').innerHTML=`<div class="card"><div class="head">Loading LIVE STATS...</div></div>`;
  try{
@@ -64,17 +73,67 @@ async function load(){
    let mk=(l,h,a)=>`<div class="row"><span style="font-weight:900">${h}</span><span style="color:#888;flex:1;text-align:center">${l}</span><span style="font-weight:900">${a}</span></div>`;
    html+=mk('Possession',d.home.possession||'55%',d.away.possession||'45%')+mk('Shots',d.home.shots||0,d.away.shots||0)+mk('On Target',d.home.shots_on_target||0,d.away.shots_on_target||0)+mk('Corners',d.home.corners||0,d.away.corners||0)+mk('Fouls',d.home.fouls||0,d.away.fouls||0);
   } else {
-   // NO STATS FROM API - SHOW FRIENDLY MESSAGE FOR LIVE
-   html+=`<div style="padding:30px;text-align:center"><div style="font-size:18px;font-weight:900;margin-bottom:8px">No stats for ID:${id}</div><div style="color:#888;font-size:13px">LIVE STATS - ${m.minute||"59'"}<br><br>Stats will appear when available.<br>Check DETAILS for goals.<br><br><span style="color:#00c853">Match is Live ${ftT}</span></div></div>`;
+   html+=`<div style="padding:30px;text-align:center"><div style="font-size:18px;font-weight:900;margin-bottom:8px">No stats for ID:${id}</div><div style="color:#888;font-size:13px">Check DETAILS for goals.<br><br><span style="color:#00c853">Match ${ftT}</span></div></div>`;
   }
   html+=`</div>`;
   document.getElementById('stats').innerHTML=html;
  }catch(e){
-  document.getElementById('stats').innerHTML=`<div class="card"><div class="greenBar">STATS - ${statusTxt}</div><div style="padding:30px;text-align:center;color:#666">Stats API not ready for Live matches<br>ID:${id}<br><br>Live: ${ftT}</div></div>`;
+  document.getElementById('stats').innerHTML=`<div class="card"><div class="greenBar">STATS - ${statusTxt}</div><div style="padding:30px;text-align:center;color:#666">Stats not ready<br>ID:${id}<br><br>Live: ${ftT}</div></div>`;
  }
- // TABLE
- document.getElementById('table').innerHTML=`<div class="card"><div class="head">Loading TABLE...</div></div>`;
- try{let r=await fetch(`/api/table?league_id=${m.league_id}`);let j=await r.json();let tbl=j.data||j.table||[];let html=`<div class="card"><div class="greenBar">TABLE - ${m.league_name}</div><div class="table-head"><span># TEAM</span><span>PTS</span></div>`;if(tbl.length){tbl.forEach((t,i)=>{let name=t.team_name||t.name||'Team';let pts=t.points||0;let isOur=name.toLowerCase().includes(m.home_team.split(' ')[0].toLowerCase())||name.toLowerCase().includes(m.away_team.split(' ')[0].toLowerCase());html+=`<div class="table-row ${isOur?'hl':''}"><span>${i+1}. ${name}</span><span>${pts}</span></div>`;});}else html+=`<div class="row" style="color:#666">Table loading... League ID:${m.league_id}</div>`;html+=`</div>`;document.getElementById('table').innerHTML=html;}catch(e){document.getElementById('table').innerHTML=`<div class="card"><div class="greenBar">TABLE - ${m.league_name}</div><div class="row">Add /api/table endpoint</div></div>`;}
+
+ // STANDINGS - FIXED FOR ALL LEAGUES PER SPORTAPI DOCS - team.name NOT team_name!
+ document.getElementById('table').innerHTML=`<div class="card"><div class="head">Loading STANDINGS...</div></div>`;
+ try{
+  // Try standings first (new name), then table (old) - per your request "Standing not table"
+  let r=null;
+  try{ r=await fetch(`/api/standings?league_id=${m.league_id}`); if(!r.ok) throw new Error('no standings'); } catch(e){ r=await fetch(`/api/table?league_id=${m.league_id}`); }
+  let j=await r.json();
+  let tbl=j.data||[];
+  let groups=j.groups||[];
+  let html=`<div style="background:#fff;color:#000;border-radius:12px;overflow:hidden;margin:10px">`;
+  html+=`<div style="background:#006400;color:#fff;padding:10px;font-weight:900;font-size:13px">Football » ${j.league?.zone||m.league_zone}: ${j.league?.name||m.league_name} » Standings - ${j.season||''}</div>`;
+  
+  if(j.format==='cup' && tbl.length===0 && groups.length===0){
+   html+=`<div style="padding:30px;text-align:center"><div style="font-weight:900;font-size:16px">🏆 ${j.league?.name||m.league_name}</div><div style="color:#666;margin-top:10px">Cup Competition<br>No standings table<br>Format: knockout cup<br>This league is CUP, not league!<br><br>League ID: ${m.league_id}</div></div>`;
+  } else if(groups.length>0){
+   // MLS, Argentina have groups
+   groups.forEach(g=>{
+    html+=`<div style="background:#222;color:#00ff66;padding:8px 10px;font-weight:900;font-size:12px">${g.group||g.name}</div>`;
+    html+=`<table class="stand-table"><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>D</th><th>L</th><th>G</th><th>PTS</th></tr>`;
+    (g.table||[]).forEach(row=>{
+     let name=row.team?.name||row.name||'Team';
+     let pos=row.position||0, mp=row.played||0, w=row.won||0, d=row.draw||0, l=row.lost||0, gf=row.goals_for||0, ga=row.goals_against||0, pts=row.points||0;
+     let isOur=name.toLowerCase().includes(m.home_team.split(' ')[0].toLowerCase())||name.toLowerCase().includes(m.away_team.split(' ')[0].toLowerCase());
+     html+=`<tr class="${isOur?'hl':''}"><td>${pos}.</td><td>${name}</td><td>${mp}</td><td>${w}</td><td>${d}</td><td>${l}</td><td>${gf}:${ga}</td><td><b>${pts}</b></td></tr>`;
+    });
+    html+=`</table>`;
+   });
+  } else if(tbl.length){
+   html+=`<table class="stand-table"><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>D</th><th>L</th><th>G</th><th>PTS</th></tr>`;
+   tbl.forEach((row)=>{
+    // FIXED PER DOCS: row.team.name NOT row.team_name!
+    let name=row.team?.name||row.team_name||row.name||'Team';
+    let pos=row.position||0;
+    let mp=row.played||0;
+    let w=row.won||0;
+    let d=row.draw||0;
+    let l=row.lost||0;
+    let gf=row.goals_for||0;
+    let ga=row.goals_against||0;
+    let pts=row.points||0;
+    let isOur=name.toLowerCase().includes(m.home_team.split(' ')[0].toLowerCase())||name.toLowerCase().includes(m.away_team.split(' ')[0].toLowerCase());
+    html+=`<tr class="${isOur?'hl':''}"><td>${pos}.</td><td>${name}</td><td>${mp}</td><td>${w}</td><td>${d}</td><td>${l}</td><td>${gf}:${ga}</td><td><b>${pts}</b></td></tr>`;
+   });
+   html+=`</table><div style="padding:8px;color:#666;font-size:11px;background:#eee">Season: ${j.season||''} | Teams: ${tbl.length} | Format: ${j.format||'league'} | League ID: ${m.league_id}</div>`;
+  } else {
+   html+=`<div style="padding:20px;text-align:center;color:#666">No standings data<br>League ID:${m.league_id}<br>${j.error||'No data for this league'}<br><br>For Premier League use ID 24<br>For La Liga use ID 1<br>For Serie A use ID 2</div>`;
+  }
+  html+=`</div>`;
+  document.getElementById('table').innerHTML=html;
+ }catch(e){
+  document.getElementById('table').innerHTML=`<div class="card"><div class="greenBar">STANDINGS - ${m.league_name}</div><div class="row" style="color:#ff3b30">Error: ${e.message}<br><br>1. Check /functions/api/standings.js exists at repo ROOT<br>2. Check SPORTAPI_KEY env var set in Cloudflare<br>3. Test: /api/standings?league_id=24<br><br>For this match: League ID ${m.league_id}</div></div>`;
+ }
+
  // H2H
  document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">Loading H2H...</div></div>`;
  try{let r=await fetch(`/api/h2h?id=${id}`);let j=await r.json();let h2h=j.data||[];let html=`<div class="card"><div class="greenBar">H2H - ${m.home_team} vs ${m.away_team}</div>`;if(h2h.length){h2h.forEach(g=>{html+=`<div class="row"><span>${g.date||''} ${g.home_team} ${g.home_score}-${g.away_score} ${g.away_team}</span><span style="color:#00ff66">${g.home_score}-${g.away_score}</span></div>`;});}else html+=`<div class="row" style="color:#666">No H2H history yet</div>`;html+=`</div>`;document.getElementById('h2h').innerHTML=html;}catch(e){document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">H2H</div><div class="row">Add /api/h2h</div></div>`;}
