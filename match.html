@@ -2,77 +2,77 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LiveScore - MATCH FULL</title>
+<title>LiveScore - FIXED CLICKABLE</title>
 <style>
-body{background:#000;color:#fff;font-family:Arial;margin:0}
+*{-webkit-tap-highlight-color:transparent; -webkit-touch-callout:none;}
+body{background:#000;color:#fff;font-family:Arial;margin:0; user-select:none; -webkit-user-select:none;}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;align-items:center;color:#000;font-weight:900;font-size:18px}
-.header a{background:#fff;color:#000;padding:6px 16px;border-radius:20px;text-decoration:none;font-size:14px;font-weight:900}
-.scorebox{background:#111;padding:25px 15px;text-align:center;border-bottom:3px solid #00c853}
-.league{color:#888;font-size:13px}
-.teams{font-size:28px;font-weight:900;margin:12px 0;line-height:32px}
-.vs{color:#555;font-size:22px}
-.score{font-size:64px;font-weight:900;color:#00ff66;line-height:64px}
-.bracket{font-size:18px;color:#888;margin-left:8px}
-.status{color:#00ff66;font-weight:900;margin-top:8px}
-.tabs{display:flex;background:#121212;position:sticky;top:0;z-index:10}
-.tabs button{flex:1;background:#121212;color:#888;border:0;padding:14px;font-weight:900;font-size:12px}
+.header a{background:#fff;color:#000;padding:6px 14px;border-radius:20px;text-decoration:none;font-size:12px;font-weight:900}
+.tabs{display:flex;background:#121212;overflow-x:auto}
+.tabs button{background:#121212;color:#888;border:0;padding:12px 14px;flex:1;font-weight:900;user-select:none}
 .tabs button.active{color:#00ff66;border-bottom:3px solid #00c853;background:#1a1a1a}
-.content{padding:10px}
-.card{background:#1a1a1a;border-radius:14px;margin:10px 0;overflow:hidden;border:1px solid #222}
-.head{background:#222;color:#00ff66;padding:10px 14px;font-weight:900;font-size:13px;text-transform:uppercase}
-.row{display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #222;font-size:14px}
-.greenBar{background:#00c853;color:#000;padding:10px;text-align:center;font-weight:900}
-.blackHead{background:#000;color:#fff;padding:8px 14px;font-weight:900;border-left:3px solid #00c853;font-size:13px}
-.table-head{display:flex;justify-content:space-between;padding:8px 12px;background:#222;font-weight:900;font-size:11px;color:#888}
-.table-row{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #222;font-size:13px}
-.table-row.hl{background:rgba(0,200,83,0.18);border-left:3px solid #00c853;font-weight:900}
+.filter{display:flex;gap:8px;padding:10px;background:#0f0f0f;overflow-x:auto}
+.filter button{background:#222;color:#aaa;border:1px solid #333;padding:6px 14px;border-radius:20px;font-size:12px}
+.filter button.active{background:#00c853;color:#000;font-weight:900}
+.league-head{background:#00c853;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px;display:flex;justify-content:space-between;user-select:none}
+.match{display:flex;align-items:center;padding:14px 12px;border-radius:12px;margin:6px 8px;background:#151515;gap:12px;cursor:pointer;border-left:3px solid #00c853; user-select:none; -webkit-user-select:none; touch-action:manipulation}
+.match:active{background:#222; transform:scale(0.97)}
+.time-pill{border:2px solid #00c853;border-radius:20px;padding:7px 12px;font-size:12px;min-width:60px;text-align:center;font-weight:900;color:#00c853;background:rgba(0,200,83,0.18); pointer-events:none; user-select:none}
+.teams{flex:1;line-height:21px;font-size:14px; pointer-events:none; user-select:none}
+.score{color:#00ff66;font-weight:900;font-size:20px;text-align:right; pointer-events:none; user-select:none}
 </style>
 </head>
 <body>
-<div class="header"><span>⚽ LiveScore</span><a href="javascript:history.back()">← Back</a></div>
-<div class="scorebox" id="top">Loading...</div>
-<div class="tabs">
-<button id="b1" class="active" onclick="showTab('details',this)">DETAILS</button>
-<button onclick="showTab('stats',this)">STATS</button>
-<button onclick="showTab('table',this)">TABLE</button>
-<button onclick="showTab('h2h',this)">H2H</button>
+<div class="header"><span>⚽ LiveScore - TOP LEAGUES</span><a href="#" onclick="location.reload()">↻ Refresh</a></div>
+<div class="tabs" id="dateTabs"></div>
+<div class="filter">
+<button id="f-top" onclick="setFilter('top')">★ Top Leagues</button>
+<button id="f-all" class="active" onclick="setFilter('all')">All</button>
+<button id="f-live" onclick="setFilter('live')">Live</button>
+<button id="f-fin" onclick="setFilter('finished')">Finished</button>
 </div>
-<div id="details" class="content"></div>
-<div id="stats" class="content" style="display:none"></div>
-<div id="table" class="content" style="display:none"></div>
-<div id="h2h" class="content" style="display:none"></div>
+<div id="list"><div style="padding:30px;text-align:center;color:#00c853">Loading...</div></div>
 <script>
-function showTab(n,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.querySelectorAll('.content').forEach(c=>c.style.display='none');document.getElementById(n).style.display='block';}
-async function load(){
- let id=new URLSearchParams(location.search).get('id')||'15868663';
- let m=null;try{let raw=localStorage.getItem('selected_match');if(raw){m=JSON.parse(raw); if(String(m.id)!==String(id)) m=null;}}catch(e){}
- if(!m){
-  try{let r=await fetch(`/api/fixture?id=${id}`);let j=await r.json();let f=j.fixture||j.data||j||{};m={id:f.id||id,home_team:f.home_team||'AEK Athens',away_team:f.away_team||'Real Madrid',league_name:f.league_name||'UEFA Champions League',league_zone:f.league_zone||'Europe',home_score:f.home_score??2,away_score:f.away_score??3,home_ht:f.home_ht_score??f.home_ht??1,away_ht:f.away_ht_score??f.away_ht??1,league_id:f.league_id||'400',home_id:f.home_id,away_id:f.away_id,datetime:f.datetime||'2026-11-04 18:45'};}catch(e){m={id,home_team:'AEK Athens',away_team:'Real Madrid',league_name:'UEFA Champions League',league_zone:'Europe',home_score:2,away_score:3,home_ht:1,away_ht:1,league_id:'400',datetime:'2026-11-04 18:45'};}
- }
- let events=[];try{let r=await fetch(`/api/events?id=${id}`);let j=await r.json();events=j.data||[];}catch(e){}
- let hHT=m.home_ht??1,aHT=m.away_ht??1;
- if((hHT==null||aHT==null)&&events.length){
-  let hc=0,ac=0;events.forEach(ev=>{if((ev.event_type||'').toLowerCase().includes('goal')){let min=parseInt(ev.minute||0);if(min<=45){let isHome=(ev.team_side||'').toLowerCase().includes('home');if(isHome)hc++;else ac++;}}});if(hc+ac>0){hHT=hc;aHT=ac;}
- }
- if(hHT==null) hHT=1; if(aHT==null) aHT=1;
- let hS=m.home_score??2,aS=m.away_score??3;
- let sH=hS-hHT,sA=aS-aHT;
- let htT=`${hHT}-${aHT}`, sT=`${sH}-${sA}`, ftT=`${hS} - ${aS}`, bracket=`(${htT}, ${sT})`;
- document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team}<br><span class="vs">vs</span><br>${m.away_team}</div><div class="score">${ftT} <span class="bracket">${bracket}</span></div><div class="status">Finished - FT<br><span style="color:#888;font-size:12px">${m.datetime}</span></div>`;
- let ev1=events.filter(e=>parseInt(e.minute||0)<=45),ev2=events.filter(e=>parseInt(e.minute||0)>45);
- let renderEv=(list)=>list.length?list.map(e=>`<div class="row"><span>${e.minute}' ${e.event_type.toLowerCase().includes('goal')?'⚽':''} ${e.player_name||''} - ${e.event_type}</span><span style="color:#888">${e.team_side||''}</span></div>`).join(''):`<div class="row" style="color:#666">No events</div>`;
- document.getElementById('details').innerHTML=`<div class="card"><div class="greenBar">${m.home_team} - ${m.away_team} ${ftT} ${bracket} Finished</div></div><div class="card"><div class="head">MATCH INFO - ID:${id}</div><div class="row"><span>League</span><span>${m.league_name}</span></div><div class="row"><span>Kick-off</span><span>${m.datetime}</span></div><div class="row"><span>Status</span><span style="color:#00ff66;font-weight:900">Finished - FT</span></div><div class="row"><span>Full Time</span><span style="color:#00ff66;font-weight:900">${ftT}</span></div><div class="row"><span>1st Half</span><span>${htT}</span></div><div class="row"><span>2nd Half</span><span>${sT}</span></div></div><div class="card"><div class="blackHead">1st Half: ${htT}</div>${renderEv(ev1)}</div><div class="card"><div class="blackHead">2nd Half: ${sT}</div>${renderEv(ev2)}</div>`;
- // STATS - WORKING
- document.getElementById('stats').innerHTML=`<div class="card"><div class="head">Loading STATS...</div></div>`;
- try{let r=await fetch(`/api/stats?id=${id}`);let j=await r.json();let d=j.data||j;let html=`<div class="card"><div class="greenBar">STATS - ${ftT} ${bracket}</div>`;if(d&&d.home){let mk=(l,h,a)=>`<div class="row"><span style="font-weight:900">${h}</span><span style="color:#888;flex:1;text-align:center">${l}</span><span style="font-weight:900">${a}</span></div>`;html+=mk('Shots',d.home.shots||'0',d.away.shots||'0')+mk('Shots on Target',d.home.shots_on_target||'0',d.away.shots_on_target||'0')+mk('Corners',d.home.corners||'0',d.away.corners||'0')+mk('Fouls',d.home.fouls||'0',d.away.fouls||'0')+mk('Yellow Cards',d.home.yellow_cards||'0',d.away.yellow_cards||'0')+mk('Red Cards',d.home.red_cards||'0',d.away.red_cards||'0')+mk('Possession',d.home.possession||'55%',d.away.possession||'45%');}else html+=`<div class="row" style="color:#666">No stats for ID:${id}</div>`;html+=`</div>`;document.getElementById('stats').innerHTML=html;}catch(e){document.getElementById('stats').innerHTML=`<div class="card"><div class="head">STATS</div><div class="row" style="color:#666">Stats API error</div></div>`;}
- // TABLE - STANDING WORKING
- document.getElementById('table').innerHTML=`<div class="card"><div class="head">Loading TABLE...</div></div>`;
- try{let r=await fetch(`/api/table?league_id=${m.league_id}&id=${id}`);let j=await r.json();let tbl=j.data||j.table||j.standing||[];if(!tbl.length){let r2=await fetch(`/api/standings?league_id=${m.league_id}`);let j2=await r2.json();tbl=j2.data||j2.standing||[];}let html=`<div class="card"><div class="greenBar">TABLE - ${m.league_name}</div><div class="table-head"><span># TEAM</span><span>PTS</span></div>`;if(tbl.length){tbl.forEach((t,i)=>{let name=t.team_name||t.name||t.team||'Team';let pts=t.points||t.pts||0;let isOur=name.toLowerCase().includes(m.home_team.split(' ')[0].toLowerCase())||name.toLowerCase().includes(m.away_team.split(' ')[0].toLowerCase());html+=`<div class="table-row ${isOur?'hl':''}"><span>${i+1}. ${name}</span><span>${pts} pts</span></div>`;});}else html+=`<div class="row">Table data will show when /api/table returns data<br>League: ${m.league_name} ID:${m.league_id}<br><br>Make sure your worker has /api/table endpoint</div>`;html+=`</div>`;document.getElementById('table').innerHTML=html;}catch(e){document.getElementById('table').innerHTML=`<div class="card"><div class="greenBar">TABLE</div><div class="row">Table endpoint not found - add /api/table in your worker</div></div>`;}
- // H2H - WORKING
- document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">Loading H2H...</div></div>`;
- try{let r=await fetch(`/api/h2h?id=${id}&team1=${m.home_team}&team2=${m.away_team}`);let j=await r.json();let h2h=j.data||j.h2h||[];let html=`<div class="card"><div class="greenBar">H2H - ${m.home_team} vs ${m.away_team}</div>`;if(h2h.length){h2h.forEach(g=>{html+=`<div class="row"><span>${g.date||''} ${g.home_team||''} ${g.home_score!=null?g.home_score+'-'+g.away_score:''} ${g.away_team||''}</span><span style="color:#00ff66">${g.home_score!=null?g.home_score+'-'+g.away_score:'FT'}</span></div>`;});}else html+=`<div class="row" style="color:#666">H2H history for ${m.home_team} vs ${m.away_team} will show when /api/h2h returns data</div>`;html+=`</div>`;document.getElementById('h2h').innerHTML=html;}catch(e){document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">H2H</div><div class="row">Add /api/h2h endpoint</div></div>`;}
+let allData=[],curFilter='all';
+function isAsia(f){let u=f.toUpperCase();return u.includes("ASIA")||u.includes("AFC")||u.includes("JAPAN")||u.includes("KOREA")||u.includes("CHINA");}
+function getRank(full){let u=full.toUpperCase();if(isAsia(full))return 9999;if(u.includes("CHAMPIONS LEAGUE"))return 0;if(u.includes("EUROPA LEAGUE"))return 1;if(u.includes("PREMIER LEAGUE"))return 3;if(u.includes("LALIGA")||u.includes("LA LIGA"))return 4;if(u.includes("LIGUE 1"))return 5;if(u.includes("BUNDESLIGA"))return 6;if(u.includes("SERIE A"))return 7;return 100;}
+function buildDateTabs(){let h='',today=new Date();for(let i=-2;i<=3;i++){let d=new Date(today);d.setDate(today.getDate()+i);let ds=d.toISOString().split('T')[0];let label=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let act=i==-1?'active':'';h+=`<button class="${act}" onclick="selectDate('${ds}',this)">${label}</button>`;}document.getElementById('dateTabs').innerHTML=h;}
+function selectDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds);}
+async function load(date){document.getElementById('list').innerHTML='<div style="padding:30px;text-align:center">Loading '+date+'...</div>';try{const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();allData=j.data||[];render();}catch(e){document.getElementById('list').innerHTML=`Error: ${e.message}`;}}
+function openMatch(id){
+  // SAVE + GO
+  let m=allData.find(x=>String(x.id)===String(id));
+  if(m){try{localStorage.setItem('selected_match',JSON.stringify(m));}catch(e){}}
+  // Prevent Google search popup
+  window.getSelection()?.removeAllRanges();
+  let base = '/livescore/match.html';
+  location.href = base + '?id=' + id;
 }
-load();showTab('details',document.getElementById('b1'));
+function setFilter(f){curFilter=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f))?.classList.add('active');render();}
+function render(){
+ let data=[...allData];
+ if(curFilter=='top')data=data.filter(m=>getRank(`${m.league_zone||''} - ${m.league_name||''}`)<100);
+ if(curFilter=='live')data=data.filter(m=>m.status=='LIVE');
+ if(curFilter=='finished')data=data.filter(m=>m.status=='FINISHED'||m.status=='FT');
+ if(!data.length){document.getElementById('list').innerHTML=`<div style="padding:30px;text-align:center">No ${curFilter}</div>`;return;}
+ const groups={};data.forEach(m=>{let full=`${(m.league_zone||'World').toUpperCase()} - ${m.league_name||'League'}`;if(!groups[full])groups[full]={display:full,games:[],rank:getRank(full)};groups[full].games.push(m);});
+ let sorted=Object.keys(groups).sort((a,b)=>groups[a].rank-groups[b].rank);
+ let html='';sorted.forEach(k=>{
+  const g=groups[k];g.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));
+  html+=`<div class="league-head"><span>${g.display} (${g.games.length}) ★</span><span>›</span></div>`;
+  g.games.forEach(x=>{
+   let scoreText=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';
+   // IMPORTANT: onclick on whole div, children pointer-events:none
+   html+=`<div class="match" onclick="openMatch('${x.id}')" ontouchend="openMatch('${x.id}')"><div class="time-pill">FT</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div class="score">${scoreText}</div></div>`;
+  });
+ });
+ document.getElementById('list').innerHTML=html;
+}
+buildDateTabs();load(new Date(Date.now()-86400000).toISOString().split('T')[0]);
+
+// BLOCK TEXT SELECTION POPUP
+document.addEventListener('contextmenu', e=>e.preventDefault());
+document.addEventListener('selectstart', e=>e.preventDefault());
 </script>
 </body>
 </html>
