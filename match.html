@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match - FINAL FROM DOCS</title>
+<title>Match - FINAL NO TODAY DRAW</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;color:#000;font-weight:900}
@@ -53,20 +53,15 @@ try{
 let r=await fetch(`/api/standings?id=${lid}`);
 let j=await r.json();
 console.log("Standings OFFICIAL:", j);
-
 let list=j.data||[];
 let format=j.format||'';
 let leagueName=j.league?.name||league;
-
 if(format==="cup" && list.length===0){
-  // Real knockout cup - empty table per docs
   document.getElementById('table').innerHTML=`<div class="card"><div style="padding:25px;text-align:center"><div style="font-size:50px">🏆</div><div style="font-weight:900;margin:10px 0;color:#00ff66">${leagueName}</div><div style="color:#888">Knockout cup<br>No league table<br>Format: cup</div></div></div>`;
 } else if(list.length===0){
-  // Not cup, but empty = API error or free plan limit
-  document.getElementById('table').innerHTML=`<div class="card"><div style="padding:20px;text-align:center"><div style="font-size:30px">⚠️</div><div style="font-weight:900;color:#ffaa00">Table unavailable</div><div style="color:#888;font-size:12px;background:#111;padding:10px;border-radius:8px;margin-top:10px;text-align:left">League: ${leagueName}<br>ID: ${lid}<br>Format: ${format||'unknown'}<br>Season: ${j.season||'unknown'}<br><br>Error: ${j.error||'Empty data'}<br>Raw: ${(j.raw||'').slice(0,150)}<br><br>This can happen if SportAPI free plan doesn't have 2026/27 standings yet, or league ID wrong.<br><br>Try: Man City vs Arsenal (ID 24) should work per docs.</div></div></div>`;
+  document.getElementById('table').innerHTML=`<div class="card"><div style="padding:20px;text-align:center"><div style="font-size:30px">⚠️</div><div style="font-weight:900;color:#ffaa00">Table unavailable</div><div style="color:#888;font-size:12px;background:#111;padding:10px;border-radius:8px;margin-top:10px;text-align:left">League: ${leagueName}<br>ID: ${lid}<br>Format: ${format||'unknown'}<br>Season: ${j.season||'unknown'}<br>Error: ${j.error||'Empty data'}</div></div></div>`;
 } else {
-  // Real league table - fields from docs: position, team.name, played, won, draw, lost, goals_for, goals_against, points
-  let html=`<div class="card" style="padding:0"><div style="background:#00c853;color:#000;padding:10px 14px;font-weight:900;font-size:12px">⚽ ${leagueName} - ${j.season||''} - ${list.length} teams - ID:${lid}</div><div class="row head" style="border-radius:0"><span style="width:30px">#</span><span style="flex:1">Team</span><span style="width:28px;text-align:center">MP</span><span style="width:22px;text-align:center">W</span><span style="width:22px;text-align:center">D</span><span style="width:22px;text-align:center">L</span><span style="width:40px;text-align:center">G</span><span style="width:32px;text-align:center">PTS</span></div>`;
+  let html=`<div class="card" style="padding:0"><div style="background:#00c853;color:#000;padding:10px 14px;font-weight:900;font-size:12px">⚽ ${leagueName} - ${j.season||''} - ${list.length} teams</div><div class="row head" style="border-radius:0"><span style="width:30px">#</span><span style="flex:1">Team</span><span style="width:28px;text-align:center">MP</span><span style="width:22px;text-align:center">W</span><span style="width:22px;text-align:center">D</span><span style="width:22px;text-align:center">L</span><span style="width:40px;text-align:center">G</span><span style="width:32px;text-align:center">PTS</span></div>`;
   list.forEach(t=>{
     let pos=t.position??'';
     let team=t.team?.name||'';
@@ -87,7 +82,7 @@ if(format==="cup" && list.length===0){
   document.getElementById('table').innerHTML=`<div class="card"><div style="padding:20px;color:#ff5555;text-align:center">Error: ${e.message}<br>ID:${lid}</div></div>`;
 }
 
-// H2H - OFFICIAL ENDPOINT /api/fixtures/h2h/{team1}/{team2}
+// H2H - FIXED: TODAY ?-? NOT INCLUDED
 document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>SEARCHING H2H: ${home} vs ${away} (${hid} vs ${aid})...</span></div></div>`;
 try{
 let h2hGames=[];
@@ -98,15 +93,25 @@ console.log("H2H official:", j);
 if(j.data && j.data.length>0) h2hGames=j.data;
 }catch(e){console.log("H2H error", e);}
 
+// FIX: REMOVE TODAY'S MATCH ID AND NULL SCORES
+h2hGames = h2hGames.filter(g=>{
+  let sameId = String(g.id) === String(id);
+  let noScore = g.home_score==null || g.away_score==null;
+  let isScheduled = g.status==='Scheduled';
+  return !sameId && !noScore && !isScheduled;
+}).slice(0,5);
+
 let html=`<div class="card"><div class="row head"><span>LAST ${h2hGames.length} - ${home} vs ${away}</span></div>`;
 if(h2hGames.length>0){
 h2hGames.forEach(g=>{
-let ht=g.home_team||'Home'; let at=g.away_team||'Away'; let hs=g.home_score??'?'; let as=g.away_score??'?'; let d=g.date||''; let lg=g.league_name||'';
-let winner=hs>as?ht:as>hs?at:'DRAW';
-html+=`<div class="row"><span style="font-size:11px;color:#888">${d} - ${lg}<br><b style="color:#fff;font-size:13px">${ht} ${hs} - ${as} ${at}</b></span><span style="color:#00ff66;font-weight:900;font-size:11px">${winner}</span></div>`;
+let ht=g.home_team||'Home'; let at=g.away_team||'Away'; let hs=g.home_score; let as=g.away_score; let d=g.date||''; let lg=g.league_name||'';
+let hNum=Number(hs); let aNum=Number(as);
+let winner = hNum>aNum ? ht : aNum>hNum ? at : 'DRAW';
+let color = winner==='DRAW' ? '#ffcc00' : '#00ff66';
+html+=`<div class="row"><span style="font-size:11px;color:#888">${d} - ${lg}<br><b style="color:#fff;font-size:13px">${ht} ${hs} - ${as} ${at}</b></span><span style="color:${color};font-weight:900;font-size:11px">${winner}</span></div>`;
 });
 }else{
-html+=`<div style="padding:20px;color:#888;text-align:center">No H2H history found<br>${home} vs ${away}<br><br>IDs: ${hid} vs ${aid}<br><br>SportAPI may have no history for these teams<br>Try Arsenal vs Liverpool (311 vs 312)</div>`;
+html+=`<div style="padding:20px;color:#888;text-align:center">No finished H2H<br>${home} vs ${away}<br>IDs: ${hid} vs ${aid}</div>`;
 }
 html+='</div>';document.getElementById('h2h').innerHTML=html;
 }catch(e){document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>Error</span></div><div style="padding:15px;color:#ff5555">Error: ${e.message}</div></div>`;}
