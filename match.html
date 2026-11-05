@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match - FINAL H2H BY NAMES</title>
+<title>Match - FINAL FIXED</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;color:#000;font-weight:900}
@@ -46,84 +46,53 @@ let sHTML=hS==null?`<div class="vs">VS</div><div class="time-big">🕘 ${tOnly}<
 document.getElementById('top').innerHTML=`<div style="color:#888;font-size:12px">${zone} - ${league}</div><div class="teams">${home}<br><span class="vs">vs</span><br>${away}</div>${sHTML}`;
 document.getElementById('details').innerHTML=`<div class="card"><div class="row head"><span>MATCH INFO</span></div><div class="row"><span>League</span><span>${league}</span></div><div class="row"><span>Kick-off</span><span>${dt}</span></div></div><div class="card"><div class="row head"><span>EVENTS</span></div><div id="ev">Loading...</div></div>`;
 try{let r=await fetch(`/api/events?id=${id}`);let j=await r.json();let ev=j.data||[];document.getElementById('ev').innerHTML=ev.length?ev.map(e=>`<div class="row"><span>⏱ ${e.minute}' ${e.event_type} ${e.player_name||''}</span><span>${e.team_side||''}</span></div>`).join(''):`<div style="padding:15px;color:#666;text-align:center">No events yet</div>`;}catch(e){}
-// TABLE COMPLETE - WORKING
+// TABLE
 document.getElementById('table').innerHTML=`<div class="card"><div class="row head"><span>TABLE Loading...</span></div></div>`;
 try{
 let r=await fetch(`/api/standings?id=${lid}`);
 let j=await r.json();
 let list=j.data||j.standings||[];
-let html=`<div class="card" style="padding:0"><div style="background:#00c853;color:#000;padding:10px 14px;font-weight:900;font-size:12px">Football » ${league} » Standings COMPLETE 1-${list.length}</div><div class="row head" style="border-radius:0"><span style="width:30px">#</span><span style="flex:1">Team</span><span style="width:28px;text-align:center">MP</span><span style="width:22px;text-align:center">W</span><span style="width:22px;text-align:center">D</span><span style="width:22px;text-align:center">L</span><span style="width:40px;text-align:center">G</span><span style="width:32px;text-align:center">PTS</span></div>`;
+let html=`<div class="card" style="padding:0"><div style="background:#00c853;color:#000;padding:10px 14px;font-weight:900;font-size:12px">Football » ${league} » Standings 1-${list.length}</div><div class="row head" style="border-radius:0"><span style="width:30px">#</span><span style="flex:1">Team</span><span style="width:28px;text-align:center">MP</span><span style="width:22px;text-align:center">W</span><span style="width:22px;text-align:center">D</span><span style="width:22px;text-align:center">L</span><span style="width:40px;text-align:center">G</span><span style="width:32px;text-align:center">PTS</span></div>`;
 list.forEach(t=>{
-let pos=t.position??t.rank??'';
-let team=t.team?.name||t.team_name||'';
-let mp=t.played??t.matches_played??t.mp??0;
-let w=t.wins??t.win??t.W??t.w??t.won??0;
-let d=t.draws??t.draw??t.D??t.d??0;
-let l=t.losses??t.loss??t.L??t.l??0;
-if(t.stats){w=w||t.stats.wins||0; d=d||t.stats.draws||0; l=l||t.stats.losses||0;}
-let gf=t.goals_for??t.gf??0;
-let ga=t.goals_against??t.ga??0;
-let pts=t.points??0;
-let isMe=team==home||team==away;
-html+=`<div class="row" style="${isMe?'background:#1a2e1a;border-left:3px solid #00ff66':''}"><span style="width:30px;color:#888">${pos}.</span><span style="flex:1;font-weight:${isMe?'900':'600'};color:${isMe?'#00ff66':'#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${team}</span><span style="width:28px;text-align:center">${mp}</span><span style="width:22px;text-align:center">${w}</span><span style="width:22px;text-align:center">${d}</span><span style="width:22px;text-align:center">${l}</span><span style="width:40px;text-align:center;color:#aaa;font-size:11px">${gf}:${ga}</span><span style="width:32px;text-align:center;color:#00ff66;font-weight:900">${pts}</span></div>`;
+let pos=t.position??t.rank??'';let team=t.team?.name||t.team_name||'';let mp=t.played??t.matches_played??t.mp??0;let w=t.wins??t.win??0;let d=t.draws??0;let l=t.losses??0;if(t.stats){w=w||t.stats.wins||0; d=d||t.stats.draws||0; l=l||t.stats.losses||0;}let gf=t.goals_for??0;let ga=t.goals_against??0;let pts=t.points??0;let isMe=team==home||team==away;
+html+=`<div class="row" style="${isMe?'background:#1a2e1a;border-left:3px solid #00ff66':''}"><span style="width:30px;color:#888">${pos}.</span><span style="flex:1;font-weight:${isMe?'900':'600'};color:${isMe?'#00ff66':'#fff'}">${team}</span><span style="width:28px;text-align:center">${mp}</span><span style="width:22px;text-align:center">${w}</span><span style="width:22px;text-align:center">${d}</span><span style="width:22px;text-align:center">${l}</span><span style="width:40px;text-align:center;color:#aaa;font-size:11px">${gf}:${ga}</span><span style="width:32px;text-align:center;color:#00ff66;font-weight:900">${pts}</span></div>`;
 });
-html+='</div>';
-document.getElementById('table').innerHTML=html;
+html+='</div>';document.getElementById('table').innerHTML=html;
 }catch(e){document.getElementById('table').innerHTML='Error: '+e.message;}
 
-// H2H FINAL - BY NAMES - WILL SHOW SEVILLA VS ALAVES
-document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>SEARCHING H2H BY NAME: ${home} vs ${away}...</span></div></div>`;
+// H2H FIXED - USES /api/fixtures NOT /api/matches
+document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>SEARCHING H2H: ${home} vs ${away}...</span></div></div>`;
 try{
 let h2hGames=[];
 let allMatches=[];
-
-// 1. Try official H2H API
 try{
 let r=await fetch(`/api/h2h?team1=${hid}&team2=${aid}`);
 let j=await r.json();
-console.log("H2H by IDs:", j);
 if(j.data && j.data.length>0) h2hGames=j.data;
 }catch(e){}
-
-// 2. If empty, search by team names in all matches
 if(h2hGames.length===0){
-let rAll=await fetch(`/api/matches`);
+let rAll=await fetch(`/api/fixtures?date=${new Date().toISOString().split('T')[0]}`);
 let jAll=await rAll.json();
-allMatches=jAll.data||jAll.matches||jAll||[];
-let hLow=home.toLowerCase();
-let aLow=away.toLowerCase();
-let hFirst=hLow.split(' ')[0];
-let aFirst=aLow.split(' ')[0];
-
+allMatches=jAll.data||[];
+let hLow=home.toLowerCase(); let aLow=away.toLowerCase();
 h2hGames=allMatches.filter(m=>{
-let ht=(m.home_team||m.homeTeam?.name||'').toLowerCase();
-let at=(m.away_team||m.awayTeam?.name||'').toLowerCase();
-return (ht.includes(hLow) && at.includes(aLow)) || (ht.includes(aLow) && at.includes(hLow)) ||
-       (ht.includes(hFirst) && at.includes(aFirst)) || (ht.includes(aFirst) && at.includes(hFirst));
-}).filter(m=>m.home_score!=null).sort((a,b)=> new Date(b.datetime||b.date) - new Date(a.datetime||a.date)).slice(0,5);
+let ht=(m.home_team||'').toLowerCase();
+let at=(m.away_team||'').toLowerCase();
+return (ht.includes(hLow) && at.includes(aLow)) || (ht.includes(aLow) && at.includes(hLow));
+}).filter(m=>m.home_score!=null).slice(0,5);
 }
-
 let html=`<div class="card"><div class="row head"><span>LAST 5 - ${home} vs ${away} (${h2hGames.length} found)</span></div>`;
 if(h2hGames.length>0){
 h2hGames.forEach(g=>{
-let ht=g.home_team||g.homeTeam?.name||'Home';
-let at=g.away_team||g.awayTeam?.name||'Away';
-let hs=g.home_score??g.homeScore??'?';
-let as=g.away_score??g.awayScore??'?';
-if(hs=='?' && g.score){let p=(g.score+"").split(/[-:]/); hs=p[0]; as=p[1];}
-let d=(g.datetime||g.date||'').split(' ')[0];
-let hsn=parseInt(hs); let asn=parseInt(as);
-let winner=isNaN(hsn)?'':hsn>asn?ht:asn>hsn?at:'DRAW';
+let ht=g.home_team||'Home'; let at=g.away_team||'Away'; let hs=g.home_score??'?'; let as=g.away_score??'?'; let d=(g.datetime||'').split(' ')[0];
+let winner=hs>as?ht:as>hs?at:'DRAW';
 html+=`<div class="row"><span style="font-size:11px;color:#888">${d}<br><b style="color:#fff;font-size:13px">${ht} ${hs} - ${as} ${at}</b></span><span style="color:#00ff66;font-weight:900;font-size:11px">${winner}</span></div>`;
 });
 }else{
-html+=`<div style="padding:20px;color:#888;text-align:center">No H2H found for<br>${home} vs ${away}<br><br>Searched ${allMatches.length} matches<br>Try Man City vs Arsenal</div>`;
+html+=`<div style="padding:20px;color:#888;text-align:center">No H2H in today's fixtures<br>${home} vs ${away}<br><br>Searched ${allMatches.length} matches today<br><br>SportAPI free plan only has TODAY's games for H2H fallback. Real H2H needs paid history endpoint. IDs: ${hid} vs ${aid}</div>`;
 }
-html+='</div>';
-document.getElementById('h2h').innerHTML=html;
-}catch(e){
-document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>Error</span></div><div style="padding:15px;color:#ff5555">Error: ${e.message}</div></div>`;
-}
+html+='</div>';document.getElementById('h2h').innerHTML=html;
+}catch(e){document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>Error</span></div><div style="padding:15px;color:#ff5555">Error: ${e.message}</div></div>`;}
 }
 load();tab('details',document.getElementById('b1'));
 </script>
