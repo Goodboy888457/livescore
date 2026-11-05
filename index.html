@@ -2,43 +2,44 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LiveScore - TOP LEAGUES FIRST</title>
+<title>LiveScore - TOP LEAGUE GREEN</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
-.header{background:#00c853;padding:12px;text-align:center;font-weight:bold;font-size:18px;color:#000;display:flex;justify-content:space-between;align-items:center}
+.header{background:#00c853;padding:12px;text-align:center;font-weight:900;font-size:18px;color:#000;display:flex;justify-content:space-between}
 .tabs{display:flex;background:#121212;overflow-x:auto;white-space:nowrap}
 .tabs::-webkit-scrollbar{display:none}
-.tabs button{background:#121212;color:#aaa;border:0;padding:12px 14px;white-space:nowrap;flex:1}
-.tabs button.active{color:#00ff66;border-bottom:3px solid #00ff66;background:#1a1a1a}
+.tabs button{background:#121212;color:#aaa;border:0;padding:12px 14px;white-space:nowrap;flex:1;font-weight:900}
+.tabs button.active{color:#00ff66;border-bottom:3px solid #00c853}
 .filter{display:flex;gap:8px;padding:10px;background:#0f0f0f;overflow-x:auto}
 .filter button{background:#222;color:#aaa;border:1px solid #333;padding:6px 14px;border-radius:20px;font-size:12px}
-.filter button.active{background:#00ff66;color:#000;border-color:#00ff66;font-weight:bold}
-.league-head{background:#00ff66;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px;text-transform:uppercase;display:flex;justify-content:space-between}
-.match{display:flex;align-items:center;padding:12px;border-radius:12px;margin:6px 8px;background:#151515;gap:12px;cursor:pointer}
-.time-pill{border:2px solid #00ff66;border-radius:20px;padding:5px 12px;font-size:11px;min-width:60px;text-align:center;font-weight:700}
+.filter button.active{background:#00c853;color:#000;font-weight:900;border-color:#00c853}
+.league-head{background:#00c853;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px;display:flex;justify-content:space-between;text-transform:uppercase}
+.match{display:flex;align-items:center;padding:12px;border-radius:12px;margin:6px 8px;background:#151515;gap:12px;cursor:pointer;border-left:3px solid #00c853}
+.time-pill{border:2px solid #00c853;border-radius:20px;padding:5px 12px;font-size:11px;min-width:60px;text-align:center;font-weight:900}
 .teams{flex:1;line-height:20px;font-size:14px}
-.score{color:#fff;font-weight:900;font-size:16px;text-align:right}
-.refresh{color:#000;background:#fff;padding:4px 10px;border-radius:10px;font-size:12px;cursor:pointer}
+.score{color:#00ff66;font-weight:900;font-size:16px;text-align:right}
+.score small{color:#00c853;font-size:10px;display:block}
+.refresh{color:#000;background:#fff;padding:4px 10px;border-radius:10px;font-size:12px}
 </style>
 </head>
 <body>
-<div class="header"><span>⚽ LiveScore</span><span class="refresh" onclick="location.reload()">↻ Refresh</span></div>
+<div class="header"><span>⚽ LiveScore - TOP LEAGUES</span><span class="refresh" onclick="location.reload()">↻</span></div>
 <div class="tabs" id="dateTabs"></div>
 <div class="filter">
-<button id="f-all" class="active" onclick="setFilter('all')">All</button>
+<button id="f-top" class="active" onclick="setFilter('top')">★ Top Leagues</button>
+<button id="f-all" onclick="setFilter('all')">All</button>
 <button id="f-live" onclick="setFilter('live')">Live</button>
 <button id="f-fin" onclick="setFilter('finished')">Finished</button>
-<button id="f-top" onclick="setFilter('top')">Top Leagues Only</button>
 </div>
-<div id="list"><div style="padding:30px;text-align:center;color:#00ff66">Loading...</div></div>
+<div id="list"><div style="padding:30px;text-align:center;color:#00c853">Loading TOP leagues...</div></div>
 <script>
-let allData=[]; let curFilter='all';
+let allData=[]; let curFilter='top'; // TOP LEAGUE DEFAULT
 const flags={"ENGLAND":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","SPAIN":"🇪🇸","FRANCE":"🇫🇷","GERMANY":"🇩🇪","ITALY":"🇮🇹","NETHERLANDS":"🇳🇱","PORTUGAL":"🇵🇹","EUROPE":"🏆","WORLD":"🌍"};
 function getFlag(name){let u=(name||'').toUpperCase();for(let k in flags){if(u.includes(k)) return flags[k]}return '⚽';}
-function isAsia(f){let u=f.toUpperCase();return u.includes("ASIA")||u.includes("AFC")||u.includes("JAPAN")||u.includes("KOREA")||u.includes("CHINA")||u.includes("THAILAND")||u.includes("SINGAPORE")||u.includes("MALAYSIA")||u.includes("INDONESIA");}
+function isAsia(f){let u=f.toUpperCase();return u.includes("ASIA")||u.includes("AFC")||u.includes("JAPAN")||u.includes("KOREA")||u.includes("CHINA")||u.includes("THAILAND")||u.includes("SINGAPORE")||u.includes("MALAYSIA")||u.includes("INDONESIA")||u.includes("SAUDI")||u.includes("QATAR")||u.includes("UAE");}
 function getRank(full){
   let u=full.toUpperCase();
-  if(isAsia(full)) return 9999;
+  if(isAsia(full)) return 9999; // ASIA ALWAYS LAST
   if(u.includes("CHAMPIONS LEAGUE")) return 0;
   if(u.includes("EUROPA LEAGUE")) return 1;
   if(u.includes("CONFERENCE LEAGUE")) return 2;
@@ -47,38 +48,50 @@ function getRank(full){
   if(u.includes("FRANCE")&&u.includes("LIGUE 1")) return 5;
   if(u.includes("GERMANY")&&u.includes("BUNDESLIGA")) return 6;
   if(u.includes("ITALY")&&u.includes("SERIE A")) return 7;
-  return 100;
+  if(u.includes("NETHERLANDS")&&u.includes("EREDIVISIE")) return 8;
+  if(u.includes("PORTUGAL")&&u.includes("LIGA")) return 9;
+  if(u.includes("ENGLAND")&&u.includes("CHAMPIONSHIP")) return 10;
+  if(u.includes("EUROPE")) return 11;
+  return 100; // OTHER LEAGUES
 }
 function buildDateTabs(){let h='';let today=new Date();for(let i=-2;i<=3;i++){let d=new Date(today);d.setDate(today.getDate()+i);let ds=d.toISOString().split('T')[0];let label=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let act=i==0?'active':'';h+=`<button class="${act}" onclick="selectDate('${ds}',this)">${label}</button>`;}document.getElementById('dateTabs').innerHTML=h;}
 function selectDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds);}
 async function load(date){document.getElementById('list').innerHTML='<div style="padding:30px;text-align:center;color:#888">Loading '+date+'...</div>';try{const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();allData=j.data||[];render();}catch(e){document.getElementById('list').innerHTML=`<div style="padding:20px;color:#ff5555">Error: ${e.message}</div>`;}}
 function openMatch(id){let m=allData.find(x=>String(x.id)===String(id));if(m){localStorage.setItem('selected_match',JSON.stringify(m));}location.href='/match.html?id='+id;}
-function setFilter(f){curFilter=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f==='top'?'top':f))?.classList.add('active');render();}
+function setFilter(f){curFilter=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f))?.classList.add('active');render();}
 function render(){
   let data=[...allData];
+  // TOP LEAGUE FILTER = RANK < 100 (NO ASIA)
+  if(curFilter=='top') data=data.filter(m=>getRank(`${m.league_zone||''} - ${m.league_name||''}`)<100);
   if(curFilter=='live') data=data.filter(m=>m.status=='LIVE' || m.minute?.includes("'") || m.minute==='HT');
   if(curFilter=='finished') data=data.filter(m=>m.status=='FINISHED'||m.status=='FT');
-  if(curFilter=='top') data=data.filter(m=>getRank(`${m.league_zone||''} - ${m.league_name||''}`)<100);
-  if(!data.length){document.getElementById('list').innerHTML=`<div style="padding:30px;text-align:center;color:#666">No ${curFilter} games</div>`;return;}
+  if(!data.length){document.getElementById('list').innerHTML=`<div style="padding:30px;text-align:center;color:#666">No ${curFilter} games<br><button onclick="setFilter('all')" style="margin-top:10px;background:#00c853;border:0;padding:8px 16px;border-radius:20px;font-weight:900">Show All</button></div>`;return;}
   const groups={};
   data.forEach(m=>{let full=`${(m.league_zone||'World').toUpperCase()} - ${m.league_name||'League'}`;if(!groups[full]) groups[full]={display:full,games:[],rank:getRank(full)};groups[full].games.push(m);});
+  // SORT: TOP LEAGUES FIRST, ASIA LAST
   let sorted=Object.keys(groups).sort((a,b)=>groups[a].rank-groups[b].rank||a.localeCompare(b));
-  let topGroups=sorted.filter(k=>!isAsia(k));let asiaGroups=sorted.filter(k=>isAsia(k));sorted=[...topGroups,...asiaGroups];
+  let topGroups=sorted.filter(k=>groups[k].rank<100);
+  let asiaGroups=sorted.filter(k=>groups[k].rank>=100);
+  sorted=[...topGroups,...asiaGroups]; // TOP FIRST, ASIA LAST
   let html='';
   sorted.forEach(k=>{
     const g=groups[k];if(!g||!g.games.length) return;
     g.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));
-    const flag=getFlag(g.display);const isAsiaGroup=isAsia(k);
-    html+=`<div class="league-head" style="${isAsiaGroup?'background:#222;color:#666':''}"><span>${flag} ${g.display} (${g.games.length})</span><span>›</span></div>`;
+    const flag=getFlag(g.display);const isTop=g.rank<12;const isAsiaGroup=isAsia(k);
+    // GREEN FOR TOP, GREY FOR ASIA
+    let headStyle=isAsiaGroup?'background:#222;color:#666;border-left:3px solid #333': isTop?'background:#00c853;color:#000;border-left:3px solid #fff':'background:#00ff66;color:#000';
+    html+=`<div class="league-head" style="${headStyle}"><span>${flag} ${g.display} (${g.games.length}) ${isTop?'★':''}</span><span>›</span></div>`;
     g.games.forEach(x=>{
       const tm=x.datetime?x.datetime.split(' ')[1]?.slice(0,5):'--:--';
       const isLive=x.status==='LIVE' || (x.minute && x.minute.includes("'"));
       const isHT=x.minute==='HT' || x.status==='HT';
       const isFT=x.status==='FINISHED'||x.status==='FT';
       let pillText=isLive? x.minute : isHT? 'HT' : isFT? 'FT' : tm;
-      let pillStyle=isLive||isHT?'border-color:#ff3b30;color:#ff3b30;background:rgba(255,59,48,0.12)': isFT?'border-color:#00ff66;color:#00ff66;background:rgba(0,255,102,0.18)': 'border-color:#00ff66;color:#fff';
-      let rightHTML=isLive||isHT?`<div class="score">${x.home_score} - ${x.away_score}</div>`: isFT?`<div class="score">${x.home_score} - ${x.away_score}</div>`: `<div class="score" style="color:#aaa">- : -</div>`;
-      html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time-pill" style="${pillStyle}">${pillText}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div style="text-align:right;min-width:60px">${rightHTML}</div></div>`;
+      let pillStyle=isLive||isHT?'border-color:#ff3b30;color:#ff3b30;background:rgba(255,59,48,0.15)': isFT?'border-color:#00c853;color:#00c853;background:rgba(0,200,83,0.20)': 'border-color:#00c853;color:#00ff66;background:rgba(0,200,83,0.10)';
+      let hS=x.home_score, aS=x.away_score, hHT=x.home_ht_score??x.home_ht, aHT=x.away_ht_score??x.away_ht;
+      let bracket=hS!=null&&hHT!=null&&isFT?`<small>(${hHT}-${aHT}, ${hS-hHT}-${aS-aHT})</small>`:'';
+      let rightHTML=isLive||isHT||isFT?`<div class="score">${hS} - ${aS}${bracket}</div>`: `<div class="score" style="color:#aaa">- : -</div>`;
+      html+=`<div class="match" onclick="openMatch('${x.id}')" style="${isTop?'border-left-color:#00c853':''}"><div class="time-pill" style="${pillStyle}">${pillText}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div style="text-align:right;min-width:75px">${rightHTML}</div></div>`;
     });
   });
   document.getElementById('list').innerHTML=html;
