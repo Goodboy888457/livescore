@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match - GREEN + POSSESSION</title>
+<title>Match - FIXED + POSSESSION</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;color:#000;font-weight:900}
@@ -24,7 +24,7 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 </head>
 <body>
 <div class="header"><span>⚽ LiveScore</span><a href="/">← Back</a></div>
-<div id="top" class="scorebox">Loading...</div>
+<div id="top" class="scorebox">Loading match...</div>
 <div class="tabs">
 <button id="b1" class="active" onclick="tab('details',this)">DETAILS</button>
 <button onclick="tab('stats',this)">STATS</button>
@@ -37,18 +37,41 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <div id="h2h" class="content" style="display:none"></div>
 <script>
 function tab(n,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.querySelectorAll('.content').forEach(c=>c.style.display='none');document.getElementById(n).style.display='block';}
+
 async function load(){
+let m=null;
 let raw=localStorage.getItem('selected_match');
-if(!raw){document.getElementById('top').innerHTML="No match";return}
-let m=JSON.parse(raw);
+if(raw){try{m=JSON.parse(raw);}catch(e){}}
+
+// FIX: GET ID FROM URL IF NO localStorage
+if(!m || !m.id){
+  let params=new URLSearchParams(window.location.search);
+  let urlId=params.get('id');
+  if(urlId){
+    try{
+      let r=await fetch(`/api/fixture?id=${urlId}`);
+      let j=await r.json();
+      let f=j.fixture||j.data||j;
+      if(f && f.id){
+        m={id:f.id,home_team:f.home_team,away_team:f.away_team,league_name:f.league_name,league_zone:f.league_zone||f.league_geo||'',home_score:f.home_score,away_score:f.away_score,status:f.status,minute:f.minute,datetime:f.datetime||f.date,league_id:f.league_id,home_id:f.home_id,away_id:f.away_id};
+      } else {
+        m={id:urlId,home_team:'Home',away_team:'Away',league_name:'',league_zone:'',home_score:null,away_score:null,status:'',minute:'',datetime:'',league_id:24,home_id:0,away_id:0};
+      }
+    }catch(e){ document.getElementById('top').innerHTML="Error loading ID:"+urlId; return; }
+  } else {
+    document.getElementById('top').innerHTML="No match - <a href='/' style='color:#00ff66'>Go Home</a>";
+    return;
+  }
+}
+
 let id=m.id,home=m.home_team,away=m.away_team,league=m.league_name,zone=m.league_zone||"",hS=m.home_score,aS=m.away_score,st=m.status,mi=m.minute||"",dt=m.datetime||"",lid=m.league_id,hid=m.home_id,aid=m.away_id;
 let tOnly=(dt.split(' ')[1]||'').slice(0,5),dOnly=dt.split(' ')[0]||'';
 let sHTML=hS==null?`<div class="vs">VS</div><div class="time-big">🕘 ${tOnly}</div><div>${dOnly}</div><div style="color:#00ff66;margin-top:10px;font-weight:900">${st}</div>`:`<div class="score">${hS} - ${aS}</div><div style="color:${st=='LIVE'?'#ff3b30':'#aaa'};font-weight:900">${st} ${mi}</div><div style="color:#666;font-size:11px">${dt}</div>`;
 document.getElementById('top').innerHTML=`<div style="color:#888;font-size:12px">${zone} - ${league}</div><div class="teams">${home}<br><span class="vs">vs</span><br>${away}</div>${sHTML}`;
-document.getElementById('details').innerHTML=`<div class="card"><div class="row head"><span>MATCH INFO</span></div><div class="row"><span>League</span><span>${league}</span></div><div class="row"><span>Kick-off</span><span>${dt}</span></div></div><div class="card"><div class="row head"><span>EVENTS</span></div><div id="ev">Loading...</div></div>`;
+document.getElementById('details').innerHTML=`<div class="card"><div class="row head"><span>MATCH INFO - ID:${id}</span></div><div class="row"><span>League</span><span>${league}</span></div><div class="row"><span>Kick-off</span><span>${dt}</span></div></div><div class="card"><div class="row head"><span>EVENTS</span></div><div id="ev">Loading...</div></div>`;
 try{let r=await fetch(`/api/events?id=${id}`);let j=await r.json();let ev=j.data||[];document.getElementById('ev').innerHTML=ev.length?ev.map(e=>`<div class="row"><span>⏱ ${e.minute}' ${e.event_type} ${e.player_name||''}</span><span>${e.team_side||''}</span></div>`).join(''):`<div style="padding:15px;color:#666;text-align:center">No events</div>`;}catch(e){}
 
-// STATS WITH BALL POSSESSION - ADDED HERE!
+// STATS WITH BALL POSSESSION
 document.getElementById('stats').innerHTML=`<div class="card"><div class="row head"><span>LOADING STATS...</span></div></div>`;
 try{
 let r=await fetch(`/api/stats?id=${id}`);
@@ -58,7 +81,6 @@ let found=false;
 let html=`<div style="background:#00c853;color:#000;padding:8px;text-align:center;font-weight:900;border-radius:10px 10px 0 0">Top stats - GREEN</div>`;
 if(d && d.home && d.away){
   found=true;
-  // BALL POSSESSION CALC - HERE!
   let homePass=d.home.total_passes||0, awayPass=d.away.total_passes||0, total=homePass+awayPass||1;
   let homePoss=Math.round(homePass/total*100), awayPoss=100-homePoss;
   let mk=(label,hv,av)=>{
@@ -77,9 +99,7 @@ if(d && d.home && d.away){
   html+=mk('Yellow Cards',d.home.yellow_cards,d.away.yellow_cards);
   document.getElementById('stats').innerHTML=`<div style="border-radius:10px;overflow:hidden">${html}</div>`;
 }
-if(!found){
-  document.getElementById('stats').innerHTML=`<div class="card"><div style="padding:25px;text-align:center"><div style="font-size:40px">📊</div><div style="font-weight:900">No stats available</div><div style="color:#888;font-size:12px">ID:${id}<br>${league}</div></div></div>`;
-}
+if(!found){document.getElementById('stats').innerHTML=`<div class="card"><div style="padding:25px;text-align:center">No stats for ID:${id}</div></div>`;}
 }catch(e){document.getElementById('stats').innerHTML=`<div class="card">Error:${e.message}</div>`;}
 
 // TABLE
@@ -90,7 +110,7 @@ let j=await r.json();
 let list=j.data||[];let leagueName=j.league?.name||league;
 if(list.length===0){document.getElementById('table').innerHTML=`<div class="card"><div style="padding:20px;text-align:center">Table unavailable<br>${leagueName}</div></div>`;}
 else{
-let html=`<div class="card" style="padding:0"><div style="background:#00c853;color:#000;padding:10px 14px;font-weight:900">⚽ ${leagueName} - ${list.length} teams</div><div class="row head" style="border-radius:0"><span style="width:30px">#</span><span style="flex:1">Team</span><span style="width:28px;text-align:center">MP</span><span style="width:22px;text-align:center">W</span><span style="width:22px;text-align:center">D</span><span style="width:22px;text-align:center">L</span><span style="width:40px;text-align:center">G</span><span style="width:32px;text-align:center">PTS</span></div>`;
+let html=`<div class="card" style="padding:0"><div style="background:#00c853;color:#000;padding:10px 14px;font-weight:900">⚽ ${leagueName}</div><div class="row head" style="border-radius:0"><span style="width:30px">#</span><span style="flex:1">Team</span><span style="width:28px;text-align:center">MP</span><span style="width:22px;text-align:center">W</span><span style="width:22px;text-align:center">D</span><span style="width:22px;text-align:center">L</span><span style="width:40px;text-align:center">G</span><span style="width:32px;text-align:center">PTS</span></div>`;
 list.forEach(t=>{
 let isMe= (t.team?.name||'').toLowerCase()===home.toLowerCase() || (t.team?.name||'').toLowerCase()===away.toLowerCase();
 html+=`<div class="row" style="${isMe?'background:#1a2e1a;border-left:3px solid #00ff66':''}"><span style="width:30px;color:#888">${t.position}.</span><span style="flex:1;font-weight:${isMe?'900':'600'};color:${isMe?'#00ff66':'#fff'}">${t.team?.name||''}</span><span style="width:28px;text-align:center">${t.played}</span><span style="width:22px;text-align:center">${t.won}</span><span style="width:22px;text-align:center">${t.draw}</span><span style="width:22px;text-align:center">${t.lost}</span><span style="width:40px;text-align:center;color:#aaa;font-size:11px">${t.goals_for}:${t.goals_against}</span><span style="width:32px;text-align:center;color:#00ff66;font-weight:900">${t.points}</span></div>`;
@@ -100,4 +120,26 @@ html+='</div>';document.getElementById('table').innerHTML=html;
 }catch(e){}
 
 // H2H
-document.getElementById('
+document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>LOADING H2H...</span></div></div>`;
+try{
+let h2hGames=[],homeLast=[],awayLast=[];
+try{let r=await fetch(`/api/h2h?team1=${hid}&team2=${aid}`);let j=await r.json();if(j.data) h2hGames=j.data.filter(g=>String(g.id)!==String(id)&&g.home_score!=null).slice(0,5);}catch(e){}
+try{let r=await fetch(`/api/teams?id=${hid}`);let j=await r.json();if(j.data) homeLast=j.data.filter(g=>String(g.id)!==String(id)&&g.home_score!=null).slice(0,5);}catch(e){}
+try{let r=await fetch(`/api/teams?id=${aid}`);let j=await r.json();if(j.data) awayLast=j.data.filter(g=>String(g.id)!==String(id)&&g.home_score!=null).slice(0,5);}catch(e){}
+let mk=(g,f)=>{
+let ht=g.home_team,at=g.away_team,hs=g.home_score,as=g.away_score,d=(g.date||'').slice(0,10);
+let isH=ht.toLowerCase().includes(f.toLowerCase());
+let win=(isH&&hs>as)||(!isH&&as>hs),dr=hs==as;
+let col=dr?'#ffcc00':win?'#00ff66':'#ff3b30';
+return `<div class="row"><span style="font-size:11px;color:#888">${d} ${ht}-${at}</span><span style="color:${col};font-weight:900;background:#222;padding:3px 8px;border-radius:6px">${hs}-${as}</span></div>`;
+};
+let html=`<div class="card" style="padding:0"><div class="blackHead">Last matches: ${home}</div>${homeLast.length?homeLast.map(g=>mk(g,home)).join(''):'<div style="padding:12px;color:#666">No recent</div>'}</div>`;
+html+=`<div class="card" style="padding:0"><div class="blackHead">Last matches: ${away}</div>${awayLast.length?awayLast.map(g=>mk(g,away)).join(''):'<div style="padding:12px;color:#666">No recent</div>'}</div>`;
+html+=`<div class="card" style="padding:0"><div class="blackHead">Head-to-head</div>${h2hGames.length?h2hGames.map(g=>`<div class="row"><span style="font-size:11px;color:#888">${(g.date||'').slice(0,10)} ${g.home_team}-${g.away_team}</span><span style="color:#00c853;font-weight:900;background:#222;padding:3px 8px;border-radius:6px">${g.home_score}-${g.away_score}</span></div>`).join(''):'<div style="padding:12px;color:#666">No H2H</div>'}</div>`;
+document.getElementById('h2h').innerHTML=html;
+}catch(e){}
+}
+load();tab('details',document.getElementById('b1'));
+</script>
+</body>
+</html>
