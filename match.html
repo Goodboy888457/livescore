@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match - GREEN FINAL</title>
+<title>Match - GREEN FINAL UNIVERSAL</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;color:#000;font-weight:900}
@@ -48,28 +48,43 @@ document.getElementById('top').innerHTML=`<div style="color:#888;font-size:12px"
 document.getElementById('details').innerHTML=`<div class="card"><div class="row head"><span>MATCH INFO</span></div><div class="row"><span>League</span><span>${league}</span></div><div class="row"><span>Kick-off</span><span>${dt}</span></div></div><div class="card"><div class="row head"><span>EVENTS</span></div><div id="ev">Loading...</div></div>`;
 try{let r=await fetch(`/api/events?id=${id}`);let j=await r.json();let ev=j.data||[];document.getElementById('ev').innerHTML=ev.length?ev.map(e=>`<div class="row"><span>⏱ ${e.minute}' ${e.event_type} ${e.player_name||''}</span><span>${e.team_side||''}</span></div>`).join(''):`<div style="padding:15px;color:#666;text-align:center">No events</div>`;}catch(e){}
 
-// STATS GREEN - WORKS WITH SIMPLE PROXY
+// STATS UNIVERSAL GREEN - WORKS WITH DOCS home/away + ARRAY
 document.getElementById('stats').innerHTML=`<div class="card"><div class="row head"><span>LOADING STATS...</span></div></div>`;
 try{
 let r=await fetch(`/api/stats?id=${id}`);
 let j=await r.json();
-console.log(j);
-let list=j.data||j||[];
-if(!Array.isArray(list)) list=list.data||[];
-if(!list||list.length===0){
-document.getElementById('stats').innerHTML=`<div class="card"><div style="padding:25px;text-align:center"><div style="font-size:40px">📊</div><div style="font-weight:900">No stats</div><div style="color:#888;font-size:12px">ID:${id}<br>${league}</div></div></div>`;
-}else{
-let getVal=s=>[String(s.home_value??s.home??s.value_home??''),String(s.away_value??s.away??s.value_away??'')];
-let parseNum=str=>{let m=String(str).match(/[\d.]+/);return m?parseFloat(m[0]):0;};
-let html=`<div style="background:#00c853;color:#000;padding:8px;text-align:center;font-weight:900;border-radius:10px 10px 0 0">Top stats</div>`;
-list.forEach(s=>{
-let [hv,av]=getVal(s);
-if(!hv&&!av) return;
-let hn=parseNum(hv),an=parseNum(av),t=hn+an||1,hp=Math.round((hn/t)*100),ap=100-hp;
-let label=s.type||s.label||s.name||'Stat';
-html+=`<div style="background:#151515;padding:10px 12px;border-bottom:1px solid #222"><div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:900;color:#fff">${hv}</span><span style="color:#888;font-weight:900;font-size:11px;flex:1;text-align:center;margin:0 10px">${label}</span><span style="font-weight:900;color:#fff">${av}</span></div><div style="display:flex;height:6px;background:#222;margin-top:8px;border-radius:10px;overflow:hidden"><div style="width:${hp}%;background:#00c853"></div><div style="width:${ap}%;background:#00ff66"></div></div></div>`;
-});
-document.getElementById('stats').innerHTML=`<div style="border-radius:10px;overflow:hidden">${html}</div>`;
+console.log("Stats:", j);
+let d=j.data;
+let found=false;
+let html=`<div style="background:#00c853;color:#000;padding:8px;text-align:center;font-weight:900;border-radius:10px 10px 0 0">Top stats - GREEN</div>`;
+if(d && d.home && d.away){
+  found=true;
+  let mk=(label,hv,av)=>{
+    let h=parseFloat(hv)||0,a=parseFloat(av)||0,t=h+a||1,hp=Math.round(h/t*100),ap=100-hp;
+    return `<div style="background:#151515;padding:12px;border-bottom:1px solid #222"><div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:900;color:#fff">${hv}</span><span style="color:#888;font-size:11px;font-weight:900;flex:1;text-align:center;margin:0 10px">${label}</span><span style="font-weight:900;color:#fff">${av}</span></div><div style="display:flex;height:6px;background:#222;margin-top:8px;border-radius:10px;overflow:hidden"><div style="width:${hp}%;background:#00c853"></div><div style="width:${ap}%;background:#00ff66"></div></div></div>`;
+  };
+  html+=mk('Shots',d.home.shots,d.away.shots);
+  html+=mk('On Target',d.home.shots_on_target,d.away.shots_on_target);
+  html+=mk('Off Target',d.home.shots_off_target,d.away.shots_off_target);
+  html+=mk('Fouls',d.home.fouls,d.away.fouls);
+  html+=mk('Passes',d.home.total_passes,d.away.total_passes);
+  html+=mk('Pass Acc %',d.home.pass_accuracy+'%',d.away.pass_accuracy+'%');
+  html+=mk('Tackles',d.home.tackles,d.away.tackles);
+  html+=mk('Saves',d.home.saves,d.away.saves);
+  html+=mk('Yellow Cards',d.home.yellow_cards,d.away.yellow_cards);
+  document.getElementById('stats').innerHTML=`<div style="border-radius:10px;overflow:hidden">${html}</div>`;
+} else if(Array.isArray(d) && d.length>0){
+  found=true;
+  let parseNum=s=>{let m=String(s).match(/[\d.]+/);return m?parseFloat(m[0]):0;};
+  d.forEach(s=>{
+    let hv=String(s.home_value||s.home||''),av=String(s.away_value||s.away||''),label=s.type||s.label||'Stat';
+    let hn=parseNum(hv),an=parseNum(av),t=hn+an||1,hp=Math.round(hn/t*100),ap=100-hp;
+    html+=`<div style="background:#151515;padding:10px 12px;border-bottom:1px solid #222"><div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:900;color:#fff">${hv}</span><span style="color:#888;font-size:11px;font-weight:900;flex:1;text-align:center">${label}</span><span style="font-weight:900;color:#fff">${av}</span></div><div style="display:flex;height:6px;background:#222;margin-top:8px;border-radius:10px;overflow:hidden"><div style="width:${hp}%;background:#00c853"></div><div style="width:${ap}%;background:#00ff66"></div></div></div>`;
+  });
+  document.getElementById('stats').innerHTML=`<div style="border-radius:10px;overflow:hidden">${html}</div>`;
+}
+if(!found){
+  document.getElementById('stats').innerHTML=`<div class="card"><div style="padding:25px;text-align:center"><div style="font-size:40px">📊</div><div style="font-weight:900">No stats available</div><div style="color:#888;font-size:12px">ID:${id}<br>${league}<br><br>SportAPI has no data for this match</div></div></div>`;
 }
 }catch(e){document.getElementById('stats').innerHTML=`<div class="card">Error:${e.message}</div>`;}
 
