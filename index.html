@@ -31,19 +31,44 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 </div>
 <div id="list" style="padding:20px;text-align:center">Loading...</div>
 <script>
-let all=[],cur='all';
+let all=[],cur='all',curDate='';
 function rank(s){s=(s||'').toUpperCase();if(s.includes('ASIA')||s.includes('JAPAN')||s.includes('KOREA'))return 999;if(s.includes('CHAMPIONS LEAGUE'))return 0;if(s.includes('EUROPA LEAGUE'))return 1;if(s.includes('CONFERENCE'))return 2;if(s.includes('PREMIER LEAGUE'))return 3;if(s.includes('LALIGA')||s.includes('LA LIGA'))return 4;if(s.includes('LIGUE 1'))return 5;if(s.includes('BUNDESLIGA'))return 6;if(s.includes('SERIE A'))return 7;return 100}
 function tabs(){let h='',t=new Date();for(let i=-2;i<=2;i++){let d=new Date(t);d.setDate(t.getDate()+i);let ds=d.toISOString().split('T')[0];let lb=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let ac=i==0?'active':'';h+=`<button class="${ac}" onclick="goDate('${ds}',this)">${lb}</button>`}document.getElementById('dateTabs').innerHTML=h}
 function goDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds)}
-async function load(d){document.getElementById('list').innerHTML='Loading '+d+'...';try{let r=await fetch(`/api/fixtures?date=${d}`);let j=await r.json();all=j.data||[];show()}catch(e){document.getElementById('list').innerHTML='Error '+e.message}}
+async function load(d){
+ curDate=d;
+ document.getElementById('list').innerHTML='Loading '+d+'...';
+ try{
+  let r=null,j=null;
+  // Try 1: /api/fixtures?date=YYYY-MM-DD (your custom)
+  try{ r=await fetch(`/api/fixtures?date=${d}`); j=await r.json(); }catch(e){}
+  // Try 2: /api/fixtures/date/YYYY-MM-DD (SportAPI direct style per docs) + /api/fixture alias
+  if(!j || !j.data){
+   try{ r=await fetch(`/api/fixtures/date/${d}`); j=await r.json(); }catch(e){}
+  }
+  // Try 3: /fixtures?date=
+  if(!j || !j.data){
+   try{ r=await fetch(`/fixtures?date=${d}`); j=await r.json(); }catch(e){}
+  }
+  all=j?.data||j?.fixtures||[]; 
+  if(!all.length) throw new Error('No data');
+  show();
+ }catch(e){
+  document.getElementById('list').innerHTML=`<div style="color:#888">No matches for ${d}<br>${e.message}<br><br>Check /functions/api/fixtures.js exists</div>`;
+  all=[];
+ }
+}
 
-// *** FIXED CLICK - WORKS FOR FINISHED / LIVE / ALL - NO BUG ***
 function openMatch(id){
-  // Don't use selected_match - it causes bug for finished!
-  // Just save id and go - match.html will fetch fixture from API
-  try{ localStorage.setItem('mid', String(id)); }catch(e){}
-  // Use window.location.assign for reliable navigation
-  window.location.assign('match.html?id=' + encodeURIComponent(id));
+  try{ 
+    localStorage.setItem('mid', String(id)); 
+    let m = all.find(x=>String(x.id)==String(id));
+    if(m) localStorage.setItem('selected_match', JSON.stringify(m));
+  }catch(e){}
+  // FIXED: Use absolute path + encode - works for all days!
+  let url = 'match.html?id=' + encodeURIComponent(id) + '&date=' + encodeURIComponent(curDate);
+  console.log('Opening', url);
+  window.location.href = url;
 }
 
 function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f)).classList.add('active');show()}
@@ -65,7 +90,7 @@ function getCorrectTime(m){
 }
 
 function show(){
-let data=[...all];if(cur=='live')data=data.filter(x=>['LIVE','HT'].includes((x.status||'').toUpperCase()));if(cur=='finished')data=data.filter(x=>['FT','AET','PENS'].includes((x.status||'').toUpperCase()));if(!data.length){document.getElementById('list').innerHTML='No matches '+cur;return}
+let data=[...all];if(cur=='live')data=data.filter(x=>['LIVE','HT'].includes((x.status||'').toUpperCase()));if(cur=='finished')data=data.filter(x=>['FT','AET','PENS'].includes((x.status||'').toUpperCase()));if(!data.length){document.getElementById('list').innerHTML='No matches '+cur+' for '+curDate;return}
 let g={};data.forEach(m=>{let k=`${m.league_zone||'EUROPE'} - ${m.league_name}`;if(!g[k])g[k]={name:k,games:[],rank:rank(k)};g[k].games.push(m)});
 let keys=Object.keys(g).sort((a,b)=>{if(g[a].rank!=g[b].rank)return g[a].rank-g[b].rank;return a.localeCompare(b)});
 let html='';keys.forEach(k=>{let gr=g[k];gr.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));html+=`<div class="league-head">${gr.name} (${gr.games.length})</div>`;gr.games.forEach(x=>{let sc=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';let tm=getCorrectTime(x);html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time" style="color:${tm.c};border-color:${tm.c};pointer-events:none">${tm.t}</div><div class="teams" style="pointer-events:none"><div>${x.home_team}</div><div>${x.away_team}</div></div><div class="score" style="pointer-events:none">${sc}</div></div>`})});
