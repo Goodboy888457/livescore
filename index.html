@@ -18,8 +18,6 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .time-pill{border:2px solid #00ff66;border-radius:20px;padding:5px 12px;font-size:11px;min-width:60px;text-align:center;font-weight:700}
 .teams{flex:1;line-height:20px;font-size:14px}
 .score{color:#fff;font-weight:900;font-size:16px;text-align:right}
-.live{color:#ff3b30;animation:blink 1s infinite;font-weight:700}
-@keyframes blink{50%{opacity:0}}
 .refresh{color:#000;background:#fff;padding:4px 10px;border-radius:10px;font-size:12px;cursor:pointer}
 </style>
 </head>
@@ -79,8 +77,7 @@ function render(){
       const isFT=x.status==='FINISHED'||x.status==='FT';
       let pillText=isLive? x.minute : isHT? 'HT' : isFT? 'FT' : tm;
       let pillStyle=isLive||isHT?'border-color:#ff3b30;color:#ff3b30;background:rgba(255,59,48,0.12)': isFT?'border-color:#00ff66;color:#00ff66;background:rgba(0,255,102,0.18)': 'border-color:#00ff66;color:#fff';
-      // PUT -:- BACK HERE
-      let rightHTML=isLive||isHT?`<div class="score">${x.home_score} - ${x.away_score}</div><div><span class="live">● ${x.minute}</span></div>`: isFT?`<div class="score">${x.home_score} - ${x.away_score}</div><div><span style="color:#00ff66;font-weight:900;font-size:11px">FT</span></div>`: `<div style="text-align:right;min-width:60px"><div class="score" style="color:#aaa">- : -</div></div>`;
+      let rightHTML=isLive||isHT?`<div class="score">${x.home_score} - ${x.away_score}</div>`: isFT?`<div class="score">${x.home_score} - ${x.away_score}</div>`: `<div class="score" style="color:#aaa">- : -</div>`;
       html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time-pill" style="${pillStyle}">${pillText}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div style="text-align:right;min-width:60px">${rightHTML}</div></div>`;
     });
   });
