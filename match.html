@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match - FIXED + POSSESSION</title>
+<title>Match - ALL STATS FIXED</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;color:#000;font-weight:900}
@@ -11,7 +11,6 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .teams{font-size:26px;font-weight:900;margin:15px 0}
 .score{font-size:56px;color:#00ff66;font-weight:900}
 .vs{color:#555}
-.time-big{color:#00ff66;font-size:22px;font-weight:900}
 .tabs{display:flex;background:#121212;position:sticky;top:0;z-index:10}
 .tabs button{flex:1;background:#121212;color:#aaa;border:0;padding:16px;font-weight:900}
 .tabs button.active{color:#00ff66;border-bottom:3px solid #00ff66}
@@ -20,6 +19,7 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .row{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #222;font-size:14px}
 .row.head{color:#00ff66;font-weight:900;background:#1f1f1f;border-radius:10px;text-transform:uppercase;font-size:11px}
 .blackHead{background:#00c853;color:#000;padding:8px 14px;font-weight:900;font-size:12px}
+.bar-wrap{height:6px;background:#222;display:flex;border-radius:10px;overflow:hidden;margin-top:8px}
 </style>
 </head>
 <body>
@@ -42,8 +42,6 @@ async function load(){
 let m=null;
 let raw=localStorage.getItem('selected_match');
 if(raw){try{m=JSON.parse(raw);}catch(e){}}
-
-// FIX: GET ID FROM URL IF NO localStorage
 if(!m || !m.id){
   let params=new URLSearchParams(window.location.search);
   let urlId=params.get('id');
@@ -66,40 +64,61 @@ if(!m || !m.id){
 
 let id=m.id,home=m.home_team,away=m.away_team,league=m.league_name,zone=m.league_zone||"",hS=m.home_score,aS=m.away_score,st=m.status,mi=m.minute||"",dt=m.datetime||"",lid=m.league_id,hid=m.home_id,aid=m.away_id;
 let tOnly=(dt.split(' ')[1]||'').slice(0,5),dOnly=dt.split(' ')[0]||'';
-let sHTML=hS==null?`<div class="vs">VS</div><div class="time-big">🕘 ${tOnly}</div><div>${dOnly}</div><div style="color:#00ff66;margin-top:10px;font-weight:900">${st}</div>`:`<div class="score">${hS} - ${aS}</div><div style="color:${st=='LIVE'?'#ff3b30':'#aaa'};font-weight:900">${st} ${mi}</div><div style="color:#666;font-size:11px">${dt}</div>`;
+let isHT=mi==='HT'||st==='HT'; let isFT=st==='FINISHED'||st==='FT'; let isLive=st==='LIVE'||(mi&&mi.includes("'"));
+let minuteLabel=isHT?'Half Time':isFT?'Finished - FT':isLive?`Live ${mi}`:st||tOnly;
+let statsLabel=isHT?'HT STATS - Half Time':isFT?'FT STATS - Full Time':isLive?`LIVE STATS - ${mi}`:'MATCH STATS';
+let htScore=hS!=null?`(${hS}-${aS})`:'';
+let sHTML=hS==null?`<div class="vs">VS</div><div class="time-big">🕘 ${tOnly}</div><div>${dOnly}</div><div style="color:#00ff66;margin-top:10px;font-weight:900">${st}</div>`:`<div class="score">${hS} - ${aS} <span style="font-size:16px;color:#888">${htScore}</span></div><div style="color:${isLive||isHT?'#ff3b30':isFT?'#00ff66':'#aaa'};font-weight:900">${minuteLabel}</div><div style="color:#666;font-size:11px">${dt}</div>`;
 document.getElementById('top').innerHTML=`<div style="color:#888;font-size:12px">${zone} - ${league}</div><div class="teams">${home}<br><span class="vs">vs</span><br>${away}</div>${sHTML}`;
-document.getElementById('details').innerHTML=`<div class="card"><div class="row head"><span>MATCH INFO - ID:${id}</span></div><div class="row"><span>League</span><span>${league}</span></div><div class="row"><span>Kick-off</span><span>${dt}</span></div></div><div class="card"><div class="row head"><span>EVENTS</span></div><div id="ev">Loading...</div></div>`;
-try{let r=await fetch(`/api/events?id=${id}`);let j=await r.json();let ev=j.data||[];document.getElementById('ev').innerHTML=ev.length?ev.map(e=>`<div class="row"><span>⏱ ${e.minute}' ${e.event_type} ${e.player_name||''}</span><span>${e.team_side||''}</span></div>`).join(''):`<div style="padding:15px;color:#666;text-align:center">No events</div>`;}catch(e){}
+document.getElementById('details').innerHTML=`<div class="card"><div class="row head"><span>MATCH INFO - ID:${id}</span></div><div class="row"><span>League</span><span>${league}</span></div><div class="row"><span>Kick-off</span><span>${dt}</span></div><div class="row"><span>Status</span><span style="font-weight:900;color:${isFT?'#00ff66':'#fff'}">${minuteLabel}</span></div></div><div class="card"><div class="row head"><span>EVENTS</span></div><div id="ev">Loading...</div></div>`;
 
-// STATS WITH BALL POSSESSION
-document.getElementById('stats').innerHTML=`<div class="card"><div class="row head"><span>LOADING STATS...</span></div></div>`;
+try{
+let r=await fetch(`/api/events?id=${id}`);let j=await r.json();let ev=j.data||[];
+document.getElementById('ev').innerHTML=ev.length?ev.map(e=>{
+  let t=(e.event_type||'').toLowerCase();
+  let icon=t.includes('red')?'🟥':t.includes('yellow')?'🟨':t.includes('goal')?'⚽':t.includes('free')?'🎯':t.includes('throw')?'🤾':t.includes('save')||t.includes('keeper')?'🧤':t.includes('offside')?'🚩':'⏱';
+  let style=t.includes('red')?'background:#2a1212;border-left:3px solid #ff3b30':'';
+  let col=t.includes('red')?'#ff3b30':t.includes('goal')?'#00ff66':'#fff';
+  return `<div class="row" style="${style}"><span style="color:${col}">${icon} ${e.minute}' ${e.event_type} ${e.player_name||''}</span><span>${e.team_side||''}</span></div>`;
+}).join(''):`<div style="padding:15px;color:#666;text-align:center">No events</div>`;
+}catch(e){}
+
+// STATS - WITH ALL 5 REQUESTED + POSSESSION + FT
+document.getElementById('stats').innerHTML=`<div class="card"><div class="row head"><span>LOADING ${statsLabel}...</span></div></div>`;
 try{
 let r=await fetch(`/api/stats?id=${id}`);
 let j=await r.json();
 let d=j.data;
 let found=false;
-let html=`<div style="background:#00c853;color:#000;padding:8px;text-align:center;font-weight:900;border-radius:10px 10px 0 0">Top stats - GREEN</div>`;
+let html=`<div style="background:${isFT?'#00c853':'#e91e63'};color:${isFT?'#000':'#fff'};padding:8px;text-align:center;font-weight:900;border-radius:10px 10px 0 0">${statsLabel}</div>`;
 if(d && d.home && d.away){
   found=true;
   let homePass=d.home.total_passes||0, awayPass=d.away.total_passes||0, total=homePass+awayPass||1;
   let homePoss=Math.round(homePass/total*100), awayPoss=100-homePoss;
-  let mk=(label,hv,av)=>{
+  let mk=(label,hv,av,c1='#00c853',c2='#00ff66')=>{
     let h=parseFloat(hv)||0,a=parseFloat(av)||0,t=h+a||1,hp=Math.round(h/t*100),ap=100-hp;
-    return `<div style="background:#151515;padding:12px;border-bottom:1px solid #222"><div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:900;color:#fff">${hv}</span><span style="color:#888;font-size:11px;font-weight:900;flex:1;text-align:center;margin:0 10px">${label}</span><span style="font-weight:900;color:#fff">${av}</span></div><div style="display:flex;height:6px;background:#222;margin-top:8px;border-radius:10px;overflow:hidden"><div style="width:${hp}%;background:#00c853"></div><div style="width:${ap}%;background:#00ff66"></div></div></div>`;
+    if(label.includes('Possession')){hp=parseInt(hv)||50; ap=100-hp;}
+    if(label.includes('Red')){c1='#ff3b30'; c2='#ff3b30';}
+    if(label.includes('Yellow')){c1='#ffcc00'; c2='#ffcc00';}
+    return `<div style="background:#151515;padding:12px;border-bottom:1px solid #222"><div style="display:flex;justify-content:space-between;font-size:14px"><span style="font-weight:900;color:#fff">${hv}</span><span style="color:#888;font-size:11px;font-weight:900;flex:1;text-align:center;margin:0 10px">${label}</span><span style="font-weight:900;color:#fff">${av}</span></div><div class="bar-wrap"><div style="width:${hp}%;background:${c1};height:100%"></div><div style="width:${ap}%;background:${c2};height:100%"></div></div></div>`;
   };
-  html+=mk('Ball Possession',homePoss+'%',awayPoss+'%');
+  html+=mk('Ball Possession',homePoss+'%',awayPoss+'%','#e91e63','#222');
   html+=mk('Shots',d.home.shots,d.away.shots);
   html+=mk('On Target',d.home.shots_on_target,d.away.shots_on_target);
   html+=mk('Off Target',d.home.shots_off_target,d.away.shots_off_target);
+  html+=mk('Corner Kicks',d.home.corners||0,d.away.corners||0);
+  // YOUR 5 REQUESTED
+  html+=mk('Free Kicks',d.home.free_kicks||d.home.freekicks||d.home.fouls||0,d.away.free_kicks||d.away.freekicks||d.away.fouls||0);
+  html+=mk('Throw-ins',d.home.throw_ins||d.home.throwins||d.home.throw_in||0,d.away.throw_ins||d.away.throwins||d.away.throw_in||0);
+  html+=mk('Offsides',d.home.offsides||0,d.away.offsides||0);
+  html+=mk('Goalkeeper Saves',d.home.saves||d.home.goalkeeper_saves||0,d.away.saves||d.away.goalkeeper_saves||0,'#00c853','#00ff66');
+  html+=mk('Red Cards',d.home.red_cards||d.home.red||0,d.away.red_cards||d.away.red||0);
+  html+=mk('Yellow Cards',d.home.yellow_cards||0,d.away.yellow_cards||0);
   html+=mk('Fouls',d.home.fouls,d.away.fouls);
   html+=mk('Passes',d.home.total_passes,d.away.total_passes);
-  html+=mk('Pass Acc %',d.home.pass_accuracy+'%',d.away.pass_accuracy+'%');
-  html+=mk('Tackles',d.home.tackles,d.away.tackles);
-  html+=mk('Saves',d.home.saves,d.away.saves);
-  html+=mk('Yellow Cards',d.home.yellow_cards,d.away.yellow_cards);
   document.getElementById('stats').innerHTML=`<div style="border-radius:10px;overflow:hidden">${html}</div>`;
 }
-if(!found){document.getElementById('stats').innerHTML=`<div class="card"><div style="padding:25px;text-align:center">No stats for ID:${id}</div></div>`;}
+if(!found){document.getElementById('stats').innerHTML=`<div class="card"><div style="padding:25px;text-align:center">No stats for ID:${id}<br><span style="font-size:12px;color:#666">${statsLabel}</span></div></div>`;}
 }catch(e){document.getElementById('stats').innerHTML=`<div class="card">Error:${e.message}</div>`;}
 
 // TABLE
