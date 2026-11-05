@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LiveScore - FINAL WORKING</title>
+<title>LiveScore - TOP LEAGUES FIRST</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;text-align:center;font-weight:bold;font-size:18px;color:#000;display:flex;justify-content:space-between;align-items:center}
@@ -31,23 +31,42 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <button id="f-all" class="active" onclick="setFilter('all')">All</button>
 <button id="f-live" onclick="setFilter('live')">Live</button>
 <button id="f-fin" onclick="setFilter('finished')">Finished</button>
+<button id="f-top" onclick="setFilter('top')">Top Leagues Only</button>
 </div>
-<div id="list"><div style="padding:30px;text-align:center;color:#00ff66">Loading matches...</div></div>
+<div id="list"><div style="padding:30px;text-align:center;color:#00ff66">Loading...</div></div>
 <script>
 let allData=[]; let curFilter='all'; let curDate='';
-const flags={"ENGLAND":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","SPAIN":"🇪🇸","FRANCE":"🇫🇷","GERMANY":"🇩🇪","ITALY":"🇮🇹","NETHERLANDS":"🇳🇱","PORTUGAL":"🇵🇹","SAUDI":"🇸🇦"};
+const flags={"ENGLAND":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","SPAIN":"🇪🇸","FRANCE":"🇫🇷","GERMANY":"🇩🇪","ITALY":"🇮🇹","NETHERLANDS":"🇳🇱","PORTUGAL":"🇵🇹","EUROPE":"🏆","WORLD":"🌍"};
+
 function getFlag(name){let u=(name||'').toUpperCase();for(let k in flags){if(u.includes(k)) return flags[k]}return '⚽';}
+
+// === HIDE ASIA ===
+function isAsia(leagueFull){
+  let u=leagueFull.toUpperCase();
+  return u.includes("ASIA") || u.includes("AFC") || u.includes("JAPAN") || u.includes("KOREA") || u.includes("CHINA") || u.includes("THAILAND") || u.includes("SINGAPORE") || u.includes("MALAYSIA") || u.includes("INDONESIA") || u.includes("AUSTRALIA") && u.includes("A-LEAGUE");
+}
+
 function getRank(full){
   let u=full.toUpperCase();
+  if(isAsia(full)) return 9999; // Asia to very bottom
+  
   if(u.includes("CHAMPIONS LEAGUE")) return 0;
   if(u.includes("EUROPA LEAGUE")) return 1;
-  if(u.includes("PREMIER LEAGUE")) return 2;
-  if(u.includes("LALIGA")||u.includes("LA LIGA")) return 3;
-  if(u.includes("LIGUE 1")) return 4;
-  if(u.includes("BUNDESLIGA")) return 5;
-  if(u.includes("SERIE A")) return 6;
-  return 500;
+  if(u.includes("CONFERENCE LEAGUE")) return 2;
+  if(u.includes("ENGLAND") && u.includes("PREMIER LEAGUE")) return 3;
+  if(u.includes("SPAIN") && (u.includes("LALIGA")||u.includes("LA LIGA"))) return 4;
+  if(u.includes("FRANCE") && u.includes("LIGUE 1")) return 5;
+  if(u.includes("GERMANY") && u.includes("BUNDESLIGA")) return 6;
+  if(u.includes("ITALY") && u.includes("SERIE A")) return 7;
+  if(u.includes("NETHERLANDS") && u.includes("EREDIVISIE")) return 8;
+  if(u.includes("PORTUGAL") && u.includes("PRIMEIRA")) return 9;
+  if(u.includes("ENGLAND") && u.includes("CHAMPIONSHIP")) return 10;
+  if(u.includes("SPAIN") && u.includes("SEGUNDA")) return 11;
+  if(u.includes("EUROPE")||u.includes("UEFA")) return 20;
+  if(u.includes("ENGLAND")||u.includes("SPAIN")||u.includes("ITALY")||u.includes("GERMANY")||u.includes("FRANCE")) return 30;
+  return 100;
 }
+
 function buildDateTabs(){
   let html='';let today=new Date();
   for(let i=-2;i<=3;i++){
@@ -69,15 +88,8 @@ async function load(date){
   document.getElementById('list').innerHTML='<div style="padding:30px;text-align:center;color:#888">Loading '+date+'...</div>';
   try{
     const r=await fetch(`/api/fixtures?date=${date}`);
-    const txt=await r.text();
-    let j;
-    try{j=JSON.parse(txt);}catch(e){
-      document.getElementById('list').innerHTML=`<div style="padding:20px;color:#ff5555">API returned HTML not JSON:<br><br>${txt.slice(0,200)}</div>`;
-      return;
-    }
-    allData=j.data||j.fixtures||j||[];
-    if(!Array.isArray(allData)) allData=[];
-    console.log("Loaded", allData.length, "matches");
+    const j=await r.json();
+    allData=j.data||[];
     render();
   }catch(e){
     document.getElementById('list').innerHTML=`<div style="padding:20px;color:#ff5555">Error: ${e.message}</div>`;
@@ -86,22 +98,7 @@ async function load(date){
 function openMatch(id){
   let m=allData.find(x=>String(x.id)===String(id));
   if(m){
-    let full={
-      ...m,
-      id:m.id,
-      home_team:m.home_team||m.homeTeam?.name,
-      away_team:m.away_team||m.awayTeam?.name,
-      home_id:m.home_id||m.homeTeam?.id,
-      away_id:m.away_id||m.awayTeam?.id,
-      league_id:m.league_id||m.league?.id,
-      league_name:m.league_name||m.league?.name,
-      league_zone:m.league_zone||m.league?.country||'World',
-      home_score:m.home_score??m.homeScore,
-      away_score:m.away_score??m.awayScore,
-      status:m.status,
-      minute:m.minute,
-      datetime:m.datetime||m.date
-    };
+    let full={...m, id:m.id, home_team:m.home_team||m.homeTeam?.name, away_team:m.away_team||m.awayTeam?.name, home_id:m.home_id||m.homeTeam?.id, away_id:m.away_id||m.awayTeam?.id, league_id:m.league_id||m.league?.id, league_name:m.league_name||m.league?.name, league_zone:m.league_zone||m.league?.country||'World', home_score:m.home_score, away_score:m.away_score, status:m.status, minute:m.minute, datetime:m.datetime||m.date};
     localStorage.setItem('selected_match', JSON.stringify(full));
   }
   location.href='/match.html?id='+id;
@@ -109,30 +106,41 @@ function openMatch(id){
 function setFilter(f){
   curFilter=f;
   document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));
-  let btnId=f=='finished'?'fin':f;
-  document.getElementById('f-'+btnId)?.classList.add('active');
+  document.getElementById('f-'+(f=='finished'?'fin':f==='top'?'top':f))?.classList.add('active');
   render();
 }
 function render(){
   let data=[...allData];
   if(curFilter=='live') data=data.filter(m=>m.status=='LIVE');
   if(curFilter=='finished') data=data.filter(m=>m.status=='FINISHED'||m.status=='FT');
+  if(curFilter=='top') data=data.filter(m=> getRank(`${m.league_zone||''} - ${m.league_name||''}`) < 100 );
+  
   if(!data.length){
-    document.getElementById('list').innerHTML=`<div style="padding:30px;text-align:center;color:#666">No ${curFilter} games for ${curDate}<br><br>API returned ${allData.length} total</div>`;
+    document.getElementById('list').innerHTML=`<div style="padding:30px;text-align:center;color:#666">No ${curFilter} games</div>`;
     return;
   }
   const groups={};
   data.forEach(m=>{
     const c=(m.league_zone||m.league_geo||'World');
     const full=`${c.toUpperCase()} - ${m.league_name||'League'}`;
+    // Hide Asia if not in top filter? Actually hide from main unless user scrolls bottom
+    if(curFilter!='all' && isAsia(full) && curFilter=='top') return;
     if(!groups[full]) groups[full]={display:full,games:[],rank:getRank(full)};
     groups[full].games.push(m);
   });
   let sorted=Object.keys(groups).sort((a,b)=>groups[a].rank-groups[b].rank||a.localeCompare(b));
+  
+  // If All, put Asia at very bottom
+  let topGroups=sorted.filter(k=> !isAsia(k));
+  let asiaGroups=sorted.filter(k=> isAsia(k));
+  sorted=[...topGroups, ...asiaGroups];
+  
   let html='';
   sorted.forEach(k=>{
-    const g=groups[k]; const flag=getFlag(g.display);
-    html+=`<div class="league-head"><span>${flag} ${g.display} (${g.games.length})</span><span>›</span></div>`;
+    const g=groups[k]; if(!g||!g.games.length) return;
+    const flag=getFlag(g.display);
+    const isAsiaGroup=isAsia(k);
+    html+=`<div class="league-head" style="${isAsiaGroup?'background:#222;color:#666':''}"><span>${flag} ${g.display} (${g.games.length}) ${isAsiaGroup?' - Asia':''}</span><span>›</span></div>`;
     g.games.forEach(x=>{
       const tm=x.datetime?x.datetime.split(' ')[1]?.slice(0,5):'--:--';
       const is=x.status==='LIVE'; const fin=x.status==='FINISHED'||x.status==='FT';
