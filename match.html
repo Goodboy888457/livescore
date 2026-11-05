@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match - FINAL ALL FIXES</title>
+<title>Match - FINAL FROM DOCS</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;color:#000;font-weight:900}
@@ -43,72 +43,70 @@ let m=JSON.parse(raw);
 let id=m.id,home=m.home_team,away=m.away_team,league=m.league_name,zone=m.league_zone||"",hS=m.home_score,aS=m.away_score,st=m.status,mi=m.minute||"",dt=m.datetime||"",lid=m.league_id,hid=m.home_id,aid=m.away_id;
 let tOnly=(dt.split(' ')[1]||'').slice(0,5),dOnly=dt.split(' ')[0]||'';
 let sHTML=hS==null?`<div class="vs">VS</div><div class="time-big">🕘 ${tOnly}</div><div>${dOnly}</div><div style="color:#00ff66;margin-top:10px;font-weight:900">${st}</div>`:`<div class="score">${hS} - ${aS}</div><div style="color:${st=='LIVE'?'#ff3b30':'#aaa'};font-weight:900">${st} ${mi}</div><div style="color:#666;font-size:11px">${dt}</div>`;
-document.getElementById('top').innerHTML=`<div style="color:#888;font-size:12px">${zone} - ${league} - ID:${lid}</div><div class="teams">${home}<br><span class="vs">vs</span><br>${away}</div>${sHTML}`;
-document.getElementById('details').innerHTML=`<div class="card"><div class="row head"><span>MATCH INFO</span></div><div class="row"><span>League</span><span>${league}</span></div><div class="row"><span>Kick-off</span><span>${dt}</span></div><div class="row"><span>League ID</span><span>${lid}</span></div></div><div class="card"><div class="row head"><span>EVENTS</span></div><div id="ev">Loading...</div></div>`;
+document.getElementById('top').innerHTML=`<div style="color:#888;font-size:12px">${zone} - ${league} - ID:${lid} - ${m.league_geo||''}</div><div class="teams">${home}<br><span class="vs">vs</span><br>${away}</div>${sHTML}`;
+document.getElementById('details').innerHTML=`<div class="card"><div class="row head"><span>MATCH INFO</span></div><div class="row"><span>League</span><span>${league}</span></div><div class="row"><span>Kick-off</span><span>${dt}</span></div><div class="row"><span>League ID</span><span>${lid}</span></div><div class="row"><span>Teams ID</span><span>${hid} vs ${aid}</span></div></div><div class="card"><div class="row head"><span>EVENTS</span></div><div id="ev">Loading...</div></div>`;
 try{let r=await fetch(`/api/events?id=${id}`);let j=await r.json();let ev=j.data||[];document.getElementById('ev').innerHTML=ev.length?ev.map(e=>`<div class="row"><span>⏱ ${e.minute}' ${e.event_type} ${e.player_name||''}</span><span>${e.team_side||''}</span></div>`).join(''):`<div style="padding:15px;color:#666;text-align:center">No events yet</div>`;}catch(e){}
 
-// TABLE - FINAL FIXED FOR CUP + CORRECT FIELDS
-document.getElementById('table').innerHTML=`<div class="card"><div class="row head"><span>TABLE Loading league ${lid}...</span></div></div>`;
+// TABLE - CORRECT FROM OFFICIAL DOCS
+document.getElementById('table').innerHTML=`<div class="card"><div class="row head"><span>TABLE Loading league ${lid} (${league})...</span></div></div>`;
 try{
 let r=await fetch(`/api/standings?id=${lid}`);
 let j=await r.json();
-console.log("Standings:", j);
+console.log("Standings OFFICIAL:", j);
 
-if(j.isCup || !j.data || j.data.length===0){
-  document.getElementById('table').innerHTML=`<div class="card"><div style="padding:25px;text-align:center"><div style="font-size:50px">🏆</div><div style="font-weight:900;margin:10px 0;color:#00ff66">${league}</div><div style="color:#aaa;line-height:22px">This is a <b>CUP</b> match<br><b>${home} vs ${away}</b><br><br>Cups have no league table<br>League ID: ${lid}<br><br>✅ For table, open:<br>Man City vs Arsenal<br>Liverpool vs Chelsea<br>(Premier League games)</div></div></div>`;
+let list=j.data||[];
+let format=j.format||'';
+let leagueName=j.league?.name||league;
+
+if(format==="cup" && list.length===0){
+  // Real knockout cup - empty table per docs
+  document.getElementById('table').innerHTML=`<div class="card"><div style="padding:25px;text-align:center"><div style="font-size:50px">🏆</div><div style="font-weight:900;margin:10px 0;color:#00ff66">${leagueName}</div><div style="color:#888">Knockout cup<br>No league table<br>Format: cup</div></div></div>`;
+} else if(list.length===0){
+  // Not cup, but empty = API error or free plan limit
+  document.getElementById('table').innerHTML=`<div class="card"><div style="padding:20px;text-align:center"><div style="font-size:30px">⚠️</div><div style="font-weight:900;color:#ffaa00">Table unavailable</div><div style="color:#888;font-size:12px;background:#111;padding:10px;border-radius:8px;margin-top:10px;text-align:left">League: ${leagueName}<br>ID: ${lid}<br>Format: ${format||'unknown'}<br>Season: ${j.season||'unknown'}<br><br>Error: ${j.error||'Empty data'}<br>Raw: ${(j.raw||'').slice(0,150)}<br><br>This can happen if SportAPI free plan doesn't have 2026/27 standings yet, or league ID wrong.<br><br>Try: Man City vs Arsenal (ID 24) should work per docs.</div></div></div>`;
 } else {
-  let list=j.data;
-  let html=`<div class="card" style="padding:0"><div style="background:#00c853;color:#000;padding:10px 14px;font-weight:900;font-size:12px">⚽ ${league} - ${list.length} teams</div><div class="row head" style="border-radius:0"><span style="width:30px">#</span><span style="flex:1">Team</span><span style="width:28px;text-align:center">MP</span><span style="width:22px;text-align:center">W</span><span style="width:22px;text-align:center">D</span><span style="width:22px;text-align:center">L</span><span style="width:40px;text-align:center">G</span><span style="width:32px;text-align:center">PTS</span></div>`;
+  // Real league table - fields from docs: position, team.name, played, won, draw, lost, goals_for, goals_against, points
+  let html=`<div class="card" style="padding:0"><div style="background:#00c853;color:#000;padding:10px 14px;font-weight:900;font-size:12px">⚽ ${leagueName} - ${j.season||''} - ${list.length} teams - ID:${lid}</div><div class="row head" style="border-radius:0"><span style="width:30px">#</span><span style="flex:1">Team</span><span style="width:28px;text-align:center">MP</span><span style="width:22px;text-align:center">W</span><span style="width:22px;text-align:center">D</span><span style="width:22px;text-align:center">L</span><span style="width:40px;text-align:center">G</span><span style="width:32px;text-align:center">PTS</span></div>`;
   list.forEach(t=>{
-    let pos=t.position??t.rank??'';
-    let team=t.team?.name||t.team_name||t.name||'';
-    // NEW SportAPI fields: matches, wins, draws, losses, scoresFor, scoresAgainst, points
-    let mp=t.matches??t.played??t.total?.matches??0;
-    let w=t.wins??t.win??t.total?.wins??0;
-    let d=t.draws??t.total?.draws??0;
-    let l=t.losses??t.total?.losses??0;
-    let gf=t.scoresFor??t.goals_for??t.total?.scoresFor??0;
-    let ga=t.scoresAgainst??t.goals_against??t.total?.scoresAgainst??0;
+    let pos=t.position??'';
+    let team=t.team?.name||'';
+    let mp=t.played??0;
+    let w=t.won??0;
+    let d=t.draw??0;
+    let l=t.lost??0;
+    let gf=t.goals_for??0;
+    let ga=t.goals_against??0;
     let pts=t.points??0;
-    let isMe=team.toLowerCase()===home.toLowerCase() || team.toLowerCase()===away.toLowerCase() || team.toLowerCase().includes(home.toLowerCase().split(' ')[0]) || team.toLowerCase().includes(away.toLowerCase().split(' ')[0]);
+    let isMe=team.toLowerCase()===home.toLowerCase() || team.toLowerCase()===away.toLowerCase();
     html+=`<div class="row" style="${isMe?'background:#1a2e1a;border-left:3px solid #00ff66':''}"><span style="width:30px;color:#888">${pos}.</span><span style="flex:1;font-weight:${isMe?'900':'600'};color:${isMe?'#00ff66':'#fff'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${team}</span><span style="width:28px;text-align:center">${mp}</span><span style="width:22px;text-align:center">${w}</span><span style="width:22px;text-align:center">${d}</span><span style="width:22px;text-align:center">${l}</span><span style="width:40px;text-align:center;color:#aaa;font-size:11px">${gf}:${ga}</span><span style="width:32px;text-align:center;color:#00ff66;font-weight:900">${pts}</span></div>`;
   });
   html+='</div>';
   document.getElementById('table').innerHTML=html;
 }
 }catch(e){
-  document.getElementById('table').innerHTML=`<div class="card"><div style="padding:20px;color:#ff5555;text-align:center">Error: ${e.message}<br>League ID: ${lid}</div></div>`;
+  document.getElementById('table').innerHTML=`<div class="card"><div style="padding:20px;color:#ff5555;text-align:center">Error: ${e.message}<br>ID:${lid}</div></div>`;
 }
 
-// H2H
-document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>SEARCHING H2H: ${home} vs ${away}...</span></div></div>`;
+// H2H - OFFICIAL ENDPOINT /api/fixtures/h2h/{team1}/{team2}
+document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>SEARCHING H2H: ${home} vs ${away} (${hid} vs ${aid})...</span></div></div>`;
 try{
 let h2hGames=[];
 try{
 let r=await fetch(`/api/h2h?team1=${hid}&team2=${aid}`);
 let j=await r.json();
+console.log("H2H official:", j);
 if(j.data && j.data.length>0) h2hGames=j.data;
-}catch(e){}
-if(h2hGames.length===0){
-let rAll=await fetch(`/api/fixtures?date=${new Date().toISOString().split('T')[0]}`);
-let jAll=await rAll.json();
-let allMatches=jAll.data||[];
-let hLow=home.toLowerCase(); let aLow=away.toLowerCase();
-h2hGames=allMatches.filter(m=>{
-let ht=(m.home_team||'').toLowerCase();
-let at=(m.away_team||'').toLowerCase();
-return (ht.includes(hLow) && at.includes(aLow)) || (ht.includes(aLow) && at.includes(hLow));
-}).filter(m=>m.home_score!=null).slice(0,5);
-}
-let html=`<div class="card"><div class="row head"><span>LAST 5 - ${home} vs ${away} (${h2hGames.length} found)</span></div>`;
+}catch(e){console.log("H2H error", e);}
+
+let html=`<div class="card"><div class="row head"><span>LAST ${h2hGames.length} - ${home} vs ${away}</span></div>`;
 if(h2hGames.length>0){
 h2hGames.forEach(g=>{
-let ht=g.home_team||'Home'; let at=g.away_team||'Away'; let hs=g.home_score??'?'; let as=g.away_score??'?'; let d=(g.datetime||'').split(' ')[0];
+let ht=g.home_team||'Home'; let at=g.away_team||'Away'; let hs=g.home_score??'?'; let as=g.away_score??'?'; let d=g.date||''; let lg=g.league_name||'';
 let winner=hs>as?ht:as>hs?at:'DRAW';
-html+=`<div class="row"><span style="font-size:11px;color:#888">${d}<br><b style="color:#fff;font-size:13px">${ht} ${hs} - ${as} ${at}</b></span><span style="color:#00ff66;font-weight:900;font-size:11px">${winner}</span></div>`;
+html+=`<div class="row"><span style="font-size:11px;color:#888">${d} - ${lg}<br><b style="color:#fff;font-size:13px">${ht} ${hs} - ${as} ${at}</b></span><span style="color:#00ff66;font-weight:900;font-size:11px">${winner}</span></div>`;
 });
 }else{
-html+=`<div style="padding:20px;color:#888;text-align:center">No H2H in today's fixtures<br>${home} vs ${away}<br><br>Searched today only (free plan)<br>IDs: ${hid} vs ${aid}</div>`;
+html+=`<div style="padding:20px;color:#888;text-align:center">No H2H history found<br>${home} vs ${away}<br><br>IDs: ${hid} vs ${aid}<br><br>SportAPI may have no history for these teams<br>Try Arsenal vs Liverpool (311 vs 312)</div>`;
 }
 html+='</div>';document.getElementById('h2h').innerHTML=html;
 }catch(e){document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>Error</span></div><div style="padding:15px;color:#ff5555">Error: ${e.message}</div></div>`;}
