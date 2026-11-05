@@ -2,25 +2,23 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LiveScore - TOP LEAGUES FT CLICKABLE</title>
+<title>LiveScore - TOP LEAGUES</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;align-items:center;color:#000;font-weight:900;font-size:18px}
 .header a{background:#fff;color:#000;padding:6px 14px;border-radius:20px;text-decoration:none;font-size:12px;font-weight:900}
 .tabs{display:flex;background:#121212;overflow-x:auto;white-space:nowrap}
-.tabs::-webkit-scrollbar{display:none}
-.tabs button{background:#121212;color:#888;border:0;padding:12px 14px;flex:1;font-weight:900;white-space:nowrap}
+.tabs button{background:#121212;color:#888;border:0;padding:12px 14px;flex:1;font-weight:900}
 .tabs button.active{color:#00ff66;border-bottom:3px solid #00c853;background:#1a1a1a}
 .filter{display:flex;gap:8px;padding:10px;background:#0f0f0f;overflow-x:auto}
-.filter button{background:#222;color:#aaa;border:1px solid #333;padding:6px 14px;border-radius:20px;font-size:12px;white-space:nowrap}
-.filter button.active{background:#00c853;color:#000;font-weight:900;border-color:#00c853}
-.league-head{background:#00c853;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px;display:flex;justify-content:space-between;text-transform:uppercase}
+.filter button{background:#222;color:#aaa;border:1px solid #333;padding:6px 14px;border-radius:20px;font-size:12px}
+.filter button.active{background:#00c853;color:#000;font-weight:900}
+.league-head{background:#00c853;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px;display:flex;justify-content:space-between}
 .match{display:flex;align-items:center;padding:14px 12px;border-radius:12px;margin:6px 8px;background:#151515;gap:12px;cursor:pointer;border-left:3px solid #00c853}
-.match:active{background:#222;transform:scale(0.99)}
-.time-pill{border:2px solid #00c853;border-radius:20px;padding:7px 12px;font-size:12px;min-width:75px;text-align:center;font-weight:900;color:#00c853;background:rgba(0,200,83,0.15);pointer-events:none}
-.teams{flex:1;line-height:21px;font-size:14px;pointer-events:none}
-.score{color:#00ff66;font-weight:900;font-size:18px;text-align:right;line-height:16px;pointer-events:none}
-.score small{color:#00c853;font-size:10px;display:block;margin-top:3px;font-weight:900}
+.match:active{background:#222;transform:scale(0.98)}
+.time-pill{border:2px solid #00c853;border-radius:20px;padding:7px 12px;font-size:12px;min-width:75px;text-align:center;font-weight:900;color:#00c853;background:rgba(0,200,83,0.18)}
+.teams{flex:1;line-height:21px;font-size:14px}
+.score{color:#00ff66;font-weight:900;font-size:20px;text-align:right}
 </style>
 </head>
 <body>
@@ -39,36 +37,11 @@ function isAsia(f){let u=f.toUpperCase();return u.includes("ASIA")||u.includes("
 function getRank(full){let u=full.toUpperCase();if(isAsia(full))return 9999;if(u.includes("CHAMPIONS LEAGUE"))return 0;if(u.includes("EUROPA LEAGUE"))return 1;if(u.includes("PREMIER LEAGUE"))return 3;if(u.includes("LALIGA")||u.includes("LA LIGA"))return 4;if(u.includes("LIGUE 1"))return 5;if(u.includes("BUNDESLIGA"))return 6;if(u.includes("SERIE A"))return 7;return 100;}
 function buildDateTabs(){let h='',today=new Date();for(let i=-2;i<=3;i++){let d=new Date(today);d.setDate(today.getDate()+i);let ds=d.toISOString().split('T')[0];let label=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let act=i==-1?'active':'';h+=`<button class="${act}" onclick="selectDate('${ds}',this)">${label}</button>`;}document.getElementById('dateTabs').innerHTML=h;}
 function selectDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds);}
-async function load(date){document.getElementById('list').innerHTML='<div style="padding:30px;text-align:center">Loading '+date+'...</div>';try{const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();allData=j.data||[];render();}catch(e){const r2=await fetch(`https://api.example.com/fixtures?date=${date}`).catch(()=>{});document.getElementById('list').innerHTML=`<div style="padding:20px">Error: ${e.message}</div>`;}}
-function openMatch(id){
-  let m=allData.find(x=>String(x.id)===String(id));
-  if(m){try{localStorage.setItem('selected_match',JSON.stringify(m));}catch(e){}}
-  // AUTO DETECT PATH - works on both domains!
-  let base = location.pathname.includes('/livescore/') ? '/livescore/match.html' : '/match.html';
-  if(location.hostname.includes('pages.dev')) base='/livescore/match.html';
-  location.href=base+'?id='+id;
-}
+async function load(date){document.getElementById('list').innerHTML='<div style="padding:30px;text-align:center">Loading '+date+'...</div>';try{const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();allData=j.data||[];render();}catch(e){document.getElementById('list').innerHTML=`Error: ${e.message}`;}}
+function openMatch(id){let m=allData.find(x=>String(x.id)===String(id));if(m)try{localStorage.setItem('selected_match',JSON.stringify(m));}catch(e){}let base=location.pathname.includes('/livescore/')?'/livescore/match.html':(location.hostname.includes('pages.dev')?'/livescore/match.html':'/match.html');location.href=base+'?id='+id;}
 function setFilter(f){curFilter=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f))?.classList.add('active');render();}
-function render(){
- let data=[...allData];
- if(curFilter=='top')data=data.filter(m=>getRank(`${m.league_zone||''} - ${m.league_name||''}`)<100);
- if(curFilter=='live')data=data.filter(m=>m.status=='LIVE'||m.minute?.includes("'"));
- if(curFilter=='finished')data=data.filter(m=>m.status=='FINISHED'||m.status=='FT');
- if(!data.length){document.getElementById('list').innerHTML=`<div style="padding:30px;text-align:center">No ${curFilter}</div>`;return;}
- const groups={};data.forEach(m=>{let full=`${(m.league_zone||'World').toUpperCase()} - ${m.league_name||'League'}`;if(!groups[full])groups[full]={display:full,games:[],rank:getRank(full)};groups[full].games.push(m);});
- let sorted=Object.keys(groups).sort((a,b)=>groups[a].rank-groups[b].rank);
- let html='';sorted.forEach(k=>{
-  const g=groups[k];g.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));
-  html+=`<div class="league-head"><span>${g.display} (${g.games.length}) ★</span><span>›</span></div>`;
-  g.games.forEach(x=>{
-   let scoreText=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';
-   html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time-pill">FT</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div class="score">${scoreText}<small>FT</small></div></div>`;
-  });
- });
- document.getElementById('list').innerHTML=html;
-}
-buildDateTabs();
-load(new Date(Date.now()-86400000).toISOString().split('T')[0]);
+function render(){let data=[...allData];if(curFilter=='top')data=data.filter(m=>getRank(`${m.league_zone||''} - ${m.league_name||''}`)<100);if(curFilter=='live')data=data.filter(m=>m.status=='LIVE');if(curFilter=='finished')data=data.filter(m=>m.status=='FINISHED'||m.status=='FT');if(!data.length){document.getElementById('list').innerHTML=`<div style="padding:30px;text-align:center">No ${curFilter}</div>`;return;}const groups={};data.forEach(m=>{let full=`${(m.league_zone||'World').toUpperCase()} - ${m.league_name||'League'}`;if(!groups[full])groups[full]={display:full,games:[],rank:getRank(full)};groups[full].games.push(m);});let sorted=Object.keys(groups).sort((a,b)=>groups[a].rank-groups[b].rank);let html='';sorted.forEach(k=>{const g=groups[k];g.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));html+=`<div class="league-head"><span>${g.display} (${g.games.length}) ★</span><span>›</span></div>`;g.games.forEach(x=>{let scoreText=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time-pill">FT</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div class="score">${scoreText}</div></div>`;});});document.getElementById('list').innerHTML=html;}
+buildDateTabs();load(new Date(Date.now()-86400000).toISOString().split('T')[0]);
 </script>
 </body>
 </html>
