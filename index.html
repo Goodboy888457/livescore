@@ -15,7 +15,7 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .filter button.active{background:#00c853;color:#000;font-weight:900}
 .league-head{background:#00c853;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px}
 .match{display:flex;align-items:center;padding:14px;background:#151515;margin:6px 8px;border-radius:10px;border-left:4px solid #00c853;cursor:pointer}
-.match:active{background:#333}
+.match:active{background:#333;transform:scale(0.98)}
 .time{border:2px solid #00c853;border-radius:20px;padding:6px 12px;color:#00c853;font-weight:900;font-size:12px;min-width:75px;text-align:center}
 .teams{flex:1;margin-left:12px;line-height:20px}
 .score{color:#00ff66;font-weight:900;font-size:18px}
@@ -36,25 +36,28 @@ function rank(s){s=(s||'').toUpperCase();if(s.includes('ASIA')||s.includes('JAPA
 function tabs(){let h='',t=new Date();for(let i=-2;i<=2;i++){let d=new Date(t);d.setDate(t.getDate()+i);let ds=d.toISOString().split('T')[0];let lb=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let ac=i==0?'active':'';h+=`<button class="${ac}" onclick="goDate('${ds}',this)">${lb}</button>`}document.getElementById('dateTabs').innerHTML=h}
 function goDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds)}
 async function load(d){document.getElementById('list').innerHTML='Loading '+d+'...';try{let r=await fetch(`/api/fixtures?date=${d}`);let j=await r.json();all=j.data||[];show()}catch(e){document.getElementById('list').innerHTML='Error '+e.message}}
-function openMatch(id){localStorage.setItem('mid',id);let m=all.find(x=>String(x.id)==String(id));if(m)localStorage.setItem('selected_match',JSON.stringify(m));location.href='match.html?id='+id}
+
+// *** FIXED CLICK - WORKS FOR FINISHED / LIVE / ALL - NO BUG ***
+function openMatch(id){
+  // Don't use selected_match - it causes bug for finished!
+  // Just save id and go - match.html will fetch fixture from API
+  try{ localStorage.setItem('mid', String(id)); }catch(e){}
+  // Use window.location.assign for reliable navigation
+  window.location.assign('match.html?id=' + encodeURIComponent(id));
+}
+
 function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f)).classList.add('active');show()}
 
-// === CORRECT TIME FOR ALL LEAGUES - USING kickoff_utc -> Africa/Lagos ===
 function getCorrectTime(m){
  let st=(m.status||'').toUpperCase();
  if(st==='LIVE') return {t:m.minute||'LIVE', c:'#ff3b30'};
  if(st==='HT') return {t:'HT', c:'#ff9500'};
  if(st==='FT'||st==='AET'||st==='PENS') return {t:st, c:'#00c853'};
- 
- // Scheduled - USE kickoff_utc per SportAPI docs! datetime is CET, kickoff_utc is UTC (correct)
- // Convert UTC to Lagos time (Africa/Lagos = WAT UTC+1)
  let time='NS';
  try{
   if(m.kickoff_utc){
-   // UTC -> Lagos time - CORRECT FOR ALL LEAGUES!
    time = new Date(m.kickoff_utc).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Lagos'});
   } else if(m.datetime){
-   // Fallback: datetime is CET/CEST per docs, approx = Lagos +0 or +1, still show it
    time = m.datetime.split(' ')[1]?.substring(0,5) || 'NS';
   }
  }catch(e){ time=m.datetime?.split(' ')[1]?.substring(0,5) || 'NS'; }
@@ -65,7 +68,7 @@ function show(){
 let data=[...all];if(cur=='live')data=data.filter(x=>['LIVE','HT'].includes((x.status||'').toUpperCase()));if(cur=='finished')data=data.filter(x=>['FT','AET','PENS'].includes((x.status||'').toUpperCase()));if(!data.length){document.getElementById('list').innerHTML='No matches '+cur;return}
 let g={};data.forEach(m=>{let k=`${m.league_zone||'EUROPE'} - ${m.league_name}`;if(!g[k])g[k]={name:k,games:[],rank:rank(k)};g[k].games.push(m)});
 let keys=Object.keys(g).sort((a,b)=>{if(g[a].rank!=g[b].rank)return g[a].rank-g[b].rank;return a.localeCompare(b)});
-let html='';keys.forEach(k=>{let gr=g[k];gr.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));html+=`<div class="league-head">${gr.name} (${gr.games.length})</div>`;gr.games.forEach(x=>{let sc=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';let tm=getCorrectTime(x);html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time" style="color:${tm.c};border-color:${tm.c}">${tm.t}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div class="score">${sc}</div></div>`})});
+let html='';keys.forEach(k=>{let gr=g[k];gr.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));html+=`<div class="league-head">${gr.name} (${gr.games.length})</div>`;gr.games.forEach(x=>{let sc=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';let tm=getCorrectTime(x);html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time" style="color:${tm.c};border-color:${tm.c};pointer-events:none">${tm.t}</div><div class="teams" style="pointer-events:none"><div>${x.home_team}</div><div>${x.away_team}</div></div><div class="score" style="pointer-events:none">${sc}</div></div>`})});
 document.getElementById('list').innerHTML=html
 }
 tabs();load(new Date().toISOString().split('T')[0]);
