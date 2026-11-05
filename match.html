@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match Details</title>
+<title>Match Details - Real Data</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;align-items:center;color:#000;font-weight:900}
@@ -13,13 +13,14 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .score{font-size:56px;color:#00ff66;font-weight:900;margin:12px 0}
 .vs{color:#555;font-size:18px}
 .time-big{color:#00ff66;font-size:24px;font-weight:900;margin:10px 0}
-.tabs{display:flex;background:#121212;position:sticky;top:0}
+.tabs{display:flex;background:#121212;position:sticky;top:0;z-index:10}
 .tabs button{flex:1;background:#121212;color:#aaa;border:0;padding:16px 5px;font-weight:900;font-size:13px}
 .tabs button.active{color:#00ff66;border-bottom:3px solid #00ff66;background:#1a1a1a}
 .content{padding:12px}
 .card{background:#151515;border-radius:14px;padding:14px;margin:10px 0}
 .row{display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #222;font-size:14px}
 .row.head{color:#00ff66;font-weight:900;background:#1f1f1f;border-radius:10px;text-transform:uppercase;font-size:12px}
+.event{padding:10px;border-bottom:1px solid #222;font-size:13px;display:flex;justify-content:space-between}
 </style>
 </head>
 <body>
@@ -35,22 +36,78 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <div id="stats" class="content" style="display:none"></div>
 <div id="table" class="content" style="display:none"></div>
 <div id="h2h" class="content" style="display:none"></div>
+
 <script>
 function switchTab(n,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.querySelectorAll('.content').forEach(c=>c.style.display='none');document.getElementById(n).style.display='block';}
-function load(){
+
+async function load(){
   let raw=localStorage.getItem('selected_match');
-  if(!raw){document.getElementById('top').innerHTML="No match saved";return}
+  if(!raw){
+    document.getElementById('top').innerHTML="No match saved - Go back to home and click a match";
+    return;
+  }
   let m=JSON.parse(raw);
-  let home=m.home_team,away=m.away_team,league=m.league_name,zone=m.league_zone||m.league_geo||"",hScore=m.home_score,aScore=m.away_score,status=m.status,minute=m.minute||"",datetime=m.datetime||"";
-  let timeOnly=datetime.split(' ')[1]?.slice(0,5)||"",dateOnly=datetime.split(' ')[0]||"";
+  let id=m.id, home=m.home_team, away=m.away_team, league=m.league_name, zone=m.league_zone||m.league_geo||"", hScore=m.home_score, aScore=m.away_score, status=m.status, minute=m.minute||"", datetime=m.datetime||"", league_id=m.league_id;
+
+  let timeOnly=datetime.split(' ')[1]?.slice(0,5)||"", dateOnly=datetime.split(' ')[0]||"";
   let scoreHTML=hScore==null?`<div class="vs">VS</div><div class="time-big">🕘 ${timeOnly}</div><div style="color:#aaa">${dateOnly}</div><div style="color:#00ff66;margin-top:12px;font-weight:900">${status}</div>`:`<div class="score">${hScore} - ${aScore}</div><div style="color:${status=='LIVE'?'#ff3b30':'#aaa'};font-weight:900">${status} ${minute}</div><div style="color:#666;font-size:11px;margin-top:6px">${datetime}</div>`;
-  document.getElementById('top').innerHTML=`<div class="league">🏆 ${zone} - ${league}</div><div class="teams">${home}<br><span class="vs">vs</span><br>${away}</div>${scoreHTML}`;
-  document.getElementById('details').innerHTML=`<div class="card"><div class="row head"><span>MATCH INFO</span></div><div class="row"><span>League</span><span>${league}</span></div><div class="row"><span>Kick-off</span><span>${datetime}</span></div><div class="row"><span>Status</span><span>${status} ${minute}</span></div><div class="row"><span>Home</span><span>${home}</span></div><div class="row"><span>Away</span><span>${away}</span></div></div>`;
-  document.getElementById('stats').innerHTML=`<div class="card"><div class="row head"><span>STATS</span></div><div class="row"><span>Possession</span><span>50% - 50%</span></div></div>`;
-  document.getElementById('table').innerHTML=`<div class="card"><div class="row head"><span>${league} TABLE</span></div></div>`;
-  document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>H2H ${home} vs ${away}</span></div></div>`;
+  
+  document.getElementById('top').innerHTML=`<div class="league">🏆 ${zone} - ${league} (ID:${id})</div><div class="teams">${home}<br><span class="vs">vs</span><br>${away}</div>${scoreHTML}`;
+  
+  document.getElementById('details').innerHTML=`<div class="card"><div class="row head"><span>MATCH INFO</span></div><div class="row"><span>League</span><span>${league}</span></div><div class="row"><span>Kick-off</span><span>${datetime}</span></div><div class="row"><span>Status</span><span>${status} ${minute}</span></div><div class="row"><span>Home</span><span>${home}</span></div><div class="row"><span>Away</span><span>${away}</span></div></div><div class="card"><div class="row head"><span>LIVE EVENTS - Loading...</span></div><div id="ev"></div></div>`;
+
+  // FETCH REAL EVENTS
+  try{
+    let r=await fetch(`/api/events?id=${id}`);
+    let j=await r.json();
+    let evHtml='';
+    if(j.data && j.data.length>0){
+      j.data.forEach(ev=>{
+        evHtml+=`<div class="event"><span>⏱️ ${ev.minute}' ${ev.event_type} - ${ev.player_name||''}</span><span>${ev.team_side||''}</span></div>`;
+      });
+    }else{
+      evHtml=`<div style="padding:15px;color:#666;text-align:center">No events yet - Match not started or no data</div>`;
+    }
+    document.getElementById('ev').innerHTML=evHtml;
+  }catch(e){document.getElementById('ev').innerHTML='Error loading events';}
+
+  // FETCH REAL STATS
+  document.getElementById('stats').innerHTML=`<div class="card"><div class="row head"><span>LOADING REAL STATS...</span></div></div>`;
+  try{
+    let r=await fetch(`/api/stats?id=${id}`);
+    let j=await r.json();
+    let html=`<div class="card"><div class="row head"><span>REAL STATISTICS</span></div>`;
+    if(j.success && j.available && j.data){
+      let h=j.data.home, a=j.data.away;
+      html+=`<div class="row"><span>Shots</span><span>${h.shots||0} - ${a.shots||0}</span></div><div class="row"><span>On Target</span><span>${h.shots_on_target||0} - ${a.shots_on_target||0}</span></div><div class="row"><span>Passes</span><span>${h.total_passes||0} - ${a.total_passes||0}</span></div><div class="row"><span>Pass Accuracy</span><span>${h.pass_accuracy||0}% - ${a.pass_accuracy||0}%</span></div><div class="row"><span>Fouls</span><span>${h.fouls||0} - ${a.fouls||0}</span></div><div class="row"><span>Yellow Cards</span><span>${h.yellow_cards||0} - ${a.yellow_cards||0}</span></div><div class="row"><span>Red Cards</span><span>${h.red_cards||0} - ${a.red_cards||0}</span></div><div class="row"><span>Tackles</span><span>${h.tackles||0} - ${a.tackles||0}</span></div>`;
+    }else{
+      html+=`<div style="padding:20px;color:#888;text-align:center">Stats available only when match is LIVE or Finished<br>Fixture ID: ${id}<br>Status: ${j.message||'No stats yet'}</div>`;
+    }
+    html+='</div>';
+    document.getElementById('stats').innerHTML=html;
+  }catch(e){document.getElementById('stats').innerHTML=`<div class="card">Error: ${e.message}</div>`;}
+
+  // FETCH REAL TABLE
+  document.getElementById('table').innerHTML=`<div class="card"><div class="row head"><span>LOADING REAL TABLE...</span></div></div>`;
+  try{
+    let r=await fetch(`/api/standings?id=${league_id}`);
+    let j=await r.json();
+    let html=`<div class="card"><div class="row head"><span>${j.league?.name||league} TABLE - ${j.season||''}</span></div>`;
+    if(j.data && j.data.length){
+      j.data.forEach(t=>{
+        html+=`<div class="row"><span>${t.position}. ${t.team.name}</span><span style="color:#00ff66;font-weight:900">${t.points} pts | ${t.played} P | ${t.wins}W</span></div>`;
+      });
+    }else{
+      html+=`<div style="padding:20px;color:#888;text-align:center">Table data: ${JSON.stringify(j).slice(0,200)}</div>`;
+    }
+    html+='</div>';
+    document.getElementById('table').innerHTML=html;
+  }catch(e){document.getElementById('table').innerHTML=`<div class="card">Error loading table: ${e.message} - League ID: ${league_id}</div>`;}
+
+  document.getElementById('h2h').innerHTML=`<div class="card"><div class="row head"><span>H2H ${home} vs ${away}</span></div><div style="padding:15px;color:#888;text-align:center">H2H API coming soon from SportAPI</div></div>`;
 }
-load();switchTab('details',document.getElementById('btn-details'));
+load();
+switchTab('details',document.getElementById('btn-details'));
 </script>
 </body>
 </html>
