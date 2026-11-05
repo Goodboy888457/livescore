@@ -7,21 +7,20 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;text-align:center;font-weight:bold;font-size:18px;color:#000;display:flex;justify-content:space-between;align-items:center}
 .tabs{display:flex;background:#121212;overflow-x:auto;white-space:nowrap}
 .tabs::-webkit-scrollbar{display:none}
-.tabs button{background:#121212;color:#aaa;border:0;padding:12px 14px;white-space:nowrap}
+.tabs button{background:#121212;color:#aaa;border:0;padding:12px 14px;white-space:nowrap;flex:1}
 .tabs button.active{color:#00ff66;border-bottom:3px solid #00ff66;background:#1a1a1a}
 .filter{display:flex;gap:8px;padding:10px;background:#0f0f0f;overflow-x:auto}
 .filter button{background:#222;color:#aaa;border:1px solid #333;padding:6px 14px;border-radius:20px;font-size:12px}
 .filter button.active{background:#00ff66;color:#000;border-color:#00ff66;font-weight:bold}
 .league-head{background:#00ff66;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px;text-transform:uppercase;cursor:pointer;display:flex;justify-content:space-between}
 .match{display:flex;align-items:center;padding:12px;border-radius:12px;margin:6px 8px;background:#151515;gap:12px;cursor:pointer}
-.match:active{background:#222}
 .time-pill{border:2px solid #00ff66;border-radius:20px;padding:5px 12px;font-size:11px;min-width:60px;text-align:center;font-weight:700}
 .teams{flex:1;line-height:20px;font-size:14px}
 .score{color:#fff;font-weight:900;font-size:16px;text-align:right}
 .status{font-size:10px;color:#888;text-align:right}
 .live{color:#ff3b30;animation:blink 1s infinite;font-weight:700}
 @keyframes blink{50%{opacity:0}}
-.refresh{color:#000;background:#fff;padding:4px 10px;border-radius:10px;font-size:12px}
+.refresh{color:#000;background:#fff;padding:4px 10px;border-radius:10px;font-size:12px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -33,50 +32,19 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <button id="f-fin" onclick="setFilter('finished')">Finished</button>
 </div>
 <div id="list">Loading...</div>
-
 <script>
 let allData=[]; let curFilter='all'; let curDate='';
-const flags={asia:'🌏',europe:'🌍',argentina:'🇦🇷',spain:'🇪🇸',england:'🇬🇧',italy:'🇮🇹',germany:'🇩🇪',france:'🇫🇷',brazil:'🇧🇷',world:'🌍',africa:'🌍',australia:'🇦🇺',usa:'🇺🇸',japan:'🇯🇵',korea:'🇰🇷',china:'🇨🇳'};
+const countryFlags={"AFGHANISTAN":"🇦🇫","ALBANIA":"🇦🇱","ALGERIA":"🇩🇿","ANDORRA":"🇦🇩","ANGOLA":"🇦🇴","ARGENTINA":"🇦🇷","ARMENIA":"🇦🇲","AUSTRALIA":"🇦🇺","AUSTRIA":"🇦🇹","AZERBAIJAN":"🇦🇿","BAHRAIN":"🇧🇭","BANGLADESH":"🇧🇩","BELARUS":"🇧🇾","BELGIUM":"🇧🇪","BELIZE":"🇧🇿","BENIN":"🇧🇯","BOLIVIA":"🇧🇴","BOSNIA":"🇧🇦","BOTSWANA":"🇧🇼","BRAZIL":"🇧🇷","BULGARIA":"🇧🇬","CAMBODIA":"🇰🇭","CAMEROON":"🇨🇲","CANADA":"🇨🇦","CHILE":"🇨🇱","CHINA":"🇨🇳","COLOMBIA":"🇨🇴","COSTA RICA":"🇨🇷","CROATIA":"🇭🇷","CYPRUS":"🇨🇾","CZECH":"🇨🇿","DENMARK":"🇩🇰","DOMINICAN":"🇩🇴","ECUADOR":"🇪🇨","EGYPT":"🇪🇬","EL SALVADOR":"🇸🇻","ENGLAND":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","ESTONIA":"🇪🇪","ETHIOPIA":"🇪🇹","FINLAND":"🇫🇮","FRANCE":"🇫🇷","GEORGIA":"🇬🇪","GERMANY":"🇩🇪","GHANA":"🇬🇭","GREECE":"🇬🇷","GUATEMALA":"🇬🇹","HONDURAS":"🇭🇳","HUNGARY":"🇭🇺","ICELAND":"🇮🇸","INDIA":"🇮🇳","INDONESIA":"🇮🇩","IRAN":"🇮🇷","IRAQ":"🇮🇶","IRELAND":"🇮🇪","ISRAEL":"🇮🇱","ITALY":"🇮🇹","JAMAICA":"🇯🇲","JAPAN":"🇯🇵","JORDAN":"🇯🇴","KAZAKHSTAN":"🇰🇿","KENYA":"🇰🇪","KOREA":"🇰🇷","KOSOVO":"🇽🇰","KUWAIT":"🇰🇼","LATVIA":"🇱🇻","LEBANON":"🇱🇧","LIBYA":"🇱🇾","LITHUANIA":"🇱🇹","LUXEMBOURG":"🇱🇺","MALAYSIA":"🇲🇾","MALI":"🇲🇱","MALTA":"🇲🇹","MEXICO":"🇲🇽","MOLDOVA":"🇲🇩","MOROCCO":"🇲🇦","MOZAMBIQUE":"🇲🇿","NETHERLANDS":"🇳🇱","NEW ZEALAND":"🇳🇿","NICARAGUA":"🇳🇮","NIGERIA":"🇳🇬","NORTH MACEDONIA":"🇲🇰","NORWAY":"🇳🇴","OMAN":"🇴🇲","PAKISTAN":"🇵🇰","PALESTINE":"🇵🇸","PANAMA":"🇵🇦","PARAGUAY":"🇵🇾","PERU":"🇵🇪","PHILIPPINES":"🇵🇭","POLAND":"🇵🇱","PORTUGAL":"🇵🇹","QATAR":"🇶🇦","ROMANIA":"🇷🇴","RUSSIA":"🇷🇺","RWANDA":"🇷🇼","SAUDI ARABIA":"🇸🇦","SAUDI":"🇸🇦","SCOTLAND":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","SENEGAL":"🇸🇳","SERBIA":"🇷🇸","SINGAPORE":"🇸🇬","SLOVAKIA":"🇸🇰","SLOVENIA":"🇸🇮","SOUTH AFRICA":"🇿🇦","SPAIN":"🇪🇸","SWEDEN":"🇸🇪","SWITZERLAND":"🇨🇭","SYRIA":"🇸🇾","TAIWAN":"🇹🇼","TANZANIA":"🇹🇿","THAILAND":"🇹🇭","TUNISIA":"🇹🇳","TURKEY":"🇹🇷","UGANDA":"🇺🇬","UKRAINE":"🇺🇦","UNITED ARAB EMIRATES":"🇦🇪","USA":"🇺🇸","UNITED STATES":"🇺🇸","URUGUAY":"🇺🇾","UZBEKISTAN":"🇺🇿","VENEZUELA":"🇻🇪","VIETNAM":"🇻🇳","WALES":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","ZAMBIA":"🇿🇲","ZIMBABWE":"🇿🇼","ASIA":"🌏","AFRICA":"🌍","EUROPE":"🌍","WORLD":"🌍"};
 
-function getFlag(z){let k=(z||'world').toLowerCase();for(let f in flags){if(k.includes(f)) return flags[f]} return '⚽'}
+function getFlag(name){let c=(name||'').toUpperCase().trim();if(countryFlags[c]) return countryFlags[c];for(let k in countryFlags){if(c.includes(k)) return countryFlags[k]}return '🏳️';}
 
-function buildDateTabs(){
-  let html=''; let today=new Date();
-  for(let i=-3;i<=3;i++){
-    let d=new Date(today); d.setDate(today.getDate()+i); let ds=d.toISOString().split('T')[0];
-    let label=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});
-    let act=i==0?'active':''; html+=`<button class="${act}" onclick="selectDate('${ds}',this)">${label}</button>`;
-  }
-  document.getElementById('dateTabs').innerHTML=html;
-}
+function buildDateTabs(){let html='';let today=new Date();for(let i=-3;i<=3;i++){let d=new Date(today);d.setDate(today.getDate()+i);let ds=d.toISOString().split('T')[0];let label=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let act=i==0?'active':'';html+=`<button class="${act}" onclick="selectDate('${ds}',this)">${label}</button>`}document.getElementById('dateTabs').innerHTML=html}
 function selectDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds)}
-async function load(date){curDate=date;document.getElementById('list').innerHTML='<div style="padding:20px;text-align:center;color:#555">Loading...</div>';try{const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();allData=j.data||[];render()}catch(e){document.getElementById('list').innerHTML='<p style="padding:20px;text-align:center">Error loading</p>'}}
+async function load(date){curDate=date;document.getElementById('list').innerHTML='<div style="padding:20px;text-align:center;color:#555">Loading...</div>';try{const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();allData=j.data||[];render()}catch(e){document.getElementById('list').innerHTML='<p style="padding:20px;text-align:center">Error</p>'}}
 function setFilter(f){curFilter=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f)).classList.add('active');render()}
 function reloadNow(){if(curDate) load(curDate)}
-
-function render(){
-  let data=[...allData];
-  if(curFilter=='live') data=data.filter(m=>m.status=='LIVE');
-  if(curFilter=='finished') data=data.filter(m=>m.status=='FINISHED' || m.status=='FT');
-  if(!data.length){document.getElementById('list').innerHTML=`<p style="padding:30px;text-align:center;color:#666">No ${curFilter} games</p>`;return}
-  const groups={};
-  data.forEach(m=>{const c=(m.league_zone||m.league_geo||'World');const key=`${c.toUpperCase()} - ${m.league_name}`;if(!groups[key]) groups[key]={zone:c,games:[]};groups[key].games.push(m)});
-  let html='';
-  for(const league in groups){
-    const g=groups[league]; const flag=getFlag(g.zone);
-    html+=`<div class="league-head" onclick="location.href='/league.html?name=${encodeURIComponent(league)}'"><span>${flag} ${league}</span><span>›</span></div>`;
-    g.games.forEach(x=>{
-      const tm=x.datetime?x.datetime.split(' ')[1].slice(0,5):'--:--'; const is=x.status==='LIVE'; const fin=x.status==='FINISHED'||x.status==='FT';
-      const live=is?`<span class="live">● ${x.minute||'LIVE'}</span>`:fin?`<span class="status">FT</span>`:`<span class="status">Scheduled</span>`;
-      const score=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';
-      html+=`<div class="match" onclick="location.href='/match.html?id=${x.id}'"><div class="time-pill">${is?x.minute:fin?'FT':tm}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div style="text-align:right"><div class="score">${score}</div><div>${live}</div></div></div>`;
-    });
-  }
-  document.getElementById('list').innerHTML=html;
-}
-buildDateTabs();
-load(new Date().toISOString().split('T')[0]);
-setInterval(()=>{if(curFilter=='live' || curFilter=='all') reloadNow()},30000);
+function render(){let data=[...allData];if(curFilter=='live') data=data.filter(m=>m.status=='LIVE');if(curFilter=='finished') data=data.filter(m=>m.status=='FINISHED'||m.status=='FT');if(!data.length){document.getElementById('list').innerHTML=`<p style="padding:30px;text-align:center;color:#666">No ${curFilter} games</p>`;return}const groups={};data.forEach(m=>{const c=(m.league_zone||m.league_geo||'World');const key=`${c.toUpperCase()} - ${m.league_name}`;if(!groups[key]) groups[key]={zone:c,games:[]};groups[key].games.push(m)});let html='';for(const league in groups){const g=groups[league];const flag=getFlag(g.zone);html+=`<div class="league-head" onclick="location.href='/league.html?name=${encodeURIComponent(league)}'"><span>${flag} ${league}</span><span>›</span></div>`;g.games.forEach(x=>{const tm=x.datetime?x.datetime.split(' ')[1].slice(0,5):'--:--';const is=x.status==='LIVE';const fin=x.status==='FINISHED'||x.status==='FT';const live=is?`<span class="live">● ${x.minute||'LIVE'}</span>`:fin?`<span class="status">FT</span>`:`<span class="status">Scheduled</span>`;const score=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';html+=`<div class="match" onclick="location.href='/match.html?id=${x.id}'"><div class="time-pill">${is?x.minute:fin?'FT':tm}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div style="text-align:right"><div class="score">${score}</div><div>${live}</div></div></div>`})}document.getElementById('list').innerHTML=html}
+buildDateTabs();load(new Date().toISOString().split('T')[0]);setInterval(()=>{if(curFilter!='finished') reloadNow()},30000);
 </script>
 </body>
 </html>
