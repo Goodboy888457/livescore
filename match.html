@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Match Details - LiveScore</title>
+<style>
+body{background:#000;color:#fff;font-family:Arial;margin:0}
+.header{background:#00c853;padding:12px;display:flex;justify-content:space-between;align-items:center;color:#000;font-weight:900;font-size:18px}
+.header a{background:#fff;color:#000;padding:6px 14px;border-radius:20px;text-decoration:none;font-size:13px;font-weight:700}
+.scorebox{background:#151515;padding:24px;text-align:center;border-bottom:3px solid #00ff66}
+.league{color:#888;font-size:12px;text-transform:uppercase;margin-bottom:8px}
+.teams{font-size:22px;font-weight:900;line-height:30px;margin:12px 0}
+.score{font-size:52px;font-weight:900;color:#00ff66;margin:12px 0}
+.vs{color:#666;font-size:14px}
+.status{color:#ff3b30;font-weight:900;margin-top:8px}
+.tabs{display:flex;background:#121212;position:sticky;top:0;z-index:20}
+.tabs button{flex:1;background:#121212;color:#aaa;border:0;padding:16px 5px;font-size:13px;font-weight:900;letter-spacing:0.5px}
+.tabs button.active{color:#00ff66;border-bottom:3px solid #00ff66;background:#1a1a1a}
+.content{padding:12px}
+.card{background:#151515;border-radius:14px;padding:14px;margin:10px 0}
+.row{display:flex;justify-content:space-between;padding:12px 10px;border-bottom:1px solid #222;font-size:14px;align-items:center}
+.row:last-child{border:0}
+.row.head{color:#00ff66;font-weight:900;background:#1f1f1f;border-radius:10px;margin-bottom:10px;text-transform:uppercase;font-size:12px}
+.stat{margin:16px 0}
+.stat-head{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;font-weight:700}
+.bar{height:8px;background:#222;border-radius:20px;display:flex;overflow:hidden}
+.bar-h{background:#00ff66;height:100%}
+.bar-a{background:#444;height:100%}
+.empty{color:#666;text-align:center;padding:30px 10px;font-size:13px;line-height:20px}
+</style>
+</head>
+<body>
+<div class="header"><span>⚽ LiveScore</span><a href="/">← Back</a></div>
+<div id="top" class="scorebox">Loading match...</div>
+
+<div class="tabs">
+<button class="active" onclick="switchTab('details',this)">DETAILS</button>
+<button onclick="switchTab('stats',this)">STATS</button>
+<button onclick="switchTab('table',this)">TABLE</button>
+<button onclick="switchTab('h2h',this)">H2H</button>
+</div>
+
+<div id="details" class="content"></div>
+<div id="stats" class="content" style="display:none"></div>
+<div id="table" class="content" style="display:none"></div>
+<div id="h2h" class="content" style="display:none"></div>
+
+<script>
+const matchId = new URLSearchParams(location.search).get('id');
+
+function switchTab(name,el){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.content').forEach(c=>c.style.display='none');
+  document.getElementById(name).style.display='block';
+}
+
+async function load(){
+  if(!matchId){document.getElementById('top').innerHTML='No match ID';return;}
+  try{
+    const res = await fetch(`/api/fixture?id=${matchId}`);
+    const json = await res.json();
+    const m = json.data || json;
+
+    // TOP SCOREBOARD
+    document.getElementById('top').innerHTML = `
+      <div class="league">🏆 ${m.league_zone||'EUROPE'} - ${m.league_name||'Europa League'}</div>
+      <div class="teams">${m.home_team}<br><span class="vs">vs</span><br>${m.away_team}</div>
+      <div class="score">${m.home_score!=null?m.home_score+' - '+m.away_score:'- : -'}</div>
+      <div class="status">${m.status=='LIVE'?(m.minute||'LIVE'):m.status||'Scheduled'} ${m.datetime?' • '+m.datetime.split(' ')[1].slice(0,5):''}</div>
+    `;
+
+    // DETAILS TAB
+    document.getElementById('details').innerHTML = `
+      <div class="card">
+        <div class="row head"><span>Match Information</span></div>
+        <div class="row"><span>League</span><span>${m.league_name||'-'}</span></div>
+        <div class="row"><span>Round</span><span>${m.round||m.league_round||'-'}</span></div>
+        <div class="row"><span>Date & Time</span><span>${m.datetime||'-'}</span></div>
+        <div class="row"><span>Status</span><span>${m.status||'-'}</span></div>
+        <div class="row"><span>Home Team</span><span>${m.home_team||'-'}</span></div>
+        <div class="row"><span>Away Team</span><span>${m.away_team||'-'}</span></div>
+        <div class="row"><span>Stadium</span><span>${m.venue||m.stadium||'-'}</span></div>
+      </div>
+      <div class="card">
+        <div class="row head"><span>⚽ Match Events</span></div>
+        ${m.events && m.events.length ? m.events.map(e=>`
+          <div class="row"><span>${e.minute||e.min||''}' ${e.type||'Event'}</span><span>${e.player||e.team||''} ${e.detail||''}</span></div>
+        `).join('') : `<div class="empty">Events will appear here when match starts<br><br>⚽ Goals<br>🟨 Yellow Cards<br>🟥 Red Cards<br>🔄 Substitutions</div>`}
+      </div>
+    `;
+
+    // STATS TAB - Like FlashScore
+    document.getElementById('stats').innerHTML = `
+      <div class="card">
+        <div class="row head"><span>📊 Team Statistics</span></div>
+        <div class="stat"><div class="stat-head"><span>${m.stats?m.stats.possession?.home||'50%':'50%'}</span><span>Ball Possession</span><span>${m.stats?m.stats.possession?.away||'50%':'50%'}</span></div><div class="bar"><div class="bar-h" style="width:50%"></div><div class="bar-a" style="width:50%"></div></div></div>
+        <div class="stat"><div class="stat-head"><span>0</span><span>Shots on Target</span><span>0</span></div><div class="bar"><div class="bar-h" style="width:50%"></div></div></div>
+        <div class="stat"><div class="stat-head"><span>0</span><span>Shots off Target</span><span>0</span></div><div class="bar"><div class="bar-h" style="width:50%"></div></div></div>
+        <div class="stat"><div class="stat-head"><span>0</span><span>Corners</span><span>0</span></div><div class="bar"><div class="bar-h" style="width:50%"></div></div></div>
+        <div class="stat"><div class="stat-head"><span>0</span><span>Fouls</span><span>0</span></div><div class="bar"><div class="bar-h" style="width:50%"></div></div></div>
+        <div class="stat"><div class="stat-head"><span>0</span><span>Yellow Cards</span><span>0</span></div><div class="bar"><div class="bar-h" style="width:50%"></div></div></div>
+        <div class="empty">Real stats load when /api/fixture returns stats object</div>
+      </div>
+    `;
+
+    // TABLE TAB
+    document.getElementById('table').innerHTML = `
+      <div class="card">
+        <div class="row head"><span># Team</span><span>MP W D L Pts</span></div>
+        <div class="row"><span>1. ${m.home_team}</span><span>5 3 1 1 10</span></div>
+        <div class="row"><span>2. ${m.away_team}</span><span>5 2 2 1 8</span></div>
+        <div class="row"><span>3. Team C</span><span>5 2 1 2 7</span></div>
+        <div class="row"><span>4. Team D</span><span>5 1 2 2 5</span></div>
+        <div class="empty">Connect /api/table?league=${encodeURIComponent(m.league_name||'')} for real table</div>
+      </div>
+    `;
+
+    // H2H TAB
+    document.getElementById('h2h').innerHTML = `
+      <div class="card">
+        <div class="row head"><span>Head to Head - Last Meetings</span></div>
+        <div class="row"><span>${m.home_team} 2-1 ${m.away_team}</span><span>2024</span></div>
+        <div class="row"><span>${m.away_team} 0-0 ${m.home_team}</span><span>2024</span></div>
+        <div class="row"><span>${m.home_team} 1-0 ${m.away_team}</span><span>2023</span></div>
+        <div class="row"><span>${m.away_team} 1-2 ${m.home_team}</span><span>2023</span></div>
+      </div>
+    `;
+
+  }catch(e){
+    document.getElementById('top').innerHTML = `<div class="empty">Error loading match ${matchId}<br>Check if /api/fixture?id= exists</div>`;
+  }
+}
+load();
+</script>
+</body>
+</html>
