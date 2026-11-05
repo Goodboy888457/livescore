@@ -36,8 +36,6 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 let allData=[]; let curFilter='all'; let curDate='';
 const countryFlags={"AFGHANISTAN":"🇦🇫","ALBANIA":"🇦🇱","ALGERIA":"🇩🇿","ANDORRA":"🇦🇩","ANGOLA":"🇦🇴","ARGENTINA":"🇦🇷","ARMENIA":"🇦🇲","AUSTRALIA":"🇦🇺","AUSTRIA":"🇦🇹","AZERBAIJAN":"🇦🇿","BAHRAIN":"🇧🇭","BANGLADESH":"🇧🇩","BELARUS":"🇧🇾","BELGIUM":"🇧🇪","BELIZE":"🇧🇿","BENIN":"🇧🇯","BOLIVIA":"🇧🇴","BOSNIA":"🇧🇦","BOTSWANA":"🇧🇼","BRAZIL":"🇧🇷","BULGARIA":"🇧🇬","CAMBODIA":"🇰🇭","CAMEROON":"🇨🇲","CANADA":"🇨🇦","CHILE":"🇨🇱","CHINA":"🇨🇳","COLOMBIA":"🇨🇴","COSTA RICA":"🇨🇷","CROATIA":"🇭🇷","CYPRUS":"🇨🇾","CZECH":"🇨🇿","DENMARK":"🇩🇰","DOMINICAN":"🇩🇴","ECUADOR":"🇪🇨","EGYPT":"🇪🇬","EL SALVADOR":"🇸🇻","ENGLAND":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","ESTONIA":"🇪🇪","ETHIOPIA":"🇪🇹","FINLAND":"🇫🇮","FRANCE":"🇫🇷","GEORGIA":"🇬🇪","GERMANY":"🇩🇪","GHANA":"🇬🇭","GREECE":"🇬🇷","GUATEMALA":"🇬🇹","HONDURAS":"🇭🇳","HUNGARY":"🇭🇺","ICELAND":"🇮🇸","INDIA":"🇮🇳","INDONESIA":"🇮🇩","IRAN":"🇮🇷","IRAQ":"🇮🇶","IRELAND":"🇮🇪","ISRAEL":"🇮🇱","ITALY":"🇮🇹","JAMAICA":"🇯🇲","JAPAN":"🇯🇵","JORDAN":"🇯🇴","KAZAKHSTAN":"🇰🇿","KENYA":"🇰🇪","KOREA":"🇰🇷","KOSOVO":"🇽🇰","KUWAIT":"🇰🇼","LATVIA":"🇱🇻","LEBANON":"🇱🇧","LIBYA":"🇱🇾","LITHUANIA":"🇱🇹","LUXEMBOURG":"🇱🇺","MALAYSIA":"🇲🇾","MALI":"🇲🇱","MALTA":"🇲🇹","MEXICO":"🇲🇽","MOLDOVA":"🇲🇩","MOROCCO":"🇲🇦","MOZAMBIQUE":"🇲🇿","NETHERLANDS":"🇳🇱","NEW ZEALAND":"🇳🇿","NICARAGUA":"🇳🇮","NIGERIA":"🇳🇬","NORTH MACEDONIA":"🇲🇰","NORWAY":"🇳🇴","OMAN":"🇴🇲","PAKISTAN":"🇵🇰","PALESTINE":"🇵🇸","PANAMA":"🇵🇦","PARAGUAY":"🇵🇾","PERU":"🇵🇪","PHILIPPINES":"🇵🇭","POLAND":"🇵🇱","PORTUGAL":"🇵🇹","QATAR":"🇶🇦","ROMANIA":"🇷🇴","RUSSIA":"🇷🇺","RWANDA":"🇷🇼","SAUDI ARABIA":"🇸🇦","SAUDI":"🇸🇦","SCOTLAND":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","SENEGAL":"🇸🇳","SERBIA":"🇷🇸","SINGAPORE":"🇸🇬","SLOVAKIA":"🇸🇰","SLOVENIA":"🇸🇮","SOUTH AFRICA":"🇿🇦","SPAIN":"🇪🇸","SWEDEN":"🇸🇪","SWITZERLAND":"🇨🇭","SYRIA":"🇸🇾","TAIWAN":"🇹🇼","TANZANIA":"🇹🇿","THAILAND":"🇹🇭","TUNISIA":"🇹🇳","TURKEY":"🇹🇷","UGANDA":"🇺🇬","UKRAINE":"🇺🇦","UNITED ARAB EMIRATES":"🇦🇪","USA":"🇺🇸","UNITED STATES":"🇺🇸","URUGUAY":"🇺🇾","UZBEKISTAN":"🇺🇿","VENEZUELA":"🇻🇪","VIETNAM":"🇻🇳","WALES":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","ZAMBIA":"🇿🇲","ZIMBABWE":"🇿🇼","ASIA":"🌏","AFRICA":"🌍","EUROPE":"🏆","WORLD":"🌍"};
 function getFlag(name){let c=(name||'').toUpperCase().trim();if(countryFlags[c]) return countryFlags[c];for(let k in countryFlags){if(c.includes(k)) return countryFlags[k]}return '⚽';}
-
-// TOP 10 ONLY EUROPE + BIG 5, AFC NEVER TOP
 function getRank(full){
   let u = full.toUpperCase();
   if(u.includes("AFC")) return 999;
@@ -55,10 +53,19 @@ function getRank(full){
   if(u.includes("PORTUGAL") && u.includes("PRIMEIRA")) return 9;
   return 500;
 }
-
 function buildDateTabs(){let html='';let today=new Date();for(let i=-3;i<=4;i++){let d=new Date(today);d.setDate(today.getDate()+i);let ds=d.toISOString().split('T')[0];let label=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let act=i==0?'active':'';html+=`<button class="${act}" onclick="selectDate('${ds}',this)">${label}</button>`}document.getElementById('dateTabs').innerHTML=html}
 function selectDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds)}
 async function load(date){curDate=date;document.getElementById('list').innerHTML='<div style="padding:20px;text-align:center;color:#555">Loading...</div>';try{const r=await fetch(`/api/fixtures?date=${date}`);const j=await r.json();allData=j.data||[];render()}catch(e){document.getElementById('list').innerHTML='<p style="padding:20px;text-align:center">Error</p>'}}
+
+// === NEW FIX ===
+function openMatch(id){
+  let m = allData.find(x=>String(x.id)===String(id));
+  if(m){
+    localStorage.setItem('selected_match', JSON.stringify(m));
+  }
+  location.href='/match.html?id='+id;
+}
+
 function setFilter(f){curFilter=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f)).classList.add('active');render()}
 function reloadNow(){if(curDate) load(curDate)}
 function render(){
@@ -85,7 +92,7 @@ function render(){
       const tm=x.datetime?x.datetime.split(' ')[1].slice(0,5):'--:--';const is=x.status==='LIVE';const fin=x.status==='FINISHED'||x.status==='FT';
       const live=is?`<span class="live">● ${x.minute||'LIVE'}</span>`:fin?`<span class="status">FT</span>`:`<span class="status">Scheduled</span>`;
       const score=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';
-      html+=`<div class="match" onclick="location.href='/match.html?id=${x.id}'"><div class="time-pill">${is?x.minute:fin?'FT':tm}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div style="text-align:right"><div class="score">${score}</div><div>${live}</div></div></div>`;
+      html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time-pill">${is?x.minute:fin?'FT':tm}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div style="text-align:right"><div class="score">${score}</div><div>${live}</div></div></div>`;
     });
   });
   document.getElementById('list').innerHTML=html;
