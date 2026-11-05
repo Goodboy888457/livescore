@@ -32,29 +32,32 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <div id="list" style="padding:20px;text-align:center">Loading...</div>
 <script>
 let all=[],cur='all';
-function rank(s){s=(s||'').toUpperCase();if(s.includes('ASIA')||s.includes('JAPAN')||s.includes('KOREA'))return 999;if(s.includes('CHAMPIONS LEAGUE'))return 0;if(s.includes('EUROPA LEAGUE'))return 1;if(s.includes('CONFERENCE'))return 2;if(s.includes('PREMIER LEAGUE'))return 3;if(s.includes('LALIGA'))return 4;if(s.includes('LIGUE 1'))return 5;if(s.includes('BUNDESLIGA'))return 6;if(s.includes('SERIE A'))return 7;return 100}
+function rank(s){s=(s||'').toUpperCase();if(s.includes('ASIA')||s.includes('JAPAN')||s.includes('KOREA'))return 999;if(s.includes('CHAMPIONS LEAGUE'))return 0;if(s.includes('EUROPA LEAGUE'))return 1;if(s.includes('CONFERENCE'))return 2;if(s.includes('PREMIER LEAGUE'))return 3;if(s.includes('LALIGA')||s.includes('LA LIGA'))return 4;if(s.includes('LIGUE 1'))return 5;if(s.includes('BUNDESLIGA'))return 6;if(s.includes('SERIE A'))return 7;return 100}
 function tabs(){let h='',t=new Date();for(let i=-2;i<=2;i++){let d=new Date(t);d.setDate(t.getDate()+i);let ds=d.toISOString().split('T')[0];let lb=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let ac=i==0?'active':'';h+=`<button class="${ac}" onclick="goDate('${ds}',this)">${lb}</button>`}document.getElementById('dateTabs').innerHTML=h}
 function goDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds)}
 async function load(d){document.getElementById('list').innerHTML='Loading '+d+'...';try{let r=await fetch(`/api/fixtures?date=${d}`);let j=await r.json();all=j.data||[];show()}catch(e){document.getElementById('list').innerHTML='Error '+e.message}}
 function openMatch(id){localStorage.setItem('mid',id);let m=all.find(x=>String(x.id)==String(id));if(m)localStorage.setItem('selected_match',JSON.stringify(m));location.href='match.html?id='+id}
 function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f)).classList.add('active');show()}
 
-// === CORRECT TIME FROM SPORTAPI - datetime = "2026-11-05 18:45:00" ===
+// === CORRECT TIME FOR ALL LEAGUES - USING kickoff_utc -> Africa/Lagos ===
 function getCorrectTime(m){
  let st=(m.status||'').toUpperCase();
  if(st==='LIVE') return {t:m.minute||'LIVE', c:'#ff3b30'};
  if(st==='HT') return {t:'HT', c:'#ff9500'};
  if(st==='FT'||st==='AET'||st==='PENS') return {t:st, c:'#00c853'};
- // Scheduled - use datetime from API
+ 
+ // Scheduled - USE kickoff_utc per SportAPI docs! datetime is CET, kickoff_utc is UTC (correct)
+ // Convert UTC to Lagos time (Africa/Lagos = WAT UTC+1)
  let time='NS';
- if(m.datetime){
-  // "2026-11-05 18:45:00" -> "18:45"
-  time = m.datetime.split(' ')[1]?.substring(0,5) || 'NS';
- } else if(m.kickoff_utc){
-  try{
+ try{
+  if(m.kickoff_utc){
+   // UTC -> Lagos time - CORRECT FOR ALL LEAGUES!
    time = new Date(m.kickoff_utc).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Lagos'});
-  }catch(e){ time='NS'; }
- }
+  } else if(m.datetime){
+   // Fallback: datetime is CET/CEST per docs, approx = Lagos +0 or +1, still show it
+   time = m.datetime.split(' ')[1]?.substring(0,5) || 'NS';
+  }
+ }catch(e){ time=m.datetime?.split(' ')[1]?.substring(0,5) || 'NS'; }
  return {t:time, c:'#00c853'};
 }
 
