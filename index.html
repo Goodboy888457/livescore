@@ -32,7 +32,38 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <div id="list" style="padding:20px;text-align:center">Loading...</div>
 <script>
 let all=[],cur='all',curDate='';
-function rank(s){s=(s||'').toUpperCase();if(s.includes('ASIA')||s.includes('JAPAN')||s.includes('KOREA'))return 999;if(s.includes('CHAMPIONS LEAGUE'))return 0;if(s.includes('EUROPA LEAGUE'))return 1;if(s.includes('CONFERENCE'))return 2;if(s.includes('PREMIER LEAGUE'))return 3;if(s.includes('LALIGA')||s.includes('LA LIGA'))return 4;if(s.includes('LIGUE 1'))return 5;if(s.includes('BUNDESLIGA'))return 6;if(s.includes('SERIE A'))return 7;return 100}
+
+// *** FINAL TOP ORDER - EUROPE THEN TOP COUNTRIES THEN A-Z ***
+const TOP_ORDER = [
+  { key: 'CHAMPIONS LEAGUE', pri: 1 },
+  { key: 'EUROPA LEAGUE', pri: 2, not: 'CONFERENCE' },
+  { key: 'CONFERENCE LEAGUE', pri: 3 },
+  { key: 'PREMIER LEAGUE', zone: 'ENGLAND', pri: 4 },
+  { key: 'LALIGA', pri: 5 },
+  { key: 'LA LIGA', pri: 5 },
+  { key: 'LIGUE 1', zone: 'FRANCE', pri: 6 },
+  { key: 'BUNDESLIGA', zone: 'GERMANY', pri: 7 },
+  { key: 'SERIE A', zone: 'ITALY', pri: 8 },
+  { key: 'EREDIVISIE', zone: 'NETHERLANDS', pri: 9 },
+  { key: 'PRIMEIRA LIGA', zone: 'PORTUGAL', pri: 10 },
+  { key: 'PRIMEIRA', zone: 'PORTUGAL', pri: 10 },
+];
+
+function getPriority(zone, leagueName) {
+  let full = `${zone} - ${leagueName}`.toUpperCase();
+  let z = (zone || '').toUpperCase();
+  let n = (leagueName || '').toUpperCase();
+  
+  for (let t of TOP_ORDER) {
+    if (t.not && full.includes(t.not)) continue;
+    if (t.zone && !z.includes(t.zone) && !full.includes(t.zone)) continue;
+    if (full.includes(t.key)) return t.pri;
+  }
+  // Europe leagues not in top 3 go after top 10 but before A-Z
+  if (z.includes('EUROPE')) return 15;
+  return 100; // Rest = A-Z
+}
+
 function tabs(){let h='',t=new Date();for(let i=-2;i<=2;i++){let d=new Date(t);d.setDate(t.getDate()+i);let ds=d.toISOString().split('T')[0];let lb=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let ac=i==0?'active':'';h+=`<button class="${ac}" onclick="goDate('${ds}',this)">${lb}</button>`}document.getElementById('dateTabs').innerHTML=h}
 function goDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds)}
 async function load(d){
@@ -56,7 +87,6 @@ async function load(d){
  }
 }
 
-// *** FIXED: ABSOLUTE PATH + PREVENT LOOP ***
 function openMatch(id){
   try{ 
     localStorage.setItem('mid', String(id)); 
@@ -67,10 +97,8 @@ function openMatch(id){
       sessionStorage.setItem('selected_match', JSON.stringify(m));
     }
   }catch(e){}
-  // FIXED: Absolute path /match.html — prevents SPA fallback loop!
   let url = '/match.html?id=' + encodeURIComponent(id) + '&date=' + encodeURIComponent(curDate);
-  console.log('Opening', url);
-  window.location.href = url; // NOT window.location.replace, NOT relative!
+  window.location.href = url;
 }
 
 function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f)).classList.add('active');show()}
@@ -93,8 +121,11 @@ function getCorrectTime(m){
 
 function show(){
 let data=[...all];if(cur=='live')data=data.filter(x=>['LIVE','HT'].includes((x.status||'').toUpperCase()));if(cur=='finished')data=data.filter(x=>['FT','AET','PENS'].includes((x.status||'').toUpperCase()));if(!data.length){document.getElementById('list').innerHTML='No matches '+cur+' for '+curDate;return}
-let g={};data.forEach(m=>{let k=`${m.league_zone||'EUROPE'} - ${m.league_name}`;if(!g[k])g[k]={name:k,games:[],rank:rank(k)};g[k].games.push(m)});
-let keys=Object.keys(g).sort((a,b)=>{if(g[a].rank!=g[b].rank)return g[a].rank-g[b].rank;return a.localeCompare(b)});
+let g={};data.forEach(m=>{let k=`${m.league_zone||'EUROPE'} - ${m.league_name}`;if(!g[k])g[k]={name:k,zone:m.league_zone||'Europe',league:m.league_name,games:[],pri:getPriority(m.league_zone,m.league_name)};g[k].games.push(m)});
+let keys=Object.keys(g).sort((a,b)=>{
+  if(g[a].pri!=g[b].pri) return g[a].pri-g[b].pri;
+  return a.localeCompare(b); // A-Z for same priority
+});
 let html='';keys.forEach(k=>{let gr=g[k];gr.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));html+=`<div class="league-head">${gr.name} (${gr.games.length})</div>`;gr.games.forEach(x=>{let sc=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';let tm=getCorrectTime(x);html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time" style="color:${tm.c};border-color:${tm.c}">${tm.t}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div class="score">${sc}</div></div>`})});
 document.getElementById('list').innerHTML=html
 }
