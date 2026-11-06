@@ -5,30 +5,33 @@
 <title>LiveScore TOP A-Z</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
-.header{background:#00c853;padding:12px;font-weight:900;color:#000;display:flex;justify-content:space-between}
-.header a{background:#fff;color:#000;padding:6px 14px;border-radius:20px;text-decoration:none;font-size:12px}
-.tabs{display:flex;background:#121212;overflow:auto}
-.tabs button{background:#121212;color:#888;border:0;padding:12px;flex:1;font-weight:900;min-width:80px}
-.tabs button.active{color:#00ff66;border-bottom:3px solid #00c853}
-.filter{display:flex;gap:8px;padding:10px;background:#0f0f0f}
-.filter button{background:#222;color:#aaa;border:1px solid #333;padding:8px 16px;border-radius:20px}
-.filter button.active{background:#00c853;color:#000;font-weight:900}
-.league-head{background:#00c853;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px}
-.match{display:flex;align-items:center;padding:14px;background:#151515;margin:6px 8px;border-radius:10px;border-left:4px solid #00c853;cursor:pointer}
-.time{border:2px solid #00c853;border-radius:20px;padding:6px 12px;color:#00c853;font-weight:900;font-size:12px;min-width:75px;text-align:center}
-.teams{flex:1;margin-left:12px;line-height:20px}
-.score{color:#00ff66;font-weight:900;font-size:18px}
+.header{background:#00c853;padding:12px;font-weight:900;color:#000;display:flex;justify-content:space-between;align-items:center}
+.header a{background:#fff;color:#000;padding:6px 14px;border-radius:20px;text-decoration:none;font-size:12px;font-weight:900}
+/* ROUND TABS LIKE 2ND SCREENSHOT */
+.tabs{display:flex;gap:8px;padding:10px;background:#000;overflow:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{background:#222;color:#aaa;border:1px solid #333;padding:8px 16px;border-radius:20px;font-weight:900;font-size:13px;white-space:nowrap;flex:none;min-width:auto}
+.tabs button.active{background:#00ff00;color:#000;border-color:#00ff00}
+.filter{display:flex;gap:8px;padding:10px;background:#000;overflow:auto}
+.filter button{background:#111;color:#00ff00;border:1.5px solid #00ff00;padding:8px 18px;border-radius:20px;font-size:13px}
+.filter button.active{background:#00ff00;color:#000;font-weight:900}
+.league-head{background:#00ff00;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px}
+.match{display:flex;align-items:center;padding:12px;background:#151515;margin:6px 8px;border-radius:10px;border-left:3px solid #00c853;cursor:pointer}
+/* SMALL BALANCED TIME - LIKE 2ND SCREEN */
+.time{border:1.5px solid #00c853;border-radius:20px;padding:5px 0;color:#00c853;font-weight:900;font-size:13px;min-width:52px;max-width:52px;text-align:center}
+.teams{flex:1;margin-left:12px;line-height:18px;font-size:14px}
+.score{color:#00ff66;font-weight:900;font-size:17px;min-width:50px;text-align:right}
 </style>
 </head>
 <body>
 <div class="header"><span>⚽ LiveScore TOP A-Z</span><a href="#" onclick="location.reload();return false;">↻ Refresh</a></div>
 <div class="tabs" id="dateTabs"></div>
 <div class="filter">
-<button id="f-all" class="active" onclick="setFilter('all')">All</button>
+<button id="f-all" class="active" onclick="setFilter('all')">All Games</button>
 <button id="f-live" onclick="setFilter('live')">Live</button>
 <button id="f-fin" onclick="setFilter('finished')">Finished</button>
 </div>
-<div id="list" style="padding:20px;text-align:center">Loading...</div>
+<div id="list" style="padding:10px;text-align:center">Loading...</div>
 <script>
 let all=[],cur='all',curDate='';
 const TOP_ORDER=[
@@ -47,7 +50,6 @@ const TOP_ORDER=[
 function getPriority(zone,leagueName){
   let full=(zone+' - '+leagueName).toUpperCase();
   let z=(zone||'').toUpperCase();
-  // FIX: Asia should NOT get TOP pri, put in A-Z
   if(z.includes('ASIA')) return 100;
   for(let t of TOP_ORDER){
     if(t.not&&full.includes(t.not)) continue;
@@ -57,7 +59,7 @@ function getPriority(zone,leagueName){
   if(z.includes('EUROPE')) return 15;
   return 100;
 }
-function tabs(){let h='',t=new Date();for(let i=-2;i<=2;i++){let d=new Date(t);d.setDate(t.getDate()+i);let ds=d.toISOString().split('T')[0];let lb=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let ac=i==0?'active':'';h+=`<button class="${ac}" onclick="goDate('${ds}',this)">${lb}</button>`}document.getElementById('dateTabs').innerHTML=h}
+function tabs(){let h='',t=new Date();for(let i=-4;i<=4;i++){let d=new Date(t);d.setDate(t.getDate()+i);let ds=d.toISOString().split('T')[0];let lb=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let ac=i==0?'active':'';h+=`<button class="${ac}" onclick="goDate('${ds}',this)">${lb}</button>`}document.getElementById('dateTabs').innerHTML=h}
 function goDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds)}
 async function load(d){
  curDate=d;
@@ -83,7 +85,7 @@ function openMatch(id){
   }catch(e){}
   window.location.href='/match.html?id='+encodeURIComponent(id)+'&date='+encodeURIComponent(curDate);
 }
-function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f)).classList.add('active');show()}
+function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f=='all'?'all':f)).classList.add('active');show()}
 function getCorrectTime(m){
  let st=(m.status||'').toUpperCase();
  if(st==='LIVE') return {t:m.minute||'LIVE',c:'#ff3b30'};
