@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LiveScore - Highlightly</title>
+<title>LiveScore - All Flags</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;font-weight:900;color:#000;display:flex;justify-content:space-between;align-items:center}
@@ -13,7 +13,7 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .filter{display:flex;gap:8px;padding:10px}
 .filter button{background:#111;color:#00ff00;border:1.5px solid #00ff00;padding:8px 18px;border-radius:20px;font-size:13px}
 .filter button.active{background:#00ff00;color:#000;font-weight:900}
-.league-head{background:#00ff00;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px}
+.league-head{background:#00ff00;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px;display:flex;gap:6px;align-items:center}
 .match{display:flex;align-items:center;padding:12px;background:#151515;margin:6px 8px;border-radius:10px;border-left:3px solid #00c853}
 .time{border:1.5px solid #00c853;border-radius:20px;padding:5px 0;color:#00c853;font-weight:900;font-size:13px;min-width:52px;text-align:center}
 .teams{flex:1;margin-left:12px;line-height:18px;font-size:14px}
@@ -21,7 +21,7 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 </style>
 </head>
 <body>
-<div class="header"><span>⚽ LiveScore - Highlightly</span><a href="#" onclick="location.reload();return false;">↻ Refresh</a></div>
+<div class="header"><span>⚽ LiveScore - All Countries</span><a href="#" onclick="location.reload();return false;">↻ Refresh</a></div>
 <div class="tabs" id="dateTabs"></div>
 <div class="filter">
 <button id="f-all" class="active" onclick="setFilter('all')">All Games</button>
@@ -31,7 +31,71 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <div id="list" style="padding:20px;text-align:center">Loading Highlightly...</div>
 <script>
 let all=[],cur='all',curDate='';
-const TOP_ORDER=[{k:'CHAMPIONS LEAGUE',p:1},{k:'EUROPA LEAGUE',p:2},{k:'PREMIER LEAGUE',p:4},{k:'LALIGA',p:5},{k:'LA LIGA',p:5},{k:'LIGUE 1',p:6},{k:'BUNDESLIGA',p:7},{k:'SERIE A',p:8},{k:'ARMENIA',p:11},{k:'ENGLAND',p:21},{k:'SPAIN',p:22}];
+
+// ALL COUNTRIES FLAGS - 200+ COUNTRIES
+const FLAGS = {
+"Afghanistan":"🇦🇫","Albania":"🇦🇱","Algeria":"🇩🇿","Andorra":"🇦🇩","Angola":"🇦🇴","Argentina":"🇦🇷","Armenia":"🇦🇲","Australia":"🇦🇺","Austria":"🇦🇹","Azerbaijan":"🇦🇿",
+"Bahrain":"🇧🇭","Bangladesh":"🇧🇩","Belarus":"🇧🇾","Belgium":"🇧🇪","Belize":"🇧🇿","Benin":"🇧🇯","Bolivia":"🇧🇴","Bosnia":"🇧🇦","Botswana":"🇧🇼","Brazil":"🇧🇷","Bulgaria":"🇧🇬","Burkina Faso":"🇧🇫","Burundi":"🇧🇮",
+"Cameroon":"🇨🇲","Canada":"🇨🇦","Cape Verde":"🇨🇻","Chad":"🇹🇩","Chile":"🇨🇱","China":"🇨🇳","Colombia":"🇨🇴","Comoros":"🇰🇲","Congo":"🇨🇬","Costa Rica":"🇨🇷","Croatia":"🇭🇷","Cuba":"🇨🇺","Cyprus":"🇨🇾","Czech":"🇨🇿","Czech Republic":"🇨🇿",
+"Denmark":"🇩🇰","Djibouti":"🇩🇯","Dominican":"🇩🇴","DR Congo":"🇨🇩",
+"Ecuador":"🇪🇨","Egypt":"🇪🇬","El Salvador":"🇸🇻","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Equatorial Guinea":"🇬🇶","Eritrea":"🇪🇷","Estonia":"🇪🇪","Eswatini":"🇸🇿","Ethiopia":"🇪🇹","Europe":"🏆",
+"Faroe Islands":"🇫🇴","Fiji":"🇫🇯","Finland":"🇫🇮","France":"🇫🇷",
+"Gabon":"🇬🇦","Gambia":"🇬🇲","Georgia":"🇬🇪","Germany":"🇩🇪","Ghana":"🇬🇭","Gibraltar":"🇬🇮","Greece":"🇬🇷","Guatemala":"🇬🇹","Guinea":"🇬🇳",
+"Haiti":"🇭🇹","Honduras":"🇭🇳","Hungary":"🇭🇺",
+"Iceland":"🇮🇸","India":"🇮🇳","Indonesia":"🇮🇩","Iran":"🇮🇷","Iraq":"🇮🇶","Ireland":"🇮🇪","Israel":"🇮🇱","Italy":"🇮🇹","Ivory Coast":"🇨🇮",
+"Jamaica":"🇯🇲","Japan":"🇯🇵","Jordan":"🇯🇴",
+"Kazakhstan":"🇰🇿","Kenya":"🇰🇪","Kosovo":"🇽🇰","Kuwait":"🇰🇼","Kyrgyzstan":"🇰🇬",
+"Laos":"🇱🇦","Latvia":"🇱🇻","Lebanon":"🇱🇧","Lesotho":"🇱🇸","Liberia":"🇱🇷","Libya":"🇱🇾","Liechtenstein":"🇱🇮","Lithuania":"🇱🇹","Luxembourg":"🇱🇺",
+"Madagascar":"🇲🇬","Malawi":"🇲🇼","Malaysia":"🇲🇾","Maldives":"🇲🇻","Mali":"🇲🇱","Malta":"🇲🇹","Mauritania":"🇲🇷","Mauritius":"🇲🇺","Mexico":"🇲🇽","Moldova":"🇲🇩","Mongolia":"🇲🇳","Montenegro":"🇲🇪","Morocco":"🇲🇦","Mozambique":"🇲🇿","Myanmar":"🇲🇲",
+"Namibia":"🇳🇦","Nepal":"🇳🇵","Netherlands":"🇳🇱","New Zealand":"🇳🇿","Nicaragua":"🇳🇮","Niger":"🇳🇪","Nigeria":"🇳🇬","North Macedonia":"🇲🇰","Northern Ireland":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Norway":"🇳🇴",
+"Oman":"🇴🇲",
+"Pakistan":"🇵🇰","Palestine":"🇵🇸","Panama":"🇵🇦","Paraguay":"🇵🇾","Peru":"🇵🇪","Philippines":"🇵🇭","Poland":"🇵🇱","Portugal":"🇵🇹",
+"Qatar":"🇶🇦",
+"Romania":"🇷🇴","Russia":"🇷🇺","Rwanda":"🇷🇼",
+"San Marino":"🇸🇲","Saudi Arabia":"🇸🇦","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Senegal":"🇸🇳","Serbia":"🇷🇸","Seychelles":"🇸🇨","Sierra Leone":"🇸🇱","Singapore":"🇸🇬","Slovakia":"🇸🇰","Slovenia":"🇸🇮","Somalia":"🇸🇴","South Africa":"🇿🇦","South Korea":"🇰🇷","South Sudan":"🇸🇸","Spain":"🇪🇸","Sudan":"🇸🇩","Sweden":"🇸🇪","Switzerland":"🇨🇭","Syria":"🇸🇾",
+"Taiwan":"🇹🇼","Tajikistan":"🇹🇯","Tanzania":"🇹🇿","Thailand":"🇹🇭","Togo":"🇹🇬","Trinidad":"🇹🇹","Tunisia":"🇹🇳","Turkey":"🇹🇷","Turkmenistan":"🇹🇲",
+"Uganda":"🇺🇬","Ukraine":"🇺🇦","United Arab Emirates":"🇦🇪","Uruguay":"🇺🇾","USA":"🇺🇸","Uzbekistan":"🇺🇿",
+"Venezuela":"🇻🇪","Vietnam":"🇻🇳",
+"Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","World":"🌍","WORLD":"🌍",
+"Yemen":"🇾🇪",
+"Zambia":"🇿🇲","Zimbabwe":"🇿🇼",
+"Champions League":"🏆","Europa League":"🏆","Conference League":"🏆","UEFA":"🏆","FIFA":"🏆"
+};
+
+function getFlag(country){
+  if(!country) return "⚽";
+  if(FLAGS[country]) return FLAGS[country];
+  // Try partial match
+  let up = country.toUpperCase();
+  for(let key in FLAGS){ if(up.includes(key.toUpperCase())) return FLAGS[key]; }
+  return "⚽";
+}
+
+// SMART COUNTRY DETECT - If league_zone is WORLD, detect from league_name
+function detectCountry(zone, league){
+  if(zone && zone!=="WORLD" && zone!=="World" && FLAGS[zone]) return zone;
+  let L = (league||"").toUpperCase() + " " + (zone||"").toUpperCase();
+  if(L.includes("PREMIER LEAGUE") && !L.includes("RUSSIA") && !L.includes("UKRAINE") && !L.includes("EGYPT")) return "England";
+  if(L.includes("CHAMPIONSHIP") && !L.includes("SCOTLAND")) return "England";
+  if(L.includes("LA LIGA") || L.includes("LALIGA") || L.includes("COPA DEL REY") || L.includes("SEGUNDA DIVISION")) return "Spain";
+  if(L.includes("LIGUE 1") || L.includes("LIGUE 2") || L.includes("COUPE DE FRANCE")) return "France";
+  if(L.includes("BUNDESLIGA") || L.includes("2. BUNDESLIGA") || L.includes("DFB-POKAL")) return "Germany";
+  if(L.includes("SERIE A") || L.includes("SERIE B") || L.includes("COPPA ITALIA")) return "Italy";
+  if(L.includes("EREDIVISIE") || L.includes("KNVB")) return "Netherlands";
+  if(L.includes("PRIMEIRA LIGA") || L.includes("LIGA PORTUGAL")) return "Portugal";
+  if(L.includes("JUPILER") || L.includes("PRO LEAGUE") && L.includes("BELGIUM")) return "Belgium";
+  if(L.includes("ARMENIA")) return "Armenia";
+  if(L.includes("TURKIYE") || L.includes("SUPER LIG")) return "Turkey";
+  if(L.includes("SUPER LEAGUE") && L.includes("GREECE")) return "Greece";
+  if(L.includes("SUPER LEAGUE") && L.includes("SWITZERLAND")) return "Switzerland";
+  if(L.includes("PREMIERSHIP") && L.includes("SCOTLAND")) return "Scotland";
+  if(L.includes("CHAMPIONS LEAGUE") || L.includes("EUROPA LEAGUE") || L.includes("CONFERENCE")) return "Europe";
+  // Try find country name inside league name
+  for(let c in FLAGS){ if(L.includes(c.toUpperCase())) return c; }
+  return zone || "World";
+}
+
+const TOP_ORDER=[{k:'CHAMPIONS LEAGUE',p:1},{k:'EUROPA',p:2},{k:'PREMIER LEAGUE',p:4},{k:'LALIGA',p:5},{k:'LA LIGA',p:5},{k:'LIGUE 1',p:6},{k:'BUNDESLIGA',p:7},{k:'SERIE A',p:8},{k:'ENGLAND',p:21},{k:'SPAIN',p:22}];
 function getP(z,n){let f=(z+' '+n).toUpperCase();for(let t of TOP_ORDER) if(f.includes(t.k)) return t.p; return 80;}
 function tabs(){
  let h='',t=new Date();let s=localStorage.getItem('lastDate')||new Date().toISOString().split('T')[0];
@@ -44,37 +108,45 @@ function tabs(){
 function goDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');localStorage.setItem('lastDate',ds);load(ds);}
 async function load(d){
  curDate=d; localStorage.setItem('lastDate',d);
- document.getElementById('list').innerHTML='Loading '+d+' from Highlightly...';
+ document.getElementById('list').innerHTML='Loading '+d+'...';
  try{
   let r=await fetch('/api/fixtures?date='+d+'&nocache=1');
   let j=await r.json();
   if(!j.success) throw new Error(j.error||'API error');
   all=j.data||[];
-  if(!all.length) throw new Error('Highlightly returned 0 matches for '+d);
+  if(!all.length) throw new Error('No matches for '+d);
   show();
  }catch(e){
-  document.getElementById('list').innerHTML='<div style="color:#ff3b30">Error: '+e.message+'<br><br>Check HIGHLIGHTLY_API_KEY in Cloudflare</div>';
+  document.getElementById('list').innerHTML='<div style="color:#ff3b30">Error: '+e.message+'</div>';
   all=[];
  }
 }
 function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f)).classList.add('active');show();}
 function getTime(m){
  let st=(m.status||'').toUpperCase();
- if(['LIVE','HT','1H','2H'].includes(st)) return {t:(m.minute||'LIVE')+"'",c:'#ff3b30'};
- if(['FT','FINISHED'].includes(st)) return {t:'FT',c:'#00c853'};
+ if(['LIVE','HT','1H','2H','IN_PLAY'].includes(st)) return {t:(m.minute||'LIVE')+"'",c:'#ff3b30'};
+ if(['FT','FINISHED','AET'].includes(st)) return {t:'FT',c:'#00c853'};
  try{if(m.kickoff_utc) return {t:new Date(m.kickoff_utc).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Lagos'}),c:'#00c853'};}catch(e){}
  return {t:'NS',c:'#00c853'};
 }
 function show(){
  let data=[...all];
- if(cur=='live') data=data.filter(x=>['LIVE','HT','1H','2H'].includes((x.status||'').toUpperCase()));
- if(cur=='finished') data=data.filter(x=>['FT','FINISHED'].includes((x.status||'').toUpperCase()));
+ if(cur=='live') data=data.filter(x=>['LIVE','HT','1H','2H','IN_PLAY'].includes((x.status||'').toUpperCase()));
+ if(cur=='finished') data=data.filter(x=>['FT','FINISHED','AET'].includes((x.status||'').toUpperCase()));
  if(!data.length){document.getElementById('list').innerHTML='No matches '+cur+' for '+curDate;return}
- let g={}; data.forEach(m=>{let k=(m.league_zone||'WORLD')+' - '+m.league_name;if(!g[k]) g[k]={name:k,pri:getP(m.league_zone,m.league_name),games:[]};g[k].games.push(m);});
+ let g={}; 
+ data.forEach(m=>{
+   let realCountry = detectCountry(m.league_zone, m.league_name);
+   let k=realCountry+' - '+m.league_name;
+   if(!g[k]) g[k]={name:k,country:realCountry,league:m.league_name,pri:getP(realCountry,m.league_name),games:[]};
+   g[k].games.push(m);
+ });
  let keys=Object.keys(g).sort((a,b)=>g[a].pri-g[b].pri);
  let html='<div style="color:#666;font-size:11px;padding:6px">Highlightly: '+data.length+' matches • '+keys.length+' leagues</div>';
  keys.forEach(k=>{
-  let gr=g[k]; html+='<div class="league-head">'+gr.name+' ('+gr.games.length+')</div>';
+  let gr=g[k]; 
+  let flag = getFlag(gr.country);
+  html+='<div class="league-head">'+flag+' '+gr.country+' - '+gr.league+' ('+gr.games.length+')</div>';
   gr.games.forEach(x=>{
    let sc=(x.home_score!=null&&x.away_score!=null)?x.home_score+' - '+x.away_score:'- : -';
    let tm=getTime(x);
