@@ -12,37 +12,60 @@ export async function onRequestGet(context) {
   }
 
   try {
-    // DOCS: https://sports.highlightly.net/{sport}/matches?date=YYYY-MM-DD
     const apiUrl = `https://sports.highlightly.net/football/matches?date=${date}`;
-    const res = await fetch(apiUrl, {
-      headers: {
-        "x-rapidapi-key": KEY // DOCS says this header only for Highlightly base URL
-      }
-    });
-
+    const res = await fetch(apiUrl, { headers: { "x-rapidapi-key": KEY } });
     const text = await res.text();
     let json;
     try { json = JSON.parse(text); } catch {
-      return new Response(JSON.stringify({ success: false, error: text.slice(0, 400), data: [] }), {
+      return new Response(JSON.stringify({ success: false, error: text.slice(0,400), data: [] }), {
         headers: { "Content-Type": "application/json" }
       });
     }
-
-    // DOCS: Payload is { data: [...] } 
     let raw = json.data || json.matches || [];
     if (!Array.isArray(raw)) raw = [];
 
-    // TEAM FIX - To separate Wales Premier from England Premier
-    const WELSH = ["CONNAH","FLINT","TREFELIN","COLWYN","PENYBONT","CAERNARFON","LLANDUDNO","NEW SAINTS","TNS","HOLYWELL","AIRBUS","HAVERFORDWEST","CARDIFF MET","CAMBRIAN","BARRY","BRITON FERRY","BALA TOWN","NEWTOWN"];
-    const ENGLISH = ["EVERTON","COVENTRY","ARSENAL","MAN CITY","LIVERPOOL","CHELSEA","TOTTENHAM","NEWCASTLE","WEST HAM","ASTON VILLA","BRIGHTON","BRENTFORD","FULHAM","WOLVES","PALACE","NOTTINGHAM","BOURNEMOUTH"];
+    const WELSH_TEAMS = ["CONNAH","FLINT","TREFELIN","COLWYN","PENYBONT","CAERNARFON","LLANDUDNO","NEW SAINTS","TNS","HOLYWELL","AIRBUS","HAVERFORDWEST","CARDIFF MET","CAMBRIAN","BARRY","BRITON FERRY","BALA TOWN","NEWTOWN","ABERYSTWYTH"];
 
-    function fixCountry(c, name, home, away){
+    function cleanLeague(originalName, home, away) {
+      let name = originalName || "League";
       let teams = (home+" "+away).toUpperCase();
-      for(let w of WELSH) if(teams.includes(w)) return "Wales";
-      for(let e of ENGLISH) if(teams.includes(e)) return "England";
-      if(c && c!=="WORLD") return c;
-      if(name.toUpperCase().includes("CYMRU")) return "Wales";
-      return c || "WORLD";
+      let L = name.toUpperCase();
+      let combined = teams + " " + L;
+
+      let isU21 = combined.includes("U21") || combined.includes("U-21") || L.includes("PL2") || L.includes("PREMIER LEAGUE 2");
+      let isU19 = combined.includes("U19") || combined.includes("U-19");
+      let isU18 = combined.includes("U18") || combined.includes("U-18");
+      let isU23 = combined.includes("U23") || combined.includes("U-23");
+      let isAcademy = L.includes("ACADEMY") || L.includes("DEVELOPMENT");
+      let isWomen = combined.includes("WOMEN") || L.includes("WSL") || L.includes("FEMENINA") || L.includes("FRAUEN") || L.includes("FEMININE");
+
+      if (isU21) {
+        if (L.includes("PREMIER LEAGUE")) return "Premier League 2";
+        return name.includes("U21") ? name : name + " U21";
+      }
+      if (isU19) {
+        if (L.includes("YOUTH LEAGUE")) return "UEFA Youth League";
+        return name.includes("U19") ? name : name + " U19";
+      }
+      if (isU18) return "U18 Premier League";
+      if (isU23) return name + " U23";
+      if (isAcademy) return name + " (Academy)";
+      if (isWomen) return name.includes("Women") ? name : name + " (Women)";
+
+      if (L.includes("CYMRU") || WELSH_TEAMS.some(w => combined.includes(w))) {
+        if (L.includes("PREMIER LEAGUE")) return "Cymru Premier";
+      }
+      return name;
+    }
+
+    function fixCountry(originalCountry, originalName, home, away) {
+      let teams = (home+" "+away).toUpperCase();
+      let L = (originalName||"").toUpperCase();
+      for(let w of WELSH_TEAMS){ if(teams.includes(w)) return "Wales"; }
+      if(originalCountry && originalCountry!=="WORLD" && originalCountry!=="World") return originalCountry;
+      if(L.includes("CYMRU")) return "Wales";
+      if(L.includes("CHAMPIONS LEAGUE") || L.includes("EUROPA") || L.includes("YOUTH LEAGUE")) return "Europe";
+      return originalCountry || "WORLD";
     }
 
     const out = raw.map(m => {
@@ -50,10 +73,14 @@ export async function onRequestGet(context) {
       let away = m.awayTeam?.name || "Away";
       let leagueName = m.league?.name || "League";
       let country = m.league?.country || "WORLD";
+
       let realCountry = fixCountry(country, leagueName, home, away);
-      
-      if(realCountry==="Wales" && leagueName.toUpperCase().includes("PREMIER LEAGUE")) leagueName = "Cymru Premier";
-      
+      let cleanName = cleanLeague(leagueName, home, away);
+
+      if(realCountry==="Wales" && cleanName.toUpperCase().includes("PREMIER LEAGUE") && !cleanName.includes("2")){
+        cleanName = "Cymru Premier";
+      }
+
       return {
         id: String(m.id),
         home_team: home,
@@ -62,7 +89,7 @@ export async function onRequestGet(context) {
         away_score: m.awayTeam?.score ?? null,
         status: (m.status || "NS").toUpperCase(),
         minute: String(m.minute || ""),
-        league_name: leagueName,
+        league_name: cleanName,
         league_zone: realCountry,
         datetime: m.date || date,
         kickoff_utc: m.date || date
