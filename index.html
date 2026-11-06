@@ -2,14 +2,14 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LiveScore TOP A-Z</title>
+<title>LiveScore TOP A-Z - All Continents</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;font-weight:900;color:#000;display:flex;justify-content:space-between;align-items:center}
 .header a{background:#fff;color:#000;padding:6px 14px;border-radius:20px;text-decoration:none;font-size:12px;font-weight:900}
 .tabs{display:flex;gap:8px;padding:10px;background:#000;overflow:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
-.tabs button{background:#222;color:#aaa;border:1px solid #333;padding:8px 16px;border-radius:20px;font-weight:900;font-size:13px;white-space:nowrap;flex:none;min-width:auto}
+.tabs button{background:#222;color:#aaa;border:1px solid #333;padding:8px 16px;border-radius:20px;font-weight:900;font-size:13px;white-space:nowrap;flex:none}
 .tabs button.active{background:#00ff00;color:#000;border-color:#00ff00}
 .filter{display:flex;gap:8px;padding:10px;background:#000;overflow:auto}
 .filter button{background:#111;color:#00ff00;border:1.5px solid #00ff00;padding:8px 18px;border-radius:20px;font-size:13px}
@@ -22,7 +22,7 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 </style>
 </head>
 <body>
-<div class="header"><span>⚽ LiveScore TOP A-Z</span><a href="#" onclick="location.reload();return false;">↻ Refresh</a></div>
+<div class="header"><span>⚽ LiveScore ALL Continents</span><a href="#" onclick="location.reload();return false;">↻ Refresh</a></div>
 <div class="tabs" id="dateTabs"></div>
 <div class="filter">
 <button id="f-all" class="active" onclick="setFilter('all')">All Games</button>
@@ -33,29 +33,30 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <script>
 let all=[],cur='all',curDate='';
 const TOP_ORDER=[
-  {key:'CHAMPIONS LEAGUE',pri:1,zone:'EUROPE'},
-  {key:'EUROPA LEAGUE',pri:2,zone:'EUROPE',not:'CONFERENCE'},
-  {key:'CONFERENCE LEAGUE',pri:3,zone:'EUROPE'},
-  {key:'PREMIER LEAGUE',zone:'ENGLAND',pri:4},
-  {key:'LALIGA',pri:5,zone:'SPAIN'},{key:'LA LIGA',pri:5,zone:'SPAIN'},
-  {key:'LIGUE 1',zone:'FRANCE',pri:6},
-  {key:'BUNDESLIGA',zone:'GERMANY',pri:7},
-  {key:'SERIE A',zone:'ITALY',pri:8},
-  {key:'EREDIVISIE',zone:'NETHERLANDS',pri:9},
-  {key:'PRIMEIRA LIGA',zone:'PORTUGAL',pri:10},
-  {key:'PRIMEIRA',zone:'PORTUGAL',pri:10}
+  {key:'CHAMPIONS LEAGUE',pri:1},
+  {key:'EUROPA LEAGUE',pri:2,not:'CONFERENCE'},
+  {key:'CONFERENCE LEAGUE',pri:3},
+  {key:'PREMIER LEAGUE',pri:4},
+  {key:'LALIGA',pri:5},{key:'LA LIGA',pri:5},
+  {key:'LIGUE 1',pri:6},
+  {key:'BUNDESLIGA',pri:7},
+  {key:'SERIE A',pri:8},
+  {key:'EREDIVISIE',pri:9},
+  {key:'PRIMEIRA LIGA',pri:10},{key:'PRIMEIRA',pri:10},
+  {key:'EUROPE',pri:20},
+  {key:'ENGLAND',pri:21},{key:'SPAIN',pri:22},{key:'ITALY',pri:23},{key:'GERMANY',pri:24},{key:'FRANCE',pri:25},
+  {key:'AFRICA',pri:30},
+  {key:'ASIA',pri:40},
+  {key:'SOUTH AMERICA',pri:50},{key:'NORTH AMERICA',pri:51},{key:'AMERICA',pri:52},
+  {key:'WORLD',pri:60}
 ];
 function getPriority(zone,leagueName){
   let full=(zone+' - '+leagueName).toUpperCase();
-  let z=(zone||'').toUpperCase();
-  if(z.includes('ASIA')) return 100;
   for(let t of TOP_ORDER){
     if(t.not&&full.includes(t.not)) continue;
-    if(t.zone&&!z.includes(t.zone)&&!full.includes(t.zone)) continue;
     if(full.includes(t.key)) return t.pri;
   }
-  if(z.includes('EUROPE')) return 15;
-  return 100;
+  return 80;
 }
 function tabs(){
   let h='',t=new Date();
@@ -105,7 +106,7 @@ function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(
 function getCorrectTime(m){
  let st=(m.status||'').toUpperCase();
  if(st==='LIVE'||st==='HT'||st==='1H'||st==='2H'||st==='IN_PLAY'){
-   let min = m.minute || m.elapsed || m.live_minute || 'LIVE';
+   let min = m.minute || m.elapsed || 'LIVE';
    if(min!=='LIVE' && min!=='HT') min=min+"'";
    return {t:min,c:'#ff3b30'};
  }
@@ -124,24 +125,20 @@ function show(){
  if(!data.length){document.getElementById('list').innerHTML='No matches '+cur+' for '+curDate;return}
  let g={};
  data.forEach(m=>{
-  let k=(m.league_zone||'EUROPE')+' - '+m.league_name;
+  let k=(m.league_zone||'WORLD')+' - '+m.league_name;
   if(!g[k]) g[k]={name:k,pri:getPriority(m.league_zone,m.league_name),games:[]};
   g[k].games.push(m);
  });
  let keys=Object.keys(g).sort((a,b)=>{if(g[a].pri!=g[b].pri) return g[a].pri-g[b].pri;return a.localeCompare(b)});
- let html='';
+ let html='<div style="color:#666;font-size:11px;padding:6px">Total: '+data.length+' matches • '+keys.length+' leagues • All Continents</div>';
  keys.forEach(k=>{
   let gr=g[k];
   gr.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));
   html+='<div class="league-head">'+gr.name+' ('+gr.games.length+')</div>';
   gr.games.forEach(x=>{
-   // FIXED LIVE SCORE - 0-0 fallback for LIVE
-   let hs = x.home_score;
-   let as = x.away_score;
+   let hs = x.home_score; let as = x.away_score;
    let isLive = ['LIVE','HT','1H','2H','IN_PLAY'].includes(String(x.status||'').toUpperCase());
-   if(hs==null && as==null){
-     if(isLive){ hs=0; as=0; }
-   }
+   if(hs==null && as==null && isLive){ hs=0; as=0; }
    let sc = (hs!=null && as!=null) ? hs+' - '+as : '- : -';
    let tm=getCorrectTime(x);
    html+='<div class="match" onclick="openMatch(\''+x.id+'\')"><div class="time" style="color:'+tm.c+';border-color:'+tm.c+'">'+tm.t+'</div><div class="teams"><div>'+x.home_team+'</div><div>'+x.away_team+'</div></div><div class="score">'+sc+'</div></div>';
@@ -152,7 +149,6 @@ function show(){
 tabs();
 let startDate=localStorage.getItem('lastDate')||new Date().toISOString().split('T')[0];
 load(startDate);
-// Auto refresh every 30 sec if LIVE
 setInterval(()=>{
   let hasLive = all.some(m=> ['LIVE','HT'].includes(String(m.status||'').toUpperCase()));
   if(hasLive) load(curDate);
