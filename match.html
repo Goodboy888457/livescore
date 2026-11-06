@@ -2,16 +2,16 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match LIVE - FINAL FIX HOME AWAY</title>
+<title>Match LIVE - Highlightly ONLY</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;align-items:center;color:#000;font-weight:900;font-size:18px}
 .header a{background:#fff;color:#000;padding:6px 16px;border-radius:20px;text-decoration:none;font-size:14px;font-weight:900}
 .scorebox{background:#111;padding:25px 15px;text-align:center;border-bottom:3px solid #00c853}
 .league{color:#888;font-size:13px}
-.teams{font-size:28px;font-weight:900;margin:12px 0;line-height:34px}
+.teams{font-size:26px;font-weight:900;margin:12px 0;line-height:32px}
 .score{font-size:64px;font-weight:900;color:#00ff66}
-.live{color:#ff3b30;font-weight:900;font-size:20px}
+.live{font-weight:900;font-size:20px}
 .tabs{display:flex;background:#121212;position:sticky;top:0;z-index:10}
 .tabs button{flex:1;background:#121212;color:#888;border:0;padding:16px;font-weight:900;font-size:13px}
 .tabs button.active{color:#00ff66;border-bottom:3px solid #00c853;background:#1a1a1a}
@@ -27,8 +27,8 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 </style>
 </head>
 <body>
-<div class="header"><span>⚽ LiveScore</span><a href="/">← Back</a></div>
-<div class="scorebox" id="top">Loading...</div>
+<div class="header"><span>⚽ LiveScore Highlightly</span><a href="/">← Back</a></div>
+<div class="scorebox" id="top">Loading Highlightly...</div>
 <div class="tabs">
 <button id="b1" class="active" onclick="showTab('details',this)">DETAILS</button>
 <button onclick="showTab('stats',this)">STATS</button>
@@ -41,136 +41,98 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <div id="h2h" class="content" style="display:none"></div>
 <script>
 function showTab(n,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.querySelectorAll('.content').forEach(c=>c.style.display='none');document.getElementById(n).style.display='block';}
-function pick(o,ks){ if(!o) return null; for(let k of ks){ let v=o[k]; if(v!==undefined&&v!==null&&v!==''&&String(v).toLowerCase()!=='undefined'&&String(v).toLowerCase()!=='null') return v; } return null; }
-function toNum(v){ let n=Number(v); return isNaN(n)?0:n; }
+function toNum(v){let n=Number(v);return isNaN(n)?0:n;}
 
 async function load(){
  let params=new URLSearchParams(location.search);
- let id=params.get('id')||sessionStorage.getItem('mid')||localStorage.getItem('mid');
+ let id=params.get('id')||localStorage.getItem('mid');
+ let date=params.get('date')||localStorage.getItem('lastDate')||new Date().toISOString().split('T')[0];
  let m=null;
- try{ let raw=sessionStorage.getItem('selected_match')||localStorage.getItem('selected_match'); if(raw){ let p=JSON.parse(raw); if(String(p.id)===String(id)) m=p; } }catch(e){}
+ try{
+  let raw=localStorage.getItem('selected_match');
+  if(raw){let p=JSON.parse(raw); if(String(p.id)===String(id)) m=p;}
+ }catch(e){}
 
+ // If no stored, fetch from Highlightly backend
  if(!m){
   try{
    let r=await fetch(`/api/fixture?id=${id}`);
-   if(r.ok){
-    let j=await r.json(); let f=j.fixture||j.data||j||{};
-    let hh = pick(f, ['ht_home','home_ht','ht_home_score','home_ht_score','halftime_home','ht_h']) ?? pick(f.score?.halftime||{},['home','h']) ?? null;
-    let aa = pick(f, ['ht_away','away_ht','ht_away_score','away_ht_score','halftime_away','ht_a']) ?? pick(f.score?.halftime||{},['away','a']) ?? null;
-    m={
-      id:f.id||id,
-      home_team:f.home_team||f.homeTeam?.name||f.teams?.home?.name||'Home',
-      away_team:f.away_team||f.awayTeam?.name||f.teams?.away?.name||'Away',
-      league_name:f.league_name||f.league?.name||'League',
-      league_zone:f.league_zone||f.league?.country||'World',
-      home_score: pick(f, ['home_score','homeScore']) ?? f.score?.fulltime?.home ?? f.score?.home ?? null,
-      away_score: pick(f, ['away_score','awayScore']) ?? f.score?.fulltime?.away ?? f.score?.away ?? null,
-      home_ht: hh, away_ht: aa,
-      status:f.status||'FT', minute:f.minute||'', league_id:f.league_id||f.league?.id||'0',
-      datetime:f.datetime||f.date||''
-    };
-   }
+   let j=await r.json();
+   let f=j.fixture||j.data||j||{};
+   m={
+    id:f.id||id,
+    home_team:f.home_team?.name||f.home_team||f.teams?.home?.name||'Home',
+    away_team:f.away_team?.name||f.away_team||f.teams?.away?.name||'Away',
+    league_name:f.league?.name||f.league_name||'League',
+    league_zone:f.country?.name||f.league?.country||f.country||'World',
+    home_score:f.home_score??f.goals?.home??f.score?.home??null,
+    away_score:f.away_score??f.goals?.away??f.score?.away??null,
+    home_ht:f.score?.halftime?.home??null,
+    away_ht:f.score?.halftime?.away??null,
+    status:(f.status?.short||f.status||'FT').toUpperCase(),
+    minute:f.status?.elapsed||'',
+    league_id:f.league?.id||'0',
+    datetime:f.kickoff||f.fixture?.date||f.date||date
+   };
   }catch(e){}
  }
- if(!m){ m={id,home_team:'AC Milan',away_team:'Ferencvaros',league_name:'UEFA Europa League',league_zone:'Europe',home_score:0,away_score:2,home_ht:0,away_ht:0,status:'FT',league_id:'28',datetime:'2026-11-05 18:45:00'}; }
+ if(!m) m={id,home_team:'Home',away_team:'Away',league_name:'League',league_zone:'World',home_score:null,away_score:null,home_ht:null,away_ht:null,status:'NS',league_id:'0',datetime:date};
 
- function teamAbbr(name){ if(!name) return 'HOM'; return name.trim().substring(0,3).toUpperCase(); }
- let homeAbbr = teamAbbr(m.home_team);
- let awayAbbr = teamAbbr(m.away_team);
- let homeNameLow = m.home_team.toLowerCase();
- let awayNameLow = m.away_team.toLowerCase();
+ let homeAbbr=m.home_team.substring(0,3).toUpperCase();
+ let awayAbbr=m.away_team.substring(0,3).toUpperCase();
 
- let events=[]; try{ let r=await fetch(`/api/events?id=${id}`); let j=await r.json(); events=j.data||j.events||[]; console.log('EVENTS FROM NEW API:', events); }catch(e){}
+ // EVENTS from Highlightly
+ let events=[];
+ try{
+  let r=await fetch(`/api/events?id=${id}`);
+  let j=await r.json();
+  events=j.data||[];
+ }catch(e){}
 
- let hasHT = (m.home_ht!==null && m.home_ht!=='' && !isNaN(Number(m.home_ht)) && m.away_ht!==null && m.away_ht!=='' && !isNaN(Number(m.away_ht)));
- let calcH=0, calcA=0;
- if(!hasHT && events.length){
-   events.forEach(ev=>{
-     let min=parseInt(ev.minute||0); let type=(ev.event_type||ev.type||'').toLowerCase();
-     if(type.includes('goal') && min>0 && min<=45){
-       let side=(ev.team_side||ev.team||'').toLowerCase();
-       if(side.includes('home')||side==='h'||side.includes(homeNameLow.substring(0,4))) calcH++; else calcA++;
-     }
-   });
+ let isScheduled=(m.status==='NS'||m.status==='SCHEDULED'||(m.home_score===null&&m.away_score===null));
+ let hS=isScheduled?0:toNum(m.home_score), aS=isScheduled?0:toNum(m.away_score);
+ let hHT=toNum(m.home_ht), aHT=toNum(m.away_ht);
+ if(!hHT&&!aHT&&events.length){
+  events.forEach(ev=>{let min=parseInt(ev.minute||0); if(ev.event_type?.toLowerCase().includes('goal')&&min<=45){ if((ev.team_side||'').toLowerCase().includes('home')) hHT++; else aHT++; }});
  }
+ let htT=isScheduled?'-':`${hHT}-${aHT}`;
+ let fullT=isScheduled?'VS':`${hS}-${aS} (${htT})`;
+ let scoreDisplay=isScheduled?'VS':`${hS} - ${aS}`;
+ let statusTxt=isScheduled?'Scheduled':`${m.status} - ${fullT}`;
+ let statusColor=isScheduled?'#888':m.status==='LIVE'?'#ff3b30':'#00ff66';
+ if(m.status==='LIVE') statusTxt=`Live ${m.minute||''} - ${fullT}`;
 
- let hHT = hasHT ? toNum(m.home_ht) : calcH;
- let aHT = hasHT ? toNum(m.away_ht) : calcA;
- let isScheduled = (m.status==='Scheduled'||m.status==='NS'|| (m.home_score===null && m.away_score===null));
- let hS = isScheduled?0:toNum(m.home_score), aS = isScheduled?0:toNum(m.away_score);
- let htT = isScheduled ? '-' : `${hHT}-${aHT}`;
- let sT = isScheduled ? '-' : `${hS-hHT}-${aS-aHT}`;
- let fullT = isScheduled ? 'VS' : `${hS}-${aS} (${htT},${sT})`;
- let scoreDisplay = isScheduled ? 'VS' : `${hS} - ${aS}`;
- let statusTxt = isScheduled ? 'Scheduled' : `Finished - FT - ${fullT}`;
- let statusColor = isScheduled ? '#888' : '#00ff66';
- if(m.status==='LIVE'){ statusTxt=`Live ${m.minute} - ${fullT}`; statusColor='#ff3b30'; }
+ document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team}<br><span style="color:#555">VS</span><br>${m.away_team}</div><div class="score">${scoreDisplay}</div><div class="live" style="color:${statusColor}">${statusTxt}</div><div style="color:#666;font-size:11px">${m.datetime} | ID:${id} | Highlightly</div>`;
 
- document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team} [${homeAbbr}]<br><span style="color:#555">VS</span><br>${m.away_team} [${awayAbbr}]</div><div class="score">${scoreDisplay}</div><div class="live" style="color:${statusColor}">${statusTxt}</div><div style="color:#666;font-size:11px">${m.datetime} | ID:${id}</div>`;
-
- function icon(t){ t=(t||'').toLowerCase(); if(t.includes('yellow')) return '🟨'; if(t.includes('red')) return '🟥'; if(t.includes('goal')) return '⚽'; if(t.includes('substitut')) return '🔄'; return '•'; }
- // FINAL FIX - checks ALL fields including 'related'
- function getOut(e){ 
-   let v = e.player_out || e.related_player || e.out_player || e.related || e.extra_player || e.second_player || e.player2 || e.sub_out || e.assist || e.player_out_name || '';
-   if(typeof v==='object' && v) v = v.name || '';
-   return v || ''; 
- }
- function getIn(e){ 
-   let v = e.player_in || e.player_name || e.player || e.in_player || e.sub_in || '';
-   if(typeof v==='object' && v) v = v.name || '';
-   return v || ''; 
- }
+ function icon(t){t=(t||'').toLowerCase(); if(t.includes('yellow')) return '🟨'; if(t.includes('red')) return '🟥'; if(t.includes('goal')) return '⚽'; if(t.includes('sub')) return '🔄'; return '•';}
  function renderEv(list){
-   if(!list.length) return `<div class="row" style="color:#666">No events - ${statusTxt}</div>`;
-   return list.map(e=>{
-     let type=e.event_type||e.type||'';
-     let min=(e.minute||'').toString().replace("'","").replace('"','');
-     let inName=getIn(e);
-     let outName=getOut(e);
-     let side=(e.team_side||e.team||'').toString().toLowerCase();
-     // FINAL HOME/AWAY LOGIC FOR ALL LEAGUES
-     let isHome = false;
-     if(side.includes('home') || side==='h' || side===homeAbbr.toLowerCase()) isHome = true;
-     else if(side.includes('away') || side==='a' || side===awayAbbr.toLowerCase()) isHome = false;
-     else if(homeNameLow && side.includes(homeNameLow.substring(0,4))) isHome = true;
-     else if(awayNameLow && side.includes(awayNameLow.substring(0,4))) isHome = true ? false : true; // default check
-     else if(side.includes(homeNameLow) || homeNameLow.includes(side)) isHome = true;
-     else { // If no team info, try to guess from abbreviation logic
-       isHome = side ? (side.charAt(0)===homeNameLow.charAt(0)) : true;
-       if(side.includes('ferenc') || side.includes('fer')) isHome = false;
-       if(side.includes('milan') || side.includes('acm')) isHome = true;
-     }
-     // More robust: if side equals away team name
-     if(side===awayNameLow || awayNameLow.includes(side) && side.length>3) isHome = false;
-     if(side===homeNameLow || homeNameLow.includes(side) && side.length>3) isHome = true;
-
-     let abbr = isHome ? homeAbbr : awayAbbr;
-     let isSub=type.toLowerCase().includes('substitut');
-     let txt='';
-     if(isSub){
-       if(outName) txt=`${inName} (${outName}) [${abbr}]`;
-       else txt=`${inName} [${abbr}]`;
-     } else if(type.toLowerCase().includes('goal')){
-       txt=`${inName} goal [${abbr}]`;
-     } else {
-       txt=`${inName} ${type.replace('_',' ')} [${abbr}]`;
-     }
-     return `<div class="row"><span>${min}' ${icon(type)} ${txt}</span><span style="font-weight:900;color:#00c853">${abbr}</span></div>`;
-   }).join('');
+  if(!list.length) return `<div class="row" style="color:#666">No events - ${statusTxt}</div>`;
+  return list.map(e=>{
+   let type=e.event_type||'';
+   let min=(e.minute||'').toString().replace("'","");
+   let player=e.player||e.player_in||'';
+   let out=e.player_out||e.related||'';
+   let side=(e.team_side||'').toLowerCase();
+   let isHome=side.includes('home')||side.includes(m.home_team.toLowerCase().substring(0,4));
+   let abbr=isHome?homeAbbr:awayAbbr;
+   let txt=type.toLowerCase().includes('sub')&&out?`${player} (${out}) [${abbr}]`:`${player} ${type} [${abbr}]`;
+   return `<div class="row"><span>${min}' ${icon(type)} ${txt}</span><span style="font-weight:900;color:#00c853">${abbr}</span></div>`;
+  }).join('');
  }
  let ev1=events.filter(e=>parseInt(e.minute||0)<=45), ev2=events.filter(e=>parseInt(e.minute||0)>45);
- document.getElementById('details').innerHTML=`<div class="card"><div class="greenBar">Football » ${m.league_zone}: ${m.league_name} » Details - ${fullT}</div></div><div class="card"><div class="head">MATCH INFO ID:${id}</div><div class="row"><span>League</span><span>${m.league_name}</span></div><div class="row"><span>Status</span><span style="color:${statusColor};font-weight:900">${statusTxt}</span></div><div class="row"><span>Score</span><span style="color:#00ff66;font-weight:900">${fullT}</span></div><div class="row"><span>1st Half</span><span>${htT}</span></div><div class="row"><span>2nd Half</span><span>${sT}</span></div><div class="row"><span>Home</span><span>${m.home_team} [${homeAbbr}]</span></div><div class="row"><span>Away</span><span>${m.away_team} [${awayAbbr}]</span></div></div><div class="card"><div class="blackHead">1st Half: ${htT}</div>${renderEv(ev1)}</div><div class="card"><div class="blackHead">2nd Half: ${sT} - FT</div>${renderEv(ev2)}</div>`;
+ document.getElementById('details').innerHTML=`<div class="card"><div class="greenBar">Highlightly » ${m.league_zone}: ${m.league_name} » ${fullT}</div></div><div class="card"><div class="head">MATCH INFO - Highlightly ID:${id}</div><div class="row"><span>League</span><span>${m.league_name}</span></div><div class="row"><span>Status</span><span style="color:${statusColor};font-weight:900">${statusTxt}</span></div><div class="row"><span>Score</span><span style="color:#00ff66;font-weight:900">${fullT}</span></div><div class="row"><span>1st Half</span><span>${htT}</span></div><div class="row"><span>Home</span><span>${m.home_team}</span></div><div class="row"><span>Away</span><span>${m.away_team}</span></div></div><div class="card"><div class="blackHead">1st Half: ${htT}</div>${renderEv(ev1)}</div><div class="card"><div class="blackHead">2nd Half: FT</div>${renderEv(ev2)}</div>`;
 
- document.getElementById('stats').innerHTML=`<div class="card"><div class="head">STATS - ${fullT}</div><div class="row">No stats</div></div>`;
- document.getElementById('table').innerHTML=`<div class="card"><div class="head">STANDINGS - ${m.league_name}</div><div class="row">Loading...</div></div>`;
+ document.getElementById('stats').innerHTML=`<div class="card"><div class="head">STATS - Highlightly</div><div class="row">No stats from Highlightly yet</div></div>`;
+ document.getElementById('table').innerHTML=`<div class="card"><div class="head">STANDINGS - ${m.league_name}</div><div class="row">Loading Highlightly standings...</div></div>`;
  try{
-  let r=await fetch(`/api/standings?league_id=${m.league_id}`); if(!r.ok) r=await fetch(`/api/table?league_id=${m.league_id}`);
-  let j=await r.json(); let tbl=j.data||[];
-  let html=`<div style="background:#fff;color:#000;border-radius:12px;margin:10px"><div style="background:#006400;color:#fff;padding:10px;font-weight:900">${m.league_name}</div><table class="stand-table"><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>D</th><th>L</th><th>G</th><th>PTS</th></tr>`;
-  tbl.forEach(row=>{ html+=`<tr><td>${row.position||''}.</td><td>${row.team?.name||row.name}</td><td>${row.played||0}</td><td>${row.won||0}</td><td>${row.draw||0}</td><td>${row.lost||0}</td><td>${row.goals_for||0}:${row.goals_against||0}</td><td><b>${row.points||0}</b></td></tr>`; });
-  html+=`</table></div>`; document.getElementById('table').innerHTML=html;
+  let r=await fetch(`/api/standings?league_id=${m.league_id}`); let j=await r.json(); let tbl=j.data||[];
+  if(tbl.length){
+   let html=`<div style="background:#fff;color:#000;border-radius:12px;margin:10px"><div style="background:#006400;color:#fff;padding:10px;font-weight:900">${m.league_name} - Highlightly</div><table class="stand-table"><tr><th>#</th><th>Team</th><th>MP</th><th>Pts</th></tr>`;
+   tbl.forEach(row=>{ html+=`<tr><td>${row.position||''}</td><td style="text-align:left;padding-left:8px">${row.team?.name||row.name}</td><td>${row.played||0}</td><td><b>${row.points||0}</b></td></tr>`; });
+   html+=`</table></div>`; document.getElementById('table').innerHTML=html;
+  } else document.getElementById('table').innerHTML=`<div class="card"><div class="row">No standings for this league</div></div>`;
  }catch(e){ document.getElementById('table').innerHTML=`<div class="card"><div class="row">No standings</div></div>`; }
- document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">H2H - ${m.home_team} vs ${m.away_team}</div><div class="row">No H2H data</div></div>`;
+ document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">H2H - Highlightly</div><div class="row">No H2H data</div></div>`;
 }
 load();showTab('details',document.getElementById('b1'));
 </script>
