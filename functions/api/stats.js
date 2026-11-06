@@ -48,4 +48,19 @@ export async function onRequestGet(context){
     {label:"Possession", home:home['ball possession']||home['possession']||'50%', away:away['ball possession']||away['possession']||'50%'},
     {label:"Shots", home:home['total shots']||home['shots']||'0', away:away['total shots']||away['shots']||'0'},
     {label:"Shots on Target", home:home['shots on target']||'0', away:away['shots on target']||'0'},
-    {label:"Corners", home:home['corner kicks']||home['corners']||'0', away
+    {label:"Corners", home:home['corner kicks']||home['corners']||'0', away:away['corner kicks']||away['corners']||'0'},
+    {label:"Yellow Cards", home:home['yellow cards']||'0', away:away['yellow cards']||'0'},
+    {label:"Red Cards", home:home['red cards']||'0', away:away['red cards']||'0'},
+    {label:"Fouls", home:home['fouls']||'0', away:away['fouls']||'0'},
+  ];
+
+  return new Response(JSON.stringify({success:true,data:combined,raw:raw}),[STRIPPED]
+    headers:{"Content-Type":"application/json","Access-Control-Allow-Origin":"*","Cache-Control":"no-cache"}
+  });
+
+ }catch(err){
+  return new Response(JSON.stringify({success:false,error:err.message,data:[]}),[STRIPPED]
+    headers:{"Content-Type":"application/json","Access-Control-Allow-Origin":"*"}
+  });
+ }
+}
