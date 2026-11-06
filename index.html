@@ -22,14 +22,14 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 </style>
 </head>
 <body>
-<div class="header"><span>⚽ LiveScore ALL Continents</span><a href="#" onclick="location.reload();return false;">↻ Refresh</a></div>
+<div class="header"><span>⚽ LiveScore ALL Continents - Highlightly</span><a href="#" onclick="location.reload();return false;">↻ Refresh</a></div>
 <div class="tabs" id="dateTabs"></div>
 <div class="filter">
 <button id="f-all" class="active" onclick="setFilter('all')">All Games</button>
 <button id="f-live" onclick="setFilter('live')">Live</button>
 <button id="f-fin" onclick="setFilter('finished')">Finished</button>
 </div>
-<div id="list" style="padding:10px;text-align:center">Loading...</div>
+<div id="list" style="padding:10px;text-align:center">Loading Highlightly...</div>
 <script>
 let all=[],cur='all',curDate='';
 const TOP_ORDER=[
@@ -80,17 +80,15 @@ function goDate(ds,el){
 async function load(d){
  curDate=d;
  localStorage.setItem('lastDate',d);
- document.getElementById('list').innerHTML='Loading '+d+'...';
+ document.getElementById('list').innerHTML='Loading '+d+' from Highlightly...';
  try{
-  let r=null,j=null;
-  try{r=await fetch('/api/fixtures?date='+d);j=await r.json();}catch(e){}
-  if(!j||!j.data){try{r=await fetch('/api/fixtures/date/'+d);j=await r.json();}catch(e){}}
-  if(!j||!j.data){try{r=await fetch('/fixtures?date='+d);j=await r.json();}catch(e){}}
-  all=j?.data||j?.fixtures||[];
-  if(!all.length) throw new Error('No data');
+  let r=await fetch('/api/fixtures?date='+d+'&nocache=1');
+  let j=await r.json();
+  all=j?.data||[];
+  if(!all.length) throw new Error(j.error||'No data - check HIGHLIGHTLY_API_KEY');
   show();
  }catch(e){
-  document.getElementById('list').innerHTML='<div style="color:#888">No matches for '+d+'<br>'+e.message+'</div>';
+  document.getElementById('list').innerHTML='<div style="color:#ff3b30">No matches for '+d+'<br>'+e.message+'</div>';
   all=[];
  }
 }
@@ -105,17 +103,17 @@ function openMatch(id){
 function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f=='all'?'all':f)).classList.add('active');show()}
 function getCorrectTime(m){
  let st=(m.status||'').toUpperCase();
- if(st==='LIVE'||st==='HT'||st==='1H'||st==='2H'||st==='IN_PLAY'){
-   let min = m.minute || m.elapsed || 'LIVE';
+ if(['LIVE','HT','1H','2H','IN_PLAY'].includes(st)){
+   let min = m.minute || 'LIVE';
    if(min!=='LIVE' && min!=='HT') min=min+"'";
    return {t:min,c:'#ff3b30'};
  }
- if(st==='FT'||st==='AET'||st==='PENS'||st==='FINISHED') return {t:st,c:'#00c853'};
+ if(['FT','AET','PENS','FINISHED'].includes(st)) return {t:st,c:'#00c853'};
  let time='NS';
  try{
   if(m.kickoff_utc) time=new Date(m.kickoff_utc).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Lagos'});
   else if(m.datetime) time=m.datetime.split(' ')[1]?.substring(0,5)||'NS';
- }catch(e){time=m.datetime?.split(' ')[1]?.substring(0,5)||'NS';}
+ }catch(e){time='NS';}
  return {t:time,c:'#00c853'};
 }
 function show(){
@@ -130,7 +128,7 @@ function show(){
   g[k].games.push(m);
  });
  let keys=Object.keys(g).sort((a,b)=>{if(g[a].pri!=g[b].pri) return g[a].pri-g[b].pri;return a.localeCompare(b)});
- let html='<div style="color:#666;font-size:11px;padding:6px">Total: '+data.length+' matches • '+keys.length+' leagues • All Continents</div>';
+ let html='<div style="color:#666;font-size:11px;padding:6px">Highlightly Total: '+data.length+' matches • '+keys.length+' leagues • All Continents including Armenia!</div>';
  keys.forEach(k=>{
   let gr=g[k];
   gr.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));
