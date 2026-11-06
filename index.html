@@ -22,7 +22,7 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 </style>
 </head>
 <body>
-<div class="header"><span>⚽ LiveScore TOP A-Z</span><a href="#" onclick="location.reload()">↻ Refresh</a></div>
+<div class="header"><span>⚽ LiveScore TOP A-Z</span><a href="#" onclick="location.reload();return false;">↻ Refresh</a></div>
 <div class="tabs" id="dateTabs"></div>
 <div class="filter">
 <button id="f-all" class="active" onclick="setFilter('all')">All</button>
@@ -40,13 +40,10 @@ async function load(d){
  document.getElementById('list').innerHTML='Loading '+d+'...';
  try{
   let r=null,j=null;
-  // Try 1: /api/fixtures?date=YYYY-MM-DD (your custom)
   try{ r=await fetch(`/api/fixtures?date=${d}`); j=await r.json(); }catch(e){}
-  // Try 2: /api/fixtures/date/YYYY-MM-DD (SportAPI direct style per docs) + /api/fixture alias
   if(!j || !j.data){
    try{ r=await fetch(`/api/fixtures/date/${d}`); j=await r.json(); }catch(e){}
   }
-  // Try 3: /fixtures?date=
   if(!j || !j.data){
    try{ r=await fetch(`/fixtures?date=${d}`); j=await r.json(); }catch(e){}
   }
@@ -59,16 +56,21 @@ async function load(d){
  }
 }
 
+// *** FIXED: ABSOLUTE PATH + PREVENT LOOP ***
 function openMatch(id){
   try{ 
     localStorage.setItem('mid', String(id)); 
+    sessionStorage.setItem('mid', String(id));
     let m = all.find(x=>String(x.id)==String(id));
-    if(m) localStorage.setItem('selected_match', JSON.stringify(m));
+    if(m){
+      localStorage.setItem('selected_match', JSON.stringify(m));
+      sessionStorage.setItem('selected_match', JSON.stringify(m));
+    }
   }catch(e){}
-  // FIXED: Use absolute path + encode - works for all days!
-  let url = 'match.html?id=' + encodeURIComponent(id) + '&date=' + encodeURIComponent(curDate);
+  // FIXED: Absolute path /match.html — prevents SPA fallback loop!
+  let url = '/match.html?id=' + encodeURIComponent(id) + '&date=' + encodeURIComponent(curDate);
   console.log('Opening', url);
-  window.location.href = url;
+  window.location.href = url; // NOT window.location.replace, NOT relative!
 }
 
 function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f)).classList.add('active');show()}
@@ -93,7 +95,7 @@ function show(){
 let data=[...all];if(cur=='live')data=data.filter(x=>['LIVE','HT'].includes((x.status||'').toUpperCase()));if(cur=='finished')data=data.filter(x=>['FT','AET','PENS'].includes((x.status||'').toUpperCase()));if(!data.length){document.getElementById('list').innerHTML='No matches '+cur+' for '+curDate;return}
 let g={};data.forEach(m=>{let k=`${m.league_zone||'EUROPE'} - ${m.league_name}`;if(!g[k])g[k]={name:k,games:[],rank:rank(k)};g[k].games.push(m)});
 let keys=Object.keys(g).sort((a,b)=>{if(g[a].rank!=g[b].rank)return g[a].rank-g[b].rank;return a.localeCompare(b)});
-let html='';keys.forEach(k=>{let gr=g[k];gr.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));html+=`<div class="league-head">${gr.name} (${gr.games.length})</div>`;gr.games.forEach(x=>{let sc=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';let tm=getCorrectTime(x);html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time" style="color:${tm.c};border-color:${tm.c};pointer-events:none">${tm.t}</div><div class="teams" style="pointer-events:none"><div>${x.home_team}</div><div>${x.away_team}</div></div><div class="score" style="pointer-events:none">${sc}</div></div>`})});
+let html='';keys.forEach(k=>{let gr=g[k];gr.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));html+=`<div class="league-head">${gr.name} (${gr.games.length})</div>`;gr.games.forEach(x=>{let sc=x.home_score!=null?`${x.home_score} - ${x.away_score}`:'- : -';let tm=getCorrectTime(x);html+=`<div class="match" onclick="openMatch('${x.id}')"><div class="time" style="color:${tm.c};border-color:${tm.c}">${tm.t}</div><div class="teams"><div>${x.home_team}</div><div>${x.away_team}</div></div><div class="score">${sc}</div></div>`})});
 document.getElementById('list').innerHTML=html
 }
 tabs();load(new Date().toISOString().split('T')[0]);
