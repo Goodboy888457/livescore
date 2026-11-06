@@ -104,9 +104,12 @@ function openMatch(id){
 function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f=='finished'?'fin':f=='all'?'all':f)).classList.add('active');show()}
 function getCorrectTime(m){
  let st=(m.status||'').toUpperCase();
- if(st==='LIVE') return {t:m.minute||'LIVE',c:'#ff3b30'};
- if(st==='HT') return {t:'HT',c:'#ff9500'};
- if(st==='FT'||st==='AET'||st==='PENS') return {t:st,c:'#00c853'};
+ if(st==='LIVE'||st==='HT'||st==='1H'||st==='2H'||st==='IN_PLAY'){
+   let min = m.minute || m.elapsed || m.live_minute || 'LIVE';
+   if(min!=='LIVE') min=min+"'";
+   return {t:min,c:'#ff3b30'};
+ }
+ if(st==='FT'||st==='AET'||st==='PENS'||st==='FINISHED') return {t:st,c:'#00c853'};
  let time='NS';
  try{
   if(m.kickoff_utc) time=new Date(m.kickoff_utc).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Lagos'});
@@ -116,8 +119,8 @@ function getCorrectTime(m){
 }
 function show(){
  let data=[...all];
- if(cur=='live') data=data.filter(x=>['LIVE','HT'].includes((x.status||'').toUpperCase()));
- if(cur=='finished') data=data.filter(x=>['FT','AET','PENS'].includes((x.status||'').toUpperCase()));
+ if(cur=='live') data=data.filter(x=>['LIVE','HT','1H','2H','IN_PLAY'].includes((x.status||'').toUpperCase()));
+ if(cur=='finished') data=data.filter(x=>['FT','AET','PENS','FINISHED'].includes((x.status||'').toUpperCase()));
  if(!data.length){document.getElementById('list').innerHTML='No matches '+cur+' for '+curDate;return}
  let g={};
  data.forEach(m=>{
@@ -132,7 +135,9 @@ function show(){
   gr.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));
   html+='<div class="league-head">'+gr.name+' ('+gr.games.length+')</div>';
   gr.games.forEach(x=>{
-   let sc=x.home_score!=null?x.home_score+' - '+x.away_score:'- : -';
+   let hs = x.home_score ?? x.score_home ?? x.goals_home ?? x.home_goals ?? x.homeScore ?? x.h_score;
+   let as = x.away_score ?? x.score_away ?? x.goals_away ?? x.away_goals ?? x.awayScore ?? x.a_score;
+   let sc = (hs!=null && as!=null) ? hs+' - '+as : '- : -';
    let tm=getCorrectTime(x);
    html+='<div class="match" onclick="openMatch(\''+x.id+'\')"><div class="time" style="color:'+tm.c+';border-color:'+tm.c+'">'+tm.t+'</div><div class="teams"><div>'+x.home_team+'</div><div>'+x.away_team+'</div></div><div class="score">'+sc+'</div></div>';
   });
