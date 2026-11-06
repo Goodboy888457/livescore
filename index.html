@@ -106,7 +106,7 @@ function getCorrectTime(m){
  let st=(m.status||'').toUpperCase();
  if(st==='LIVE'||st==='HT'||st==='1H'||st==='2H'||st==='IN_PLAY'){
    let min = m.minute || m.elapsed || m.live_minute || 'LIVE';
-   if(min!=='LIVE') min=min+"'";
+   if(min!=='LIVE' && min!=='HT') min=min+"'";
    return {t:min,c:'#ff3b30'};
  }
  if(st==='FT'||st==='AET'||st==='PENS'||st==='FINISHED') return {t:st,c:'#00c853'};
@@ -135,8 +135,13 @@ function show(){
   gr.games.sort((a,b)=>(a.datetime||'').localeCompare(b.datetime||''));
   html+='<div class="league-head">'+gr.name+' ('+gr.games.length+')</div>';
   gr.games.forEach(x=>{
-   let hs = x.home_score ?? x.score_home ?? x.goals_home ?? x.home_goals ?? x.homeScore ?? x.h_score;
-   let as = x.away_score ?? x.score_away ?? x.goals_away ?? x.away_goals ?? x.awayScore ?? x.a_score;
+   // FIXED LIVE SCORE - 0-0 fallback for LIVE
+   let hs = x.home_score;
+   let as = x.away_score;
+   let isLive = ['LIVE','HT','1H','2H','IN_PLAY'].includes(String(x.status||'').toUpperCase());
+   if(hs==null && as==null){
+     if(isLive){ hs=0; as=0; }
+   }
    let sc = (hs!=null && as!=null) ? hs+' - '+as : '- : -';
    let tm=getCorrectTime(x);
    html+='<div class="match" onclick="openMatch(\''+x.id+'\')"><div class="time" style="color:'+tm.c+';border-color:'+tm.c+'">'+tm.t+'</div><div class="teams"><div>'+x.home_team+'</div><div>'+x.away_team+'</div></div><div class="score">'+sc+'</div></div>';
@@ -147,6 +152,11 @@ function show(){
 tabs();
 let startDate=localStorage.getItem('lastDate')||new Date().toISOString().split('T')[0];
 load(startDate);
+// Auto refresh every 30 sec if LIVE
+setInterval(()=>{
+  let hasLive = all.some(m=> ['LIVE','HT'].includes(String(m.status||'').toUpperCase()));
+  if(hasLive) load(curDate);
+}, 30000);
 </script>
 </body>
 </html>
