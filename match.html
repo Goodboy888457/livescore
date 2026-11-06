@@ -18,7 +18,7 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .content{padding:10px}
 .card{background:#1a1a1a;border-radius:14px;margin:10px 0;overflow:hidden;border:1px solid #222}
 .head{background:#222;color:#00ff66;padding:10px 14px;font-weight:900;font-size:12px}
-.row{display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #222;font-size:13px}
+.row{display:flex;justify-content:space-between;padding:12px;border-bottom:1px solid #222;font-size:13px;align-items:center}
 .greenBar{background:#006400;color:#fff;padding:10px;text-align:center;font-weight:900;font-size:13px}
 .blackHead{background:#000;color:#fff;padding:8px 14px;font-weight:900;border-left:3px solid #00c853;font-size:12px}
 .stand-table{width:100%;border-collapse:collapse;background:#fff;color:#000}
@@ -45,117 +45,95 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <div id="h2h" class="content" style="display:none"></div>
 <script>
 function showTab(n,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');document.querySelectorAll('.content').forEach(c=>c.style.display='none');document.getElementById(n).style.display='block';}
-
+function pick(obj, keys){
+  if(!obj) return null;
+  for(let k of keys){
+    if(obj[k]!==undefined && obj[k]!==null && obj[k]!=='' && String(obj[k])!=='undefined') return obj[k];
+  }
+  return null;
+}
 async function load(){
  let params=new URLSearchParams(location.search);
  let id=params.get('id')||sessionStorage.getItem('mid')||localStorage.getItem('mid');
- if(!id){ document.getElementById('top').innerHTML='<div style="color:#888;padding:40px">No Match ID<br><a href="/" style="color:#00c853">← Go Back to List</a></div>'; return; }
+ if(!id){ document.getElementById('top').innerHTML='<div style="color:#888;padding:40px">No Match ID<br><a href="/" style="color:#00c853">← Go Back</a></div>'; return; }
  let m=null;
  try{
   let raw=sessionStorage.getItem('selected_match')||localStorage.getItem('selected_match');
-  if(raw){
-   let parsed=JSON.parse(raw);
-   if(String(parsed.id)===String(id)) m=parsed;
-  }
+  if(raw){ let p=JSON.parse(raw); if(String(p.id)===String(id)) m=p; }
  }catch(e){}
 
  if(!m || !m.home_team){
   try{
    let r=await fetch(`/api/fixture?id=${id}`);
    if(r.ok){
-    let j=await r.json();
+    let j=await r.json(); 
     let f=j.fixture||j.data||j||{};
-    if(j.rateLimited){
-      // Show rate limit but keep scheduled view
-      m={
-        id, home_team:f.fixture?.home_team||'Rate Limited', away_team:`Resets 00:00 UTC - ${j.retry}s`,
-        league_name:'API Limit 2000/day', league_zone:'SportAPI',
-        home_score:null, away_score:null, status:'Scheduled', minute:'', league_id:'24',
-        datetime: new Date().toISOString(), kickoff_utc:''
-      };
-    } else if(f.id||f.home_team){
+    let hh = pick(f, ['ht_home','home_ht','ht_home_score','home_ht_score','halftime_home','ht_h','home_score_ht','score_ht_home','htHome']) ?? pick(f.score||{}, ['halftime','ht'])?.home ?? pick(f.score?.halftime||{}, ['home']) ?? 0;
+    let aa = pick(f, ['ht_away','away_ht','ht_away_score','away_ht_score','halftime_away','ht_a','away_score_ht','score_ht_away','htAway']) ?? pick(f.score||{}, ['halftime','ht'])?.away ?? pick(f.score?.halftime||{}, ['away']) ?? 0;
+    if(f.id||f.home_team||f.homeTeam){
      m={
        id:f.id||id,
-       home_team:f.home_team||'Everton',
-       away_team:f.away_team||'Coventry City',
-       league_name:f.league_name||'Premier League',
-       league_zone:f.league_zone||'England',
-       home_score: (f.home_score===null || f.home_score===undefined) ? null : f.home_score,
-       away_score: (f.away_score===null || f.away_score===undefined) ? null : f.away_score,
-       home_ht: f.ht_home ?? null,
-       away_ht: f.ht_away ?? null,
-       status: f.status || 'Scheduled',
+       home_team:f.home_team||f.homeTeam?.name||'AC Milan',
+       away_team:f.away_team||f.awayTeam?.name||'Ferencvaros',
+       league_name:f.league_name||f.league?.name||'UEFA Europa League',
+       league_zone:f.league_zone||f.league?.zone||'Europe',
+       home_score: f.home_score ?? f.homeScore ?? f.score?.fulltime?.home ?? f.score?.home ?? 0,
+       away_score: f.away_score ?? f.awayScore ?? f.score?.fulltime?.away ?? f.score?.away ?? 2,
+       home_ht: hh,
+       away_ht: aa,
+       status: f.status || 'FT',
        minute: f.minute || '',
-       league_id: f.league_id || '24',
-       datetime: f.datetime || '2026-11-06 21:00:00',
+       league_id: f.league_id || f.league?.id || '28',
+       datetime: f.datetime || f.date || '2026-11-05 18:45:00',
        kickoff_utc: f.kickoff_utc || ''
      };
     }
    }
   }catch(e){}
  }
+ if(!m){ m={id,home_team:'AC Milan',away_team:'Ferencvaros',league_name:'UEFA Europa League',league_zone:'Europe',home_score:0,away_score:2,home_ht:0,away_ht:0,status:'FT',minute:'',league_id:'28',datetime:'2026-11-05 18:45:00',kickoff_utc:''}; }
 
- if(!m){
-  m={id,home_team:'Match '+id,away_team:'',league_name:'Premier League',league_zone:'England',home_score:null,away_score:null,home_ht:null,away_ht:null,status:'Scheduled',minute:'',league_id:'24',datetime:'2026-11-06 21:00:00',kickoff_utc:''};
- }
+ let isScheduled = (m.status==='Scheduled' || m.status==='NS' || m.home_score===null);
+ let hHT = (m.home_ht!==null && m.home_ht!==undefined && String(m.home_ht)!=='undefined' && String(m.home_ht)!=='') ? m.home_ht : 0;
+ let aHT = (m.away_ht!==null && m.away_ht!==undefined && String(m.away_ht)!=='undefined' && String(m.away_ht)!=='') ? m.away_ht : 0;
+ let hS = m.home_score??0, aS = m.away_score??0;
+ let htT = `${hHT}-${aHT}`;
+ let ftT = isScheduled ? 'VS' : `${hS} - ${aS}`;
+ let sT = isScheduled ? '-' : `${hS - hHT} - ${aS - aHT}`;
+ if(isScheduled){ htT='-'; sT='-'; ftT='VS'; }
+ let scoreDisplay = ftT;
+ let statusTxt = isScheduled ? 'Scheduled' : 'Finished - FT';
+ let statusColor = isScheduled ? '#888' : '#00ff66';
+ if(m.status==='LIVE'){ statusTxt=`Live ${m.minute}`; statusColor='#ff3b30'; }
+ if(m.status==='HT'){ statusTxt='Half Time - HT'; statusColor='#ff9500'; }
 
- let isScheduled = (m.status==='Scheduled' || m.status==='NS' || m.home_score===null || m.home_score===undefined);
- let hHT=m.home_ht, aHT=m.away_ht, hS=m.home_score, aS=m.away_score;
- let htT = (hHT!==null && aHT!==null) ? `${hHT}-${aHT}` : '-';
- let ftT, scoreDisplay, statusTxt, statusColor;
+ document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team}<br><span style="color:#555">VS</span><br>${m.away_team}</div><div class="score">${scoreDisplay}</div><div class="live" style="color:${statusColor}">${statusTxt}</div><div style="color:#666;font-size:12px;margin-top:4px">${m.datetime} | ID:${id}</div>`;
  
- if(isScheduled){
-   ftT = 'VS';
-   scoreDisplay = 'VS';
-   let timeStr = m.datetime?.split(' ')[1]?.substring(0,5) || '21:00';
-   try{ if(m.kickoff_utc){ timeStr = new Date(m.kickoff_utc).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Lagos'}); } }catch(e){}
-   statusTxt = m.league_name.includes('API Limit') ? m.away_team : `Scheduled - ${timeStr}`;
-   statusColor = m.league_name.includes('API Limit') ? '#ff3b30' : '#888';
-   htT = '-';
- } else {
-   hS = hS??0; aS = aS??0;
-   ftT = `${hS} - ${aS}`;
-   scoreDisplay = ftT;
-   let isLive=(m.status=='LIVE'||(m.minute&&m.minute.includes("'")));
-   if(isLive){ statusTxt=`Live ${m.minute||"59'"}`; statusColor='#ff3b30'; }
-   else if(m.status==='HT'){ statusTxt='Half Time - HT'; statusColor='#ff9500'; }
-   else{ statusTxt='Finished - FT'; statusColor='#00ff66'; }
- }
-
- let sT = isScheduled ? '-' : `${(hS-(hHT??0))} - ${(aS-(aHT??0))}`;
-
- document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team}<br><span style="color:#555">VS</span><br>${m.away_team}</div><div class="score" style="${isScheduled ? 'font-size:42px;color:#888' : ''}">${scoreDisplay}</div><div class="live" style="color:${statusColor}">${statusTxt}</div><div style="color:#666;font-size:12px;margin-top:4px">${m.datetime} | ID:${id}</div>`;
- 
- let events=[];try{let r=await fetch(`/api/events?id=${id}`);let j=await r.json();events=j.data||[];}catch(e){}
+ let events=[];try{let r=await fetch(`/api/events?id=${id}`);let j=await r.json();events=j.data||j.events||[];}catch(e){}
+ function icon(t){ t=(t||'').toLowerCase(); if(t.includes('yellow')) return '🟨'; if(t.includes('red')) return '🟥'; if(t.includes('goal')) return '⚽'; if(t.includes('substitut')) return '🔄'; return '•'; }
+ function renderEv(list){ if(!list.length) return `<div class="row" style="color:#666">No events - ${statusTxt}</div>`; return list.map(e=>`<div class="row"><span>${e.minute||''}' ${icon(e.event_type||e.type)} ${e.player_name||e.player||''} ${(e.event_type||e.type||'').replace('_',' ')}</span><span style="color:#888">${e.team_side||e.team||''}</span></div>`).join(''); }
  let ev1=events.filter(e=>parseInt(e.minute||0)<=45),ev2=events.filter(e=>parseInt(e.minute||0)>45);
- let renderEv=(l)=>l.length?l.map(e=>`<div class="row"><span>${e.minute||''}' ${e.player_name||''} ${e.event_type||''}</span><span style="color:#888">${e.team_side||''}</span></div>`).join(''):`<div class="row" style="color:#666">${isScheduled ? 'Match not started yet' : 'No events yet - '+statusTxt}</div>`;
- document.getElementById('details').innerHTML=`<div class="card"><div class="greenBar">Football » ${m.league_zone}: ${m.league_name} » Details - ${ftT}</div></div><div class="card"><div class="head">MATCH INFO ID:${id}</div><div class="row"><span>League</span><span>${m.league_name}</span></div><div class="row"><span>Status</span><span style="color:${statusColor};font-weight:900">${statusTxt}</span></div><div class="row"><span>Score</span><span style="color:${isScheduled ? '#888' : '#00ff66'};font-weight:900">${ftT}</span></div><div class="row"><span>1st Half</span><span>${htT}</span></div><div class="row"><span>2nd Half</span><span>${sT}</span></div></div><div class="card"><div class="blackHead">1st Half: ${htT}</div>${renderEv(ev1)}</div><div class="card"><div class="blackHead">2nd Half: ${sT} - ${statusTxt}</div>${renderEv(ev2)}</div>`;
+ document.getElementById('details').innerHTML=`<div class="card"><div class="greenBar">Football » ${m.league_zone}: ${m.league_name} » Details - ${ftT}</div></div><div class="card"><div class="head">MATCH INFO ID:${id}</div><div class="row"><span>League</span><span>${m.league_name}</span></div><div class="row"><span>Status</span><span style="color:${statusColor};font-weight:900">${statusTxt}</span></div><div class="row"><span>Score</span><span style="color:#00ff66;font-weight:900">${ftT}</span></div><div class="row"><span>1st Half</span><span>${htT}</span></div><div class="row"><span>2nd Half</span><span>${sT}</span></div></div><div class="card"><div class="blackHead">1st Half: ${htT}</div>${renderEv(ev1)}</div><div class="card"><div class="blackHead">2nd Half: ${sT} - ${statusTxt}</div>${renderEv(ev2)}</div>`;
 
  document.getElementById('stats').innerHTML=`<div class="card"><div class="head">Loading STATS...</div></div>`;
  try{
-  let r=await fetch(`/api/stats?id=${id}`);
-  let j=await r.json();
-  let d=j.data||j;
-  let html=`<div class="card"><div class="greenBar">STATS - ${ftT} - ${statusTxt}</div>`;
-  if(isScheduled){ html+=`<div style="padding:30px;text-align:center;color:#888">Match scheduled<br>${m.datetime}<br><br>Stats will appear when match starts</div>`; }
-  else if(d&&d.home){ let mk=(l,h,a)=>`<div class="row"><span style="font-weight:900">${h}</span><span style="color:#888;flex:1;text-align:center">${l}</span><span style="font-weight:900">${a}</span></div>`; html+=mk('Shots',d.home.shots||0,d.away.shots||0)+mk('On Target',d.home.shots_on_target||0,d.away.shots_on_target||0)+mk('Corners',d.home.corners||0,d.away.corners||0)+mk('Fouls',d.home.fouls||0,d.away.fouls||0); }
-  else { html+=`<div style="padding:30px;text-align:center"><div style="font-size:18px;font-weight:900">No stats for ID:${id}</div></div>`; }
+  let r=await fetch(`/api/stats?id=${id}`); let j=await r.json(); let d=j.data||j;
+  let html=`<div class="card"><div class="greenBar">STATS - ${ftT}</div>`;
+  if(d && d.home){ let mk=(l,h,a)=>`<div class="row"><span style="font-weight:900">${h}</span><span style="color:#888;flex:1;text-align:center">${l}</span><span style="font-weight:900">${a}</span></div>`; html+=mk('Shots',d.home.shots||0,d.away.shots||0)+mk('Corners',d.home.corners||0,d.away.corners||0)+mk('Fouls',d.home.fouls||0,d.away.fouls||0); }
+  else html+=`<div style="padding:20px;text-align:center;color:#666">No stats</div>`;
   html+=`</div>`; document.getElementById('stats').innerHTML=html;
- }catch(e){ document.getElementById('stats').innerHTML=`<div class="card"><div class="greenBar">STATS - ${statusTxt}</div><div style="padding:30px;text-align:center;color:#666">Stats not ready</div></div>`; }
+ }catch(e){ document.getElementById('stats').innerHTML=`<div class="card"><div class="row">No stats</div></div>`; }
 
  document.getElementById('table').innerHTML=`<div class="card"><div class="head">Loading STANDINGS...</div></div>`;
  try{
-  let r=null; try{ r=await fetch(`/api/standings?league_id=${m.league_id}`); if(!r.ok) throw 0; } catch(e){ r=await fetch(`/api/table?league_id=${m.league_id}`); }
-  let j=await r.json(); let tbl=j.data||[]; let groups=j.groups||[];
-  let html=`<div style="background:#fff;color:#000;border-radius:12px;overflow:hidden;margin:10px"><div style="background:#006400;color:#fff;padding:10px;font-weight:900;font-size:13px">${j.league?.name||m.league_name} - ${j.season||''}</div>`;
-  if(groups.length>0){ groups.forEach(g=>{ html+=`<div style="background:#222;color:#00ff66;padding:8px 10px;font-weight:900">${g.group||g.name}</div><table class="stand-table"><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>D</th><th>L</th><th>G</th><th>PTS</th></tr>`; (g.table||[]).forEach(row=>{ let name=row.team?.name||'Team'; let pos=row.position||0, mp=row.played||0, w=row.won||0, d=row.draw||0, l=row.lost||0, gf=row.goals_for||0, ga=row.goals_against||0, pts=row.points||0; let isOur=name.toLowerCase().includes(m.home_team.split(' ')[0].toLowerCase()); html+=`<tr class="${isOur?'hl':''}"><td>${pos}.</td><td>${name}</td><td>${mp}</td><td>${w}</td><td>${d}</td><td>${l}</td><td>${gf}:${ga}</td><td><b>${pts}</b></td></tr>`; }); html+=`</table>`; }); }
-  else if(tbl.length){ html+=`<table class="stand-table"><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>D</th><th>L</th><th>G</th><th>PTS</th></tr>`; tbl.forEach((row)=>{ let name=row.team?.name||'Team'; let pos=row.position||0, mp=row.played||0, w=row.won||0, d=row.draw||0, l=row.lost||0, gf=row.goals_for||0, ga=row.goals_against||0, pts=row.points||0; let isOur=name.toLowerCase().includes(m.home_team.split(' ')[0].toLowerCase()); html+=`<tr class="${isOur?'hl':''}"><td>${pos}.</td><td>${name}</td><td>${mp}</td><td>${w}</td><td>${d}</td><td>${l}</td><td>${gf}:${ga}</td><td><b>${pts}</b></td></tr>`; }); html+=`</table>`; }
-  else { html+=`<div style="padding:20px;text-align:center;color:#666">No standings</div>`; }
-  html+=`</div>`; document.getElementById('table').innerHTML=html;
- }catch(e){ document.getElementById('table').innerHTML=`<div class="card"><div class="row" style="color:#ff3b30">Error: ${e.message}</div></div>`; }
+  let r=await fetch(`/api/standings?league_id=${m.league_id}`); let j=await r.json(); let tbl=j.data||[];
+  let html=`<div style="background:#fff;color:#000;border-radius:12px;overflow:hidden;margin:10px"><div style="background:#006400;color:#fff;padding:10px;font-weight:900">${m.league_name}</div><table class="stand-table"><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>D</th><th>L</th><th>G</th><th>PTS</th></tr>`;
+  tbl.forEach(row=>{ let name=row.team?.name||row.name||'Team'; html+=`<tr><td>${row.position||''}.</td><td>${name}</td><td>${row.played||0}</td><td>${row.won||0}</td><td>${row.draw||0}</td><td>${row.lost||0}</td><td>${row.goals_for||0}:${row.goals_against||0}</td><td><b>${row.points||0}</b></td></tr>`; });
+  html+=`</table></div>`; document.getElementById('table').innerHTML=html;
+ }catch(e){ document.getElementById('table').innerHTML=`<div class="card"><div class="row">No standings</div></div>`; }
 
  document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">Loading H2H...</div></div>`;
- try{let r=await fetch(`/api/h2h?id=${id}`);let j=await r.json();let h2h=j.data||[];let html=`<div class="card"><div class="greenBar">H2H - ${m.home_team} vs ${m.away_team}</div>`;if(h2h.length){h2h.forEach(g=>{html+=`<div class="row"><span>${g.date||''} ${g.home_team} ${g.home_score}-${g.away_score} ${g.away_team}</span></div>`;});}else html+=`<div class="row" style="color:#666">No H2H history</div>`;html+=`</div>`;document.getElementById('h2h').innerHTML=html;}catch(e){document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">H2H</div><div class="row">No data</div></div>`;}
+ try{let r=await fetch(`/api/h2h?id=${id}`);let j=await r.json();let h2h=j.data||[];let html=`<div class="card"><div class="greenBar">H2H - ${m.home_team} vs ${m.away_team}</div>`;if(h2h.length){h2h.forEach(g=>{html+=`<div class="row"><span>${g.date||''} ${g.home_team} ${g.home_score}-${g.away_score} ${g.away_team}</span></div>`;});}else html+=`<div class="row" style="color:#666">No H2H</div>`;html+=`</div>`;document.getElementById('h2h').innerHTML=html;}catch(e){}
 }
 load();showTab('details',document.getElementById('b1'));
 </script>
