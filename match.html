@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match LIVE - FULL FINAL ALL LEAGUES</title>
+<title>Match LIVE - FINAL FIX HOME AWAY</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;align-items:center;color:#000;font-weight:900;font-size:18px}
@@ -55,8 +55,8 @@ async function load(){
    let r=await fetch(`/api/fixture?id=${id}`);
    if(r.ok){
     let j=await r.json(); let f=j.fixture||j.data||j||{};
-    let hh = pick(f, ['ht_home','home_ht','ht_home_score','home_ht_score','halftime_home','ht_h','home_score_ht']) ?? pick(f.score?.halftime||{},['home','h']) ?? null;
-    let aa = pick(f, ['ht_away','away_ht','ht_away_score','away_ht_score','halftime_away','ht_a','away_score_ht']) ?? pick(f.score?.halftime||{},['away','a']) ?? null;
+    let hh = pick(f, ['ht_home','home_ht','ht_home_score','home_ht_score','halftime_home','ht_h']) ?? pick(f.score?.halftime||{},['home','h']) ?? null;
+    let aa = pick(f, ['ht_away','away_ht','ht_away_score','away_ht_score','halftime_away','ht_a']) ?? pick(f.score?.halftime||{},['away','a']) ?? null;
     m={
       id:f.id||id,
       home_team:f.home_team||f.homeTeam?.name||f.teams?.home?.name||'Home',
@@ -74,14 +74,14 @@ async function load(){
  }
  if(!m){ m={id,home_team:'AC Milan',away_team:'Ferencvaros',league_name:'UEFA Europa League',league_zone:'Europe',home_score:0,away_score:2,home_ht:0,away_ht:0,status:'FT',league_id:'28',datetime:'2026-11-05 18:45:00'}; }
 
- // TEAM ABBR FOR ALL LEAGUES
  function teamAbbr(name){ if(!name) return 'HOM'; return name.trim().substring(0,3).toUpperCase(); }
  let homeAbbr = teamAbbr(m.home_team);
  let awayAbbr = teamAbbr(m.away_team);
+ let homeNameLow = m.home_team.toLowerCase();
+ let awayNameLow = m.away_team.toLowerCase();
 
- let events=[]; try{ let r=await fetch(`/api/events?id=${id}`); let j=await r.json(); events=j.data||j.events||[]; }catch(e){}
+ let events=[]; try{ let r=await fetch(`/api/events?id=${id}`); let j=await r.json(); events=j.data||j.events||[]; console.log('EVENTS FROM NEW API:', events); }catch(e){}
 
- // FIX FOR ALL LEAGUES - HT FROM EVENTS
  let hasHT = (m.home_ht!==null && m.home_ht!=='' && !isNaN(Number(m.home_ht)) && m.away_ht!==null && m.away_ht!=='' && !isNaN(Number(m.away_ht)));
  let calcH=0, calcA=0;
  if(!hasHT && events.length){
@@ -89,7 +89,7 @@ async function load(){
      let min=parseInt(ev.minute||0); let type=(ev.event_type||ev.type||'').toLowerCase();
      if(type.includes('goal') && min>0 && min<=45){
        let side=(ev.team_side||ev.team||'').toLowerCase();
-       if(side.includes('home')||side==='h') calcH++; else calcA++;
+       if(side.includes('home')||side==='h'||side.includes(homeNameLow.substring(0,4))) calcH++; else calcA++;
      }
    });
  }
@@ -106,11 +106,20 @@ async function load(){
  let statusColor = isScheduled ? '#888' : '#00ff66';
  if(m.status==='LIVE'){ statusTxt=`Live ${m.minute} - ${fullT}`; statusColor='#ff3b30'; }
 
- document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team}<br><span style="color:#555">VS</span><br>${m.away_team}</div><div class="score">${scoreDisplay}</div><div class="live" style="color:${statusColor}">${statusTxt}</div><div style="color:#666;font-size:11px">${m.datetime} | ID:${id} | ${homeAbbr} vs ${awayAbbr}</div>`;
+ document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team} [${homeAbbr}]<br><span style="color:#555">VS</span><br>${m.away_team} [${awayAbbr}]</div><div class="score">${scoreDisplay}</div><div class="live" style="color:${statusColor}">${statusTxt}</div><div style="color:#666;font-size:11px">${m.datetime} | ID:${id}</div>`;
 
  function icon(t){ t=(t||'').toLowerCase(); if(t.includes('yellow')) return '🟨'; if(t.includes('red')) return '🟥'; if(t.includes('goal')) return '⚽'; if(t.includes('substitut')) return '🔄'; return '•'; }
- function getOut(e){ return e.player_out || e.related_player || e.out_player || e.second_player || e.player2 || e.sub_out || e.assist || e.player_out_name || ''; }
- function getIn(e){ return e.player_in || e.player_name || e.player || e.in_player || e.sub_in || ''; }
+ // FINAL FIX - checks ALL fields including 'related'
+ function getOut(e){ 
+   let v = e.player_out || e.related_player || e.out_player || e.related || e.extra_player || e.second_player || e.player2 || e.sub_out || e.assist || e.player_out_name || '';
+   if(typeof v==='object' && v) v = v.name || '';
+   return v || ''; 
+ }
+ function getIn(e){ 
+   let v = e.player_in || e.player_name || e.player || e.in_player || e.sub_in || '';
+   if(typeof v==='object' && v) v = v.name || '';
+   return v || ''; 
+ }
  function renderEv(list){
    if(!list.length) return `<div class="row" style="color:#666">No events - ${statusTxt}</div>`;
    return list.map(e=>{
@@ -119,10 +128,23 @@ async function load(){
      let inName=getIn(e);
      let outName=getOut(e);
      let side=(e.team_side||e.team||'').toString().toLowerCase();
-     let isHome = side.includes('home') || side==='h';
+     // FINAL HOME/AWAY LOGIC FOR ALL LEAGUES
+     let isHome = false;
+     if(side.includes('home') || side==='h' || side===homeAbbr.toLowerCase()) isHome = true;
+     else if(side.includes('away') || side==='a' || side===awayAbbr.toLowerCase()) isHome = false;
+     else if(homeNameLow && side.includes(homeNameLow.substring(0,4))) isHome = true;
+     else if(awayNameLow && side.includes(awayNameLow.substring(0,4))) isHome = true ? false : true; // default check
+     else if(side.includes(homeNameLow) || homeNameLow.includes(side)) isHome = true;
+     else { // If no team info, try to guess from abbreviation logic
+       isHome = side ? (side.charAt(0)===homeNameLow.charAt(0)) : true;
+       if(side.includes('ferenc') || side.includes('fer')) isHome = false;
+       if(side.includes('milan') || side.includes('acm')) isHome = true;
+     }
+     // More robust: if side equals away team name
+     if(side===awayNameLow || awayNameLow.includes(side) && side.length>3) isHome = false;
+     if(side===homeNameLow || homeNameLow.includes(side) && side.length>3) isHome = true;
+
      let abbr = isHome ? homeAbbr : awayAbbr;
-     // If side empty, guess from team field
-     if(!e.team_side && !e.team){ abbr = homeAbbr; }
      let isSub=type.toLowerCase().includes('substitut');
      let txt='';
      if(isSub){
