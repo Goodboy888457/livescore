@@ -47,6 +47,9 @@ const TOP_ORDER=[
 function getPriority(zone,leagueName){
   let full=(zone+' - '+leagueName).toUpperCase();
   let z=(zone||'').toUpperCase();
+  let n=(leagueName||'').toUpperCase();
+  // ASIA ALWAYS AT BOTTOM Z
+  if(z.includes('ASIA') || n.includes('AFC') || full.includes('ASIA')) return 999;
   for(let t of TOP_ORDER){
     if(t.not&&full.includes(t.not)) continue;
     if(t.zone&&!z.includes(t.zone)&&!full.includes(t.zone)) continue;
