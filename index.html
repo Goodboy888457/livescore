@@ -7,7 +7,6 @@
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;font-weight:900;color:#000;display:flex;justify-content:space-between;align-items:center}
 .header a{background:#fff;color:#000;padding:6px 14px;border-radius:20px;text-decoration:none;font-size:12px;font-weight:900}
-/* ROUND TABS LIKE 2ND SCREENSHOT */
 .tabs{display:flex;gap:8px;padding:10px;background:#000;overflow:auto;scrollbar-width:none}
 .tabs::-webkit-scrollbar{display:none}
 .tabs button{background:#222;color:#aaa;border:1px solid #333;padding:8px 16px;border-radius:20px;font-weight:900;font-size:13px;white-space:nowrap;flex:none;min-width:auto}
@@ -17,7 +16,6 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 .filter button.active{background:#00ff00;color:#000;font-weight:900}
 .league-head{background:#00ff00;color:#000;padding:8px 12px;font-weight:900;margin-top:10px;font-size:13px}
 .match{display:flex;align-items:center;padding:12px;background:#151515;margin:6px 8px;border-radius:10px;border-left:3px solid #00c853;cursor:pointer}
-/* SMALL BALANCED TIME - LIKE 2ND SCREEN */
 .time{border:1.5px solid #00c853;border-radius:20px;padding:5px 0;color:#00c853;font-weight:900;font-size:13px;min-width:52px;max-width:52px;text-align:center}
 .teams{flex:1;margin-left:12px;line-height:18px;font-size:14px}
 .score{color:#00ff66;font-weight:900;font-size:17px;min-width:50px;text-align:right}
@@ -59,10 +57,28 @@ function getPriority(zone,leagueName){
   if(z.includes('EUROPE')) return 15;
   return 100;
 }
-function tabs(){let h='',t=new Date();for(let i=-4;i<=4;i++){let d=new Date(t);d.setDate(t.getDate()+i);let ds=d.toISOString().split('T')[0];let lb=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});let ac=i==0?'active':'';h+=`<button class="${ac}" onclick="goDate('${ds}',this)">${lb}</button>`}document.getElementById('dateTabs').innerHTML=h}
-function goDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds)}
+function tabs(){
+  let h='',t=new Date();
+  let saved=localStorage.getItem('lastDate')||new Date().toISOString().split('T')[0];
+  for(let i=-4;i<=4;i++){
+    let d=new Date(t);d.setDate(t.getDate()+i);
+    let ds=d.toISOString().split('T')[0];
+    let lb=i==-1?'Yesterday':i==0?'Today':i==1?'Tomorrow':d.toLocaleDateString('en',{month:'short',day:'numeric'});
+    let ac=ds===saved?'active':'';
+    if(ac) curDate=ds;
+    h+=`<button class="${ac}" onclick="goDate('${ds}',this)">${lb}</button>`
+  }
+  document.getElementById('dateTabs').innerHTML=h
+}
+function goDate(ds,el){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  localStorage.setItem('lastDate',ds);
+  load(ds)
+}
 async function load(d){
  curDate=d;
+ localStorage.setItem('lastDate',d);
  document.getElementById('list').innerHTML='Loading '+d+'...';
  try{
   let r=null,j=null;
@@ -123,7 +139,9 @@ function show(){
  });
  document.getElementById('list').innerHTML=html;
 }
-tabs();load(new Date().toISOString().split('T')[0]);
+tabs();
+let startDate=localStorage.getItem('lastDate')||new Date().toISOString().split('T')[0];
+load(startDate);
 </script>
 </body>
 </html>
