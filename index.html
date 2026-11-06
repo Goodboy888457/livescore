@@ -32,11 +32,11 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <script>
 let all=[],cur='all',curDate='';
 const TOP_ORDER=[
-  {key:'CHAMPIONS LEAGUE',pri:1},
-  {key:'EUROPA LEAGUE',pri:2,not:'CONFERENCE'},
-  {key:'CONFERENCE LEAGUE',pri:3},
+  {key:'CHAMPIONS LEAGUE',pri:1,zone:'EUROPE'},
+  {key:'EUROPA LEAGUE',pri:2,zone:'EUROPE',not:'CONFERENCE'},
+  {key:'CONFERENCE LEAGUE',pri:3,zone:'EUROPE'},
   {key:'PREMIER LEAGUE',zone:'ENGLAND',pri:4},
-  {key:'LALIGA',pri:5},{key:'LA LIGA',pri:5},
+  {key:'LALIGA',pri:5,zone:'SPAIN'},{key:'LA LIGA',pri:5,zone:'SPAIN'},
   {key:'LIGUE 1',zone:'FRANCE',pri:6},
   {key:'BUNDESLIGA',zone:'GERMANY',pri:7},
   {key:'SERIE A',zone:'ITALY',pri:8},
@@ -47,9 +47,8 @@ const TOP_ORDER=[
 function getPriority(zone,leagueName){
   let full=(zone+' - '+leagueName).toUpperCase();
   let z=(zone||'').toUpperCase();
-  let n=(leagueName||'').toUpperCase();
-  // ASIA ALWAYS AT BOTTOM Z
-  if(z.includes('ASIA') || n.includes('AFC') || full.includes('ASIA')) return 999;
+  // FIX: Asia should NOT get TOP pri, put in A-Z
+  if(z.includes('ASIA')) return 100;
   for(let t of TOP_ORDER){
     if(t.not&&full.includes(t.not)) continue;
     if(t.zone&&!z.includes(t.zone)&&!full.includes(t.zone)) continue;
