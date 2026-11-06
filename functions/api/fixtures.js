@@ -6,21 +6,26 @@ export async function onRequestGet(context) {
   
   if(!API_KEY) return new Response(JSON.stringify({ success:false, error:"Missing SPORTAPI_KEY" }), { status:500, headers:{"Content-Type":"application/json"} });
 
-  // *** NEW: Try KV Cache first - saves 90% API calls! ***
   const cacheKey = `fixtures:${date}`;
+  const isToday = date === new Date().toISOString().split('T')[0];
+
+  // Use KV cache - but smart for LIVE
   try{
-    if(env.SCORE_KV){
+    if(env.SCORE_KV && !url.searchParams.has('nocache')){
       const cached = await env.SCORE_KV.get(cacheKey);
-      if(cached){
+      if(cached && !isToday){
+        // Past/future - safe to use cache
         return new Response(cached, { 
           headers: { 
             "Content-Type": "application/json", 
             "Access-Control-Allow-Origin": "*",
             "X-Cache": "HIT",
-            "Cache-Control": "public, max-age=60"
+            "Cache-Control": "public, max-age=600"
           } 
         });
       }
+      // For today, we skip cache if it contains LIVE to get fresh scores
+      // So we don't return here for today - we go fetch fresh
     }
   }catch(e){}
 
@@ -29,7 +34,6 @@ export async function onRequestGet(context) {
       headers: { "X-Api-Key": API_KEY }
     });
 
-    // Handle rate limit 2000/day
     if(apiRes.status === 429 || apiRes.status === 403){
       let text = await apiRes.text();
       return new Response(JSON.stringify({ 
@@ -37,25 +41,28 @@ export async function onRequestGet(context) {
         rateLimited:true, 
         error:"API Limit 2000/day hit", 
         raw:text,
-        data: [] // Return empty so index.html doesn't crash
+        data: [] 
       }), { 
-        status: 200, // Return 200 so frontend shows "No matches" not error
+        status: 200,
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" } 
       });
     }
 
     let dataText = await apiRes.text();
     
-    // Validate JSON
     try{ JSON.parse(dataText); }catch(e){ 
       return new Response(JSON.stringify({ success:false, data:[], error:"Invalid JSON from SportAPI", raw:dataText.substring(0,200) }), { headers:{"Content-Type":"application/json","Access-Control-Allow-Origin":"*"} });
     }
 
-    // *** NEW: Save to KV for 5 minutes - Today/Live = 2min, Past/Future = 10min ***
+    // Smart TTL: LIVE = 30s, Today = 60s, Other = 600s
     try{
       if(env.SCORE_KV){
-        const isToday = date === new Date().toISOString().split('T')[0];
-        const ttl = isToday ? 120 : 600; // 2min for today, 10min for others
+        let ttl = 600;
+        if(isToday){
+          let parsed = JSON.parse(dataText);
+          let hasLive = (parsed.data||[]).some(m=> ['LIVE','HT','1H','2H','IN_PLAY'].includes(String(m.status||'').toUpperCase()));
+          ttl = hasLive ? 30 : 60;
+        }
         await env.SCORE_KV.put(cacheKey, dataText, { expirationTtl: ttl });
       }
     }catch(e){}
@@ -65,7 +72,7 @@ export async function onRequestGet(context) {
         "Content-Type": "application/json", 
         "Access-Control-Allow-Origin": "*",
         "X-Cache": "MISS",
-        "Cache-Control": "public, max-age=60"
+        "Cache-Control": isToday ? "public, max-age=30" : "public, max-age=300"
       } 
     });
 
