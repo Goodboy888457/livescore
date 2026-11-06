@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Match LIVE - FIX NaN</title>
+<title>Match LIVE - FULL FINAL ALL LEAGUES</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;display:flex;justify-content:space-between;align-items:center;color:#000;font-weight:900;font-size:18px}
@@ -61,23 +61,28 @@ async function load(){
       id:f.id||id,
       home_team:f.home_team||f.homeTeam?.name||f.teams?.home?.name||'Home',
       away_team:f.away_team||f.awayTeam?.name||f.teams?.away?.name||'Away',
-      league_name:f.league_name||f.league?.name||'UEFA Europa League',
-      league_zone:f.league_zone||f.league?.country||'Europe',
-      home_score: pick(f, ['home_score','homeScore']) ?? f.score?.fulltime?.home ?? f.score?.home ?? 0,
-      away_score: pick(f, ['away_score','awayScore']) ?? f.score?.fulltime?.away ?? f.score?.away ?? 2,
+      league_name:f.league_name||f.league?.name||'League',
+      league_zone:f.league_zone||f.league?.country||'World',
+      home_score: pick(f, ['home_score','homeScore']) ?? f.score?.fulltime?.home ?? f.score?.home ?? null,
+      away_score: pick(f, ['away_score','awayScore']) ?? f.score?.fulltime?.away ?? f.score?.away ?? null,
       home_ht: hh, away_ht: aa,
-      status:f.status||'FT', minute:f.minute||'', league_id:f.league_id||f.league?.id||'28',
-      datetime:f.datetime||f.date||'2026-11-05 18:45:00'
+      status:f.status||'FT', minute:f.minute||'', league_id:f.league_id||f.league?.id||'0',
+      datetime:f.datetime||f.date||''
     };
    }
   }catch(e){}
  }
  if(!m){ m={id,home_team:'AC Milan',away_team:'Ferencvaros',league_name:'UEFA Europa League',league_zone:'Europe',home_score:0,away_score:2,home_ht:0,away_ht:0,status:'FT',league_id:'28',datetime:'2026-11-05 18:45:00'}; }
 
+ // TEAM ABBR FOR ALL LEAGUES
+ function teamAbbr(name){ if(!name) return 'HOM'; return name.trim().substring(0,3).toUpperCase(); }
+ let homeAbbr = teamAbbr(m.home_team);
+ let awayAbbr = teamAbbr(m.away_team);
+
  let events=[]; try{ let r=await fetch(`/api/events?id=${id}`); let j=await r.json(); events=j.data||j.events||[]; }catch(e){}
 
- // FIX NaN: Use toNum() that returns 0 if NaN
- let hasHT = (m.home_ht!==null && m.home_ht!==undefined && m.home_ht!=='' && !isNaN(Number(m.home_ht)) && m.away_ht!==null && m.away_ht!==undefined && m.away_ht!=='' && !isNaN(Number(m.away_ht)));
+ // FIX FOR ALL LEAGUES - HT FROM EVENTS
+ let hasHT = (m.home_ht!==null && m.home_ht!=='' && !isNaN(Number(m.home_ht)) && m.away_ht!==null && m.away_ht!=='' && !isNaN(Number(m.away_ht)));
  let calcH=0, calcA=0;
  if(!hasHT && events.length){
    events.forEach(ev=>{
@@ -91,31 +96,48 @@ async function load(){
 
  let hHT = hasHT ? toNum(m.home_ht) : calcH;
  let aHT = hasHT ? toNum(m.away_ht) : calcA;
- let hS = toNum(m.home_score), aS = toNum(m.away_score);
  let isScheduled = (m.status==='Scheduled'||m.status==='NS'|| (m.home_score===null && m.away_score===null));
-
+ let hS = isScheduled?0:toNum(m.home_score), aS = isScheduled?0:toNum(m.away_score);
  let htT = isScheduled ? '-' : `${hHT}-${aHT}`;
  let sT = isScheduled ? '-' : `${hS-hHT}-${aS-aHT}`;
  let fullT = isScheduled ? 'VS' : `${hS}-${aS} (${htT},${sT})`;
-
  let scoreDisplay = isScheduled ? 'VS' : `${hS} - ${aS}`;
  let statusTxt = isScheduled ? 'Scheduled' : `Finished - FT - ${fullT}`;
  let statusColor = isScheduled ? '#888' : '#00ff66';
  if(m.status==='LIVE'){ statusTxt=`Live ${m.minute} - ${fullT}`; statusColor='#ff3b30'; }
 
- document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team}<br><span style="color:#555">VS</span><br>${m.away_team}</div><div class="score">${scoreDisplay}</div><div class="live" style="color:${statusColor}">${statusTxt}</div><div style="color:#666;font-size:11px">${m.datetime} | ID:${id}</div>`;
+ document.getElementById('top').innerHTML=`<div class="league">${m.league_zone} - ${m.league_name}</div><div class="teams">${m.home_team}<br><span style="color:#555">VS</span><br>${m.away_team}</div><div class="score">${scoreDisplay}</div><div class="live" style="color:${statusColor}">${statusTxt}</div><div style="color:#666;font-size:11px">${m.datetime} | ID:${id} | ${homeAbbr} vs ${awayAbbr}</div>`;
 
  function icon(t){ t=(t||'').toLowerCase(); if(t.includes('yellow')) return '🟨'; if(t.includes('red')) return '🟥'; if(t.includes('goal')) return '⚽'; if(t.includes('substitut')) return '🔄'; return '•'; }
+ function getOut(e){ return e.player_out || e.related_player || e.out_player || e.second_player || e.player2 || e.sub_out || e.assist || e.player_out_name || ''; }
+ function getIn(e){ return e.player_in || e.player_name || e.player || e.in_player || e.sub_in || ''; }
  function renderEv(list){
-   if(!list.length) return `<div class="row" style="color:#666">No events</div>`;
+   if(!list.length) return `<div class="row" style="color:#666">No events - ${statusTxt}</div>`;
    return list.map(e=>{
-     let type=e.event_type||e.type||''; let min=e.minute||''; let player=e.player_name||e.player||''; let rel=e.related_player||e.player_out||''; let team=(e.team_side||e.team||'').toUpperCase().substring(0,3);
-     let txt = type.toLowerCase().includes('substitut') ? `${player}${rel?` (${rel})`:''} [${team}]` : `${player} ${type.replace('_',' ')} [${team}]`;
-     return `<div class="row"><span>${min}" ${icon(type)} ${txt}</span><span>${team}</span></div>`;
+     let type=e.event_type||e.type||'';
+     let min=(e.minute||'').toString().replace("'","").replace('"','');
+     let inName=getIn(e);
+     let outName=getOut(e);
+     let side=(e.team_side||e.team||'').toString().toLowerCase();
+     let isHome = side.includes('home') || side==='h';
+     let abbr = isHome ? homeAbbr : awayAbbr;
+     // If side empty, guess from team field
+     if(!e.team_side && !e.team){ abbr = homeAbbr; }
+     let isSub=type.toLowerCase().includes('substitut');
+     let txt='';
+     if(isSub){
+       if(outName) txt=`${inName} (${outName}) [${abbr}]`;
+       else txt=`${inName} [${abbr}]`;
+     } else if(type.toLowerCase().includes('goal')){
+       txt=`${inName} goal [${abbr}]`;
+     } else {
+       txt=`${inName} ${type.replace('_',' ')} [${abbr}]`;
+     }
+     return `<div class="row"><span>${min}' ${icon(type)} ${txt}</span><span style="font-weight:900;color:#00c853">${abbr}</span></div>`;
    }).join('');
  }
  let ev1=events.filter(e=>parseInt(e.minute||0)<=45), ev2=events.filter(e=>parseInt(e.minute||0)>45);
- document.getElementById('details').innerHTML=`<div class="card"><div class="greenBar">Football » ${m.league_zone}: ${m.league_name} » Details - ${fullT}</div></div><div class="card"><div class="head">MATCH INFO ID:${id}</div><div class="row"><span>League</span><span>${m.league_name}</span></div><div class="row"><span>Status</span><span style="color:${statusColor};font-weight:900">${statusTxt}</span></div><div class="row"><span>Score</span><span style="color:#00ff66;font-weight:900">${fullT}</span></div><div class="row"><span>1st Half</span><span>${htT}</span></div><div class="row"><span>2nd Half</span><span>${sT}</span></div></div><div class="card"><div class="blackHead">1st Half: ${htT}</div>${renderEv(ev1)}</div><div class="card"><div class="blackHead">2nd Half: ${sT} - FT</div>${renderEv(ev2)}</div>`;
+ document.getElementById('details').innerHTML=`<div class="card"><div class="greenBar">Football » ${m.league_zone}: ${m.league_name} » Details - ${fullT}</div></div><div class="card"><div class="head">MATCH INFO ID:${id}</div><div class="row"><span>League</span><span>${m.league_name}</span></div><div class="row"><span>Status</span><span style="color:${statusColor};font-weight:900">${statusTxt}</span></div><div class="row"><span>Score</span><span style="color:#00ff66;font-weight:900">${fullT}</span></div><div class="row"><span>1st Half</span><span>${htT}</span></div><div class="row"><span>2nd Half</span><span>${sT}</span></div><div class="row"><span>Home</span><span>${m.home_team} [${homeAbbr}]</span></div><div class="row"><span>Away</span><span>${m.away_team} [${awayAbbr}]</span></div></div><div class="card"><div class="blackHead">1st Half: ${htT}</div>${renderEv(ev1)}</div><div class="card"><div class="blackHead">2nd Half: ${sT} - FT</div>${renderEv(ev2)}</div>`;
 
  document.getElementById('stats').innerHTML=`<div class="card"><div class="head">STATS - ${fullT}</div><div class="row">No stats</div></div>`;
  document.getElementById('table').innerHTML=`<div class="card"><div class="head">STANDINGS - ${m.league_name}</div><div class="row">Loading...</div></div>`;
@@ -126,7 +148,7 @@ async function load(){
   tbl.forEach(row=>{ html+=`<tr><td>${row.position||''}.</td><td>${row.team?.name||row.name}</td><td>${row.played||0}</td><td>${row.won||0}</td><td>${row.draw||0}</td><td>${row.lost||0}</td><td>${row.goals_for||0}:${row.goals_against||0}</td><td><b>${row.points||0}</b></td></tr>`; });
   html+=`</table></div>`; document.getElementById('table').innerHTML=html;
  }catch(e){ document.getElementById('table').innerHTML=`<div class="card"><div class="row">No standings</div></div>`; }
- document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">H2H</div><div class="row">No H2H</div></div>`;
+ document.getElementById('h2h').innerHTML=`<div class="card"><div class="head">H2H - ${m.home_team} vs ${m.away_team}</div><div class="row">No H2H data</div></div>`;
 }
 load();showTab('details',document.getElementById('b1'));
 </script>
