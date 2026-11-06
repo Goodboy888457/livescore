@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>LiveScore - All Flags</title>
+<title>LiveScore - Fixed Leagues</title>
 <style>
 body{background:#000;color:#fff;font-family:Arial;margin:0}
 .header{background:#00c853;padding:12px;font-weight:900;color:#000;display:flex;justify-content:space-between;align-items:center}
@@ -21,82 +21,59 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 </style>
 </head>
 <body>
-<div class="header"><span>⚽ LiveScore - All Countries</span><a href="#" onclick="location.reload();return false;">↻ Refresh</a></div>
+<div class="header"><span>⚽ LiveScore - Fixed</span><a href="#" onclick="location.reload();return false;">↻ Refresh</a></div>
 <div class="tabs" id="dateTabs"></div>
 <div class="filter">
 <button id="f-all" class="active" onclick="setFilter('all')">All Games</button>
 <button id="f-live" onclick="setFilter('live')">Live</button>
 <button id="f-fin" onclick="setFilter('finished')">Finished</button>
 </div>
-<div id="list" style="padding:20px;text-align:center">Loading Highlightly...</div>
+<div id="list" style="padding:20px;text-align:center">Loading...</div>
 <script>
 let all=[],cur='all',curDate='';
 
-// ALL COUNTRIES FLAGS - 200+ COUNTRIES
 const FLAGS = {
-"Afghanistan":"🇦🇫","Albania":"🇦🇱","Algeria":"🇩🇿","Andorra":"🇦🇩","Angola":"🇦🇴","Argentina":"🇦🇷","Armenia":"🇦🇲","Australia":"🇦🇺","Austria":"🇦🇹","Azerbaijan":"🇦🇿",
-"Bahrain":"🇧🇭","Bangladesh":"🇧🇩","Belarus":"🇧🇾","Belgium":"🇧🇪","Belize":"🇧🇿","Benin":"🇧🇯","Bolivia":"🇧🇴","Bosnia":"🇧🇦","Botswana":"🇧🇼","Brazil":"🇧🇷","Bulgaria":"🇧🇬","Burkina Faso":"🇧🇫","Burundi":"🇧🇮",
-"Cameroon":"🇨🇲","Canada":"🇨🇦","Cape Verde":"🇨🇻","Chad":"🇹🇩","Chile":"🇨🇱","China":"🇨🇳","Colombia":"🇨🇴","Comoros":"🇰🇲","Congo":"🇨🇬","Costa Rica":"🇨🇷","Croatia":"🇭🇷","Cuba":"🇨🇺","Cyprus":"🇨🇾","Czech":"🇨🇿","Czech Republic":"🇨🇿",
-"Denmark":"🇩🇰","Djibouti":"🇩🇯","Dominican":"🇩🇴","DR Congo":"🇨🇩",
-"Ecuador":"🇪🇨","Egypt":"🇪🇬","El Salvador":"🇸🇻","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Equatorial Guinea":"🇬🇶","Eritrea":"🇪🇷","Estonia":"🇪🇪","Eswatini":"🇸🇿","Ethiopia":"🇪🇹","Europe":"🏆",
-"Faroe Islands":"🇫🇴","Fiji":"🇫🇯","Finland":"🇫🇮","France":"🇫🇷",
-"Gabon":"🇬🇦","Gambia":"🇬🇲","Georgia":"🇬🇪","Germany":"🇩🇪","Ghana":"🇬🇭","Gibraltar":"🇬🇮","Greece":"🇬🇷","Guatemala":"🇬🇹","Guinea":"🇬🇳",
-"Haiti":"🇭🇹","Honduras":"🇭🇳","Hungary":"🇭🇺",
-"Iceland":"🇮🇸","India":"🇮🇳","Indonesia":"🇮🇩","Iran":"🇮🇷","Iraq":"🇮🇶","Ireland":"🇮🇪","Israel":"🇮🇱","Italy":"🇮🇹","Ivory Coast":"🇨🇮",
-"Jamaica":"🇯🇲","Japan":"🇯🇵","Jordan":"🇯🇴",
-"Kazakhstan":"🇰🇿","Kenya":"🇰🇪","Kosovo":"🇽🇰","Kuwait":"🇰🇼","Kyrgyzstan":"🇰🇬",
-"Laos":"🇱🇦","Latvia":"🇱🇻","Lebanon":"🇱🇧","Lesotho":"🇱🇸","Liberia":"🇱🇷","Libya":"🇱🇾","Liechtenstein":"🇱🇮","Lithuania":"🇱🇹","Luxembourg":"🇱🇺",
-"Madagascar":"🇲🇬","Malawi":"🇲🇼","Malaysia":"🇲🇾","Maldives":"🇲🇻","Mali":"🇲🇱","Malta":"🇲🇹","Mauritania":"🇲🇷","Mauritius":"🇲🇺","Mexico":"🇲🇽","Moldova":"🇲🇩","Mongolia":"🇲🇳","Montenegro":"🇲🇪","Morocco":"🇲🇦","Mozambique":"🇲🇿","Myanmar":"🇲🇲",
-"Namibia":"🇳🇦","Nepal":"🇳🇵","Netherlands":"🇳🇱","New Zealand":"🇳🇿","Nicaragua":"🇳🇮","Niger":"🇳🇪","Nigeria":"🇳🇬","North Macedonia":"🇲🇰","Northern Ireland":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Norway":"🇳🇴",
-"Oman":"🇴🇲",
-"Pakistan":"🇵🇰","Palestine":"🇵🇸","Panama":"🇵🇦","Paraguay":"🇵🇾","Peru":"🇵🇪","Philippines":"🇵🇭","Poland":"🇵🇱","Portugal":"🇵🇹",
-"Qatar":"🇶🇦",
-"Romania":"🇷🇴","Russia":"🇷🇺","Rwanda":"🇷🇼",
-"San Marino":"🇸🇲","Saudi Arabia":"🇸🇦","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Senegal":"🇸🇳","Serbia":"🇷🇸","Seychelles":"🇸🇨","Sierra Leone":"🇸🇱","Singapore":"🇸🇬","Slovakia":"🇸🇰","Slovenia":"🇸🇮","Somalia":"🇸🇴","South Africa":"🇿🇦","South Korea":"🇰🇷","South Sudan":"🇸🇸","Spain":"🇪🇸","Sudan":"🇸🇩","Sweden":"🇸🇪","Switzerland":"🇨🇭","Syria":"🇸🇾",
-"Taiwan":"🇹🇼","Tajikistan":"🇹🇯","Tanzania":"🇹🇿","Thailand":"🇹🇭","Togo":"🇹🇬","Trinidad":"🇹🇹","Tunisia":"🇹🇳","Turkey":"🇹🇷","Turkmenistan":"🇹🇲",
-"Uganda":"🇺🇬","Ukraine":"🇺🇦","United Arab Emirates":"🇦🇪","Uruguay":"🇺🇾","USA":"🇺🇸","Uzbekistan":"🇺🇿",
-"Venezuela":"🇻🇪","Vietnam":"🇻🇳",
-"Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","World":"🌍","WORLD":"🌍",
-"Yemen":"🇾🇪",
-"Zambia":"🇿🇲","Zimbabwe":"🇿🇼",
-"Champions League":"🏆","Europa League":"🏆","Conference League":"🏆","UEFA":"🏆","FIFA":"🏆"
+"England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Spain":"🇪🇸","France":"🇫🇷","Germany":"🇩🇪","Italy":"🇮🇹","Netherlands":"🇳🇱","Portugal":"🇵🇹","Belgium":"🇧🇪","Armenia":"🇦🇲","Turkey":"🇹🇷","Greece":"🇬🇷","Brazil":"🇧🇷","Argentina":"🇦🇷","USA":"🇺🇸","Japan":"🇯🇵","Nigeria":"🇳🇬","World":"🌍","WORLD":"🌍","Europe":"🏆"
 };
 
 function getFlag(country){
   if(!country) return "⚽";
   if(FLAGS[country]) return FLAGS[country];
-  // Try partial match
-  let up = country.toUpperCase();
-  for(let key in FLAGS){ if(up.includes(key.toUpperCase())) return FLAGS[key]; }
   return "⚽";
 }
 
-// SMART COUNTRY DETECT - If league_zone is WORLD, detect from league_name
-function detectCountry(zone, league){
+// FIXED - Detect by TEAM NAME, not just league name
+function detectCountry(zone, league, home, away){
+  let teams = ((home||"")+" "+(away||"")).toUpperCase();
+  let L = (league||"").toUpperCase();
+
+  // 1. WELSH TEAMS - Cymru Premier (Your problem today!)
+  let welsh = ["CONNAH","FLINT","TREFELIN","COLWYN","PENYBONT","CAERNARFON","LLANDUDNO","NEW SAINTS","TNS","HOLYWELL","AIRBUS","HAVERFORDWEST","CARDIFF MET","CAMBRIAN","BARRY","BRITON FERRY","BALA TOWN","NEWTOWN","ABERYSTWYTH"];
+  for(let w of welsh){ if(teams.includes(w)) return "Wales"; }
+
+  // 2. ENGLISH TEAMS - Real Premier League / EFL
+  let english = ["EVERTON","COVENTRY","ARSENAL","MAN CITY","MANCHESTER CITY","MAN UNITED","LIVERPOOL","CHELSEA","TOTTENHAM","NEWCASTLE","WEST HAM","ASTON VILLA","BRIGHTON","BRENTFORD","FULHAM","WOLVES","CRYSTAL PALACE","NOTTINGHAM","BOURNEMOUTH","LEEDS","SUNDERLAND"];
+  for(let e of english){ if(teams.includes(e)) return "England"; }
+
+  // 3. If zone is already real and not WORLD, keep it
   if(zone && zone!=="WORLD" && zone!=="World" && FLAGS[zone]) return zone;
-  let L = (league||"").toUpperCase() + " " + (zone||"").toUpperCase();
-  if(L.includes("PREMIER LEAGUE") && !L.includes("RUSSIA") && !L.includes("UKRAINE") && !L.includes("EGYPT")) return "England";
-  if(L.includes("CHAMPIONSHIP") && !L.includes("SCOTLAND")) return "England";
-  if(L.includes("LA LIGA") || L.includes("LALIGA") || L.includes("COPA DEL REY") || L.includes("SEGUNDA DIVISION")) return "Spain";
-  if(L.includes("LIGUE 1") || L.includes("LIGUE 2") || L.includes("COUPE DE FRANCE")) return "France";
-  if(L.includes("BUNDESLIGA") || L.includes("2. BUNDESLIGA") || L.includes("DFB-POKAL")) return "Germany";
-  if(L.includes("SERIE A") || L.includes("SERIE B") || L.includes("COPPA ITALIA")) return "Italy";
-  if(L.includes("EREDIVISIE") || L.includes("KNVB")) return "Netherlands";
-  if(L.includes("PRIMEIRA LIGA") || L.includes("LIGA PORTUGAL")) return "Portugal";
-  if(L.includes("JUPILER") || L.includes("PRO LEAGUE") && L.includes("BELGIUM")) return "Belgium";
+
+  // 4. League name fallback
+  if(L.includes("CYMRU") || L.includes("JD CYMRU")) return "Wales";
+  if(L.includes("CHAMPIONS LEAGUE") || L.includes("EUROPA")) return "Europe";
+  if(L.includes("LA LIGA") || L.includes("LALIGA")) return "Spain";
+  if(L.includes("LIGUE 1")) return "France";
+  if(L.includes("BUNDESLIGA")) return "Germany";
+  if(L.includes("SERIE A")) return "Italy";
+  if(L.includes("EREDIVISIE")) return "Netherlands";
   if(L.includes("ARMENIA")) return "Armenia";
-  if(L.includes("TURKIYE") || L.includes("SUPER LIG")) return "Turkey";
-  if(L.includes("SUPER LEAGUE") && L.includes("GREECE")) return "Greece";
-  if(L.includes("SUPER LEAGUE") && L.includes("SWITZERLAND")) return "Switzerland";
-  if(L.includes("PREMIERSHIP") && L.includes("SCOTLAND")) return "Scotland";
-  if(L.includes("CHAMPIONS LEAGUE") || L.includes("EUROPA LEAGUE") || L.includes("CONFERENCE")) return "Europe";
-  // Try find country name inside league name
-  for(let c in FLAGS){ if(L.includes(c.toUpperCase())) return c; }
+
   return zone || "World";
 }
 
-const TOP_ORDER=[{k:'CHAMPIONS LEAGUE',p:1},{k:'EUROPA',p:2},{k:'PREMIER LEAGUE',p:4},{k:'LALIGA',p:5},{k:'LA LIGA',p:5},{k:'LIGUE 1',p:6},{k:'BUNDESLIGA',p:7},{k:'SERIE A',p:8},{k:'ENGLAND',p:21},{k:'SPAIN',p:22}];
-function getP(z,n){let f=(z+' '+n).toUpperCase();for(let t of TOP_ORDER) if(f.includes(t.k)) return t.p; return 80;}
+const TOP_ORDER=[{k:'CHAMPIONS LEAGUE',p:1},{k:'EUROPA',p:2},{k:'ENGLAND - PREMIER LEAGUE',p:4},{k:'WALES - PREMIER',p:11},{k:'LALIGA',p:5},{k:'LIGUE 1',p:6},{k:'BUNDESLIGA',p:7},{k:'SERIE A',p:8}];
+function getP(z,n){let f=(z+' - '+n).toUpperCase();for(let t of TOP_ORDER) if(f.includes(t.k)) return t.p; return 80;}
+
 function tabs(){
  let h='',t=new Date();let s=localStorage.getItem('lastDate')||new Date().toISOString().split('T')[0];
  for(let i=-4;i<=4;i++){let d=new Date(t);d.setDate(t.getDate()+i);let ds=d.toISOString().split('T')[0];
@@ -136,8 +113,16 @@ function show(){
  if(!data.length){document.getElementById('list').innerHTML='No matches '+cur+' for '+curDate;return}
  let g={}; 
  data.forEach(m=>{
-   let realCountry = detectCountry(m.league_zone, m.league_name);
+   let realCountry = detectCountry(m.league_zone, m.league_name, m.home_team, m.away_team);
    let k=realCountry+' - '+m.league_name;
+   // Make Wales Cymru Premier show properly
+   if(realCountry==="Wales" && m.league_name.toUpperCase().includes("PREMIER LEAGUE")){
+     k = "Wales - Cymru Premier";
+   }
+   if(realCountry==="England" && m.league_name.toUpperCase().includes("PREMIER LEAGUE")){
+     // Keep original name for England
+     k = "England - Premier League";
+   }
    if(!g[k]) g[k]={name:k,country:realCountry,league:m.league_name,pri:getP(realCountry,m.league_name),games:[]};
    g[k].games.push(m);
  });
@@ -146,7 +131,7 @@ function show(){
  keys.forEach(k=>{
   let gr=g[k]; 
   let flag = getFlag(gr.country);
-  html+='<div class="league-head">'+flag+' '+gr.country+' - '+gr.league+' ('+gr.games.length+')</div>';
+  html+='<div class="league-head">'+flag+' '+gr.name+' ('+gr.games.length+')</div>';
   gr.games.forEach(x=>{
    let sc=(x.home_score!=null&&x.away_score!=null)?x.home_score+' - '+x.away_score:'- : -';
    let tm=getTime(x);
