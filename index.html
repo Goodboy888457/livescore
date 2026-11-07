@@ -5,37 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LiveScore - All Leagues</title>
 <style>
-body{background:#000;color:#fff;font-family:Arial;margin:0}
+*{box-sizing:border-box}
+body{background:#000;color:#fff;font-family:Arial,sans-serif;margin:0}
 .header{background:#00c853;padding:12px 15px;font-weight:900;color:#000;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10}
-.header a{background:#fff;color:#000;padding:6px 14px;border-radius:20px;text-decoration:none;font-size:12px;font-weight:900}
+.header a{background:#fff;color:#000;padding:6px 14px;border-radius:20px;text-decoration:none;font-size:12px;font-weight:900;cursor:pointer}
 .tabs{display:flex;gap:8px;padding:12px;background:#111;justify-content:center;position:sticky;top:48px;z-index:9}
 .tabs button{background:#222;color:#aaa;border:1px solid #333;padding:11px 22px;border-radius:20px;font-weight:900;font-size:14px;cursor:pointer;transition:0.2s}
 .tabs button.active{background:#00ff00;color:#000;transform:scale(1.05)}
-.tabs button:active{transform:scale(0.95)}
 .filter{display:flex;gap:8px;padding:10px;justify-content:center;background:#000;position:sticky;top:105px;z-index:8}
 .filter button{background:#111;color:#00ff00;border:1.5px solid #00ff00;padding:8px 18px;border-radius:20px;font-size:13px;cursor:pointer}
 .filter button.active{background:#00ff00;color:#000;font-weight:900}
 .league-head{background:#00ff00;color:#000;padding:10px 14px;font-weight:900;margin-top:12px;font-size:13px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
-.match{display:flex;align-items:center;padding:14px;background:#151515;margin:6px 8px;border-radius:12px;border-left:4px solid #00c853;cursor:pointer;transition:0.2s}
-.match:hover{background:#1e1e1e;transform:translateX(3px)}
-.match:active{background:#222;transform:scale(0.98)}
+.match{display:flex;align-items:center;padding:14px;background:#151515;margin:6px 8px;border-radius:12px;border-left:4px solid #00c853;cursor:pointer}
+.match:hover{background:#1e1e1e}
+.match:active{transform:scale(0.98)}
 .time{border:1.5px solid #00c853;border-radius:20px;padding:6px 0;color:#00c853;font-weight:900;font-size:13px;min-width:56px;text-align:center}
-.time.live{border-color:#ff3b30;color:#ff3b30;animation:blink 1s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0.6}}
+.time.live{border-color:#ff3b30;color:#ff3b30}
 .teams{flex:1;margin-left:14px;line-height:20px;font-size:14px}
-.team{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .score{color:#00ff66;font-weight:900;font-size:18px;min-width:60px;text-align:right}
 .score.live{color:#ff3b30}
-.empty{padding:60px 20px;color:#666;text-align:center;line-height:22px}
-.popup{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.empty{padding:60px 20px;color:#666;text-align:center}
+.popup{position:fixed;inset:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
 .popup-box{background:#1a1a1a;border:1px solid #00c853;border-radius:16px;padding:20px;max-width:360px;width:100%;text-align:center}
-.popup-box h3{margin:0 0 12px;color:#00ff00}
-.popup-box p{margin:6px 0;color:#aaa;font-size:14px}
 .popup-box button{margin-top:16px;background:#00c853;color:#000;border:none;padding:10px 24px;border-radius:20px;font-weight:900;cursor:pointer}
 </style>
 </head>
 <body>
-<div class="header"><span>⚽ LiveScore - All Leagues</span><a href="#" onclick="localStorage.clear();location.reload();return false;">↻ Refresh</a></div>
+<div class="header"><span>⚽ LiveScore - All Leagues</span><a onclick="localStorage.clear();location.reload()">↻ Refresh</a></div>
 <div class="tabs" id="dateTabs"></div>
 <div class="filter">
 <button id="f-all" class="active" onclick="setFilter('all')">All Games</button>
@@ -43,25 +39,18 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 <button id="f-fin" onclick="setFilter('finished')">Finished</button>
 </div>
 <div id="list">Loading...</div>
-
-<div class="popup" id="popup" onclick="closePopup()"><div class="popup-box" onclick="event.stopPropagation()"><h3 id="popTitle">Match</h3><p id="popLeague"></p><p id="popScore" style="font-size:28px;color:#00ff66;font-weight:900;margin:12px 0"></p><p id="popStatus"></p><p id="popTime"></p><button onclick="closePopup()">Close</button></div></div>
-
+<div class="popup" id="popup" onclick="closePopup()"><div class="popup-box" onclick="event.stopPropagation()"><h3 id="popTitle" style="color:#00ff00;margin:0 0 10px"></h3><p id="popLeague" style="color:#aaa;font-size:13px"></p><p id="popScore" style="font-size:28px;color:#00ff66;font-weight:900;margin:12px 0"></p><p id="popStatus" style="color:#ccc"></p><p id="popTime" style="color:#888;font-size:12px"></p><button onclick="closePopup()">Close</button></div></div>
 <script>
 let all=[],cur='all',curDate=new Date().toISOString().split('T')[0];
-const FLAGS={"England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Spain":"🇪🇸","France":"🇫🇷","Germany":"🇩🇪","Italy":"🇮🇹","Netherlands":"🇳🇱","Portugal":"🇵🇹","Belgium":"🇧🇪","Malta":"🇲🇹","Austria":"🇦🇹","Brazil":"🇧🇷","World":"🌍","WORLD":"🌍","Europe":"🏆","Australia":"🇦🇺","USA":"🇺🇸","Japan":"🇯🇵","Nigeria":"🇳🇬","El Salvador":"🇸🇻","Mexico":"🇲🇽","Panama":"🇵🇦","Costa Rica":"🇨🇷","Korea Republic":"🇰🇷","New Zealand":"🇳🇿"};
+const FLAGS={"England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Spain":"🇪🇸","France":"🇫🇷","Germany":"🇩🇪","Italy":"🇮🇹","Netherlands":"🇳🇱","Portugal":"🇵🇹","Belgium":"🇧🇪","Brazil":"🇧🇷","World":"🌍","WORLD":"🌍","Europe":"🏆","USA":"🇺🇸","Nigeria":"🇳🇬","Mexico":"🇲🇽"};
 function getFlag(c){return FLAGS[c]||"⚽";}
-const TOP_ORDER=[{k:'CHAMPIONS LEAGUE',p:1},{k:'EUROPA',p:2},{k:'PREMIER LEAGUE',p:3},{k:'LALIGA',p:5},{k:'LIGUE 1',p:6},{k:'BUNDESLIGA',p:7},{k:'SERIE A',p:8}];
-function getP(n){let u=n.toUpperCase();for(let t of TOP_ORDER) if(u.includes(t.k)) return t.p; return 80;}
-
+const TOP=[{k:'CHAMPIONS LEAGUE',p:1},{k:'EUROPA',p:2},{k:'PREMIER LEAGUE',p:3},{k:'LALIGA',p:5},{k:'LIGUE 1',p:6},{k:'BUNDESLIGA',p:7},{k:'SERIE A',p:8}];
+function getP(n){let u=n.toUpperCase();for(let t of TOP) if(u.includes(t.k)) return t.p; return 80;}
 function tabs(){
-  let h=''; let today=new Date();
-  let dates = [-1,0,1].map(i=>{let d=new Date(today);d.setDate(today.getDate()+i);return d.toISOString().split('T')[0];});
-  let labels = ['Yesterday','Today','Tomorrow'];
-  dates.forEach((ds,idx)=>{
-    let ac = (idx===1) ? 'active' : '';
-    if(ac) curDate=ds;
-    h+=`<button class="${ac}" onclick="goDate('${ds}',this)">${labels[idx]}</button>`;
-  });
+  let h='', today=new Date();
+  let dates=[-1,0,1].map(i=>{let d=new Date(today);d.setDate(today.getDate()+i);return d.toISOString().split('T')[0];});
+  let labels=['Yesterday','Today','Tomorrow'];
+  dates.forEach((ds,idx)=>{let ac=idx===1?'active':''; if(ac) curDate=ds; h+=`<button class="${ac}" onclick="goDate('${ds}',this)">${labels[idx]}</button>`;});
   document.getElementById('dateTabs').innerHTML=h;
 }
 function goDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');load(ds);}
@@ -74,16 +63,24 @@ async function load(d){
     if(!j.success) throw new Error(j.error||'API error');
     all=j.data||[];
     show();
-  }catch(e){document.getElementById('list').innerHTML='<div class="empty" style="color:#ff3b30">Error: '+e.message+'</div>';all=[];}
+  }catch(e){document.getElementById('list').innerHTML='<div class="empty" style="color:#ff3b30">Error: '+e.message+'</div>';}
 }
 function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById(f==='finished'?'f-fin':'f-'+f).classList.add('active');show();}
-function getTime(m){let st=(m.status||'').toUpperCase();if(['1H','2H','HT','LIVE','IN_PLAY'].includes(st)) return {t:(m.minute?m.minute+"'":'LIVE'),c:'#ff3b30',isLive:true};if(['FT','AET','PEN','FINISHED'].includes(st)) return {t:'FT',c:'#00c853',isLive:false};try{if(m.kickoff_utc){let dt=new Date(m.kickoff_utc);return {t:dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Lagos'}),c:'#00c853',isLive:false}}}catch(e){}return {t:'NS',c:'#00c853',isLive:false};}
-function show(){let data=[...all];if(cur==='live') data=data.filter(x=>['LIVE','1H','2H','HT','IN_PLAY'].includes((x.status||'').toUpperCase()));if(cur==='finished') data=data.filter(x=>['FT','AET','PEN','FINISHED'].includes((x.status||'').toUpperCase()));if(!data.length){let msg = cur==='live'?'No live games now':cur==='finished'?'No finished games':'No games scheduled';document.getElementById('list').innerHTML='<div class="empty">⚽<br><br>'+msg+'</div>';return}let g={};data.forEach(m=>{let k=m.league_zone+' - '+m.league_name;if(!g[k]) g[k]={name:k,country:m.league_zone,pri:getP(m.league_name),games:[]};g[k].games.push(m);});let keys=Object.keys(g).sort((a,b)=>g[a].pri-g[b].pri);let html='<div style="color:#555;font-size:11px;padding:8px;text-align:center">'+data.length+' matches • '+keys.length+' leagues • '+curDate+'</div>';keys.forEach(k=>{let gr=g[k];let flag=getFlag(gr.country);html+='<div class="league-head" onclick="toggleLeague(this)"><span>'+flag+' '+gr.name+' ('+gr.games.length+')</span><span>▼</span></div><div class="league-games">';gr.games.forEach((x,idx)=>{let sc=(x.home_score!=null&&x.away_score!=null)?x.home_score+' - '+x.away_score:'- : -';let tm=getTime(x);html+='<div class="match" onclick="openMatch(\''+x.id+'\')"><div class="time '+(tm.isLive?'live':'')+'" style="color:'+tm.c+';border-color:'+tm.c+'">'+tm.t+'</div><div class="teams"><div class="team">'+x.home_team+'</div><div class="team">'+x.away_team+'</div></div><div class="score '+(tm.isLive?'live':'')+'">'+sc+'</div></div>';});html+='</div>';});document.getElementById('list').innerHTML=html;}
-function toggleLeague(el){let games=el.nextElementSibling;games.style.display=games.style.display==='none'?'block':'none';}
-function openMatch(id){let m=all.find(x=>x.id===id);if(!m) return;document.getElementById('popTitle').innerText=m.home_team+' vs '+m.away_team;document.getElementById('popLeague').innerText=m.league_zone+' • '+m.league_name;document.getElementById('popScore').innerText=(m.home_score!=null?m.home_score+' - '+m.away_score:'VS');document.getElementById('popStatus').innerText='Status: '+(m.status||'NS')+' '+(m.minute?'('+m.minute+"')" : '');try{if(m.kickoff_utc){let dt=new Date(m.kickoff_utc);document.getElementById('popTime').innerText='Kickoff: '+dt.toLocaleString('en-GB',{timeZone:'Africa/Lagos'});}}catch(e){document.getElementById('popTime').innerText='Date: '+curDate;}document.getElementById('popup').style.display='flex';}
+function getTime(m){let st=(m.status||'').toUpperCase();if(['1H','2H','HT','LIVE','IN_PLAY'].includes(st)) return {t:(m.minute?m.minute+"'":'LIVE'),c:'#ff3b30',live:true};if(['FT','AET','PEN','FINISHED'].includes(st)) return {t:'FT',c:'#00c853',live:false};try{if(m.kickoff_utc){let dt=new Date(m.kickoff_utc);return {t:dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Lagos'}),c:'#00c853',live:false}}}catch{}return {t:'NS',c:'#00c853',live:false};}
+function show(){
+  let data=[...all];
+  if(cur==='live') data=data.filter(x=>['LIVE','1H','2H','HT','IN_PLAY'].includes((x.status||'').toUpperCase()));
+  if(cur==='finished') data=data.filter(x=>['FT','AET','PEN','FINISHED'].includes((x.status||'').toUpperCase()));
+  if(!data.length){document.getElementById('list').innerHTML='<div class="empty">⚽<br><br>No '+cur+' games</div>';return;}
+  let g={};data.forEach(m=>{let k=m.league_zone+' - '+m.league_name;if(!g[k]) g[k]={name:k,country:m.league_zone,pri:getP(m.league_name),games:[]};g[k].games.push(m);});
+  let keys=Object.keys(g).sort((a,b)=>g[a].pri-g[b].pri);
+  let html='<div style="color:#555;font-size:11px;padding:8px;text-align:center">'+data.length+' matches • '+keys.length+' leagues • '+curDate+'</div>';
+  keys.forEach(k=>{let gr=g[k];html+='<div class="league-head" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'"><span>'+getFlag(gr.country)+' '+gr.name+' ('+gr.games.length+')</span><span>▼</span></div><div>';gr.games.forEach(x=>{let sc=x.home_score!=null&&x.away_score!=null?x.home_score+' - '+x.away_score:'- : -';let tm=getTime(x);html+='<div class="match" onclick="openMatch(\''+x.id+'\')"><div class="time '+(tm.live?'live':'')+'" style="color:'+tm.c+';border-color:'+tm.c+'">'+tm.t+'</div><div class="teams"><div>'+x.home_team+'</div><div>'+x.away_team+'</div></div><div class="score '+(tm.live?'live':'')+'">'+sc+'</div></div>';});html+='</div>';});
+  document.getElementById('list').innerHTML=html;
+}
+function openMatch(id){let m=all.find(x=>x.id===id);if(!m) return;document.getElementById('popTitle').innerText=m.home_team+' vs '+m.away_team;document.getElementById('popLeague').innerText=m.league_zone+' • '+m.league_name;document.getElementById('popScore').innerText=m.home_score!=null?m.home_score+' - '+m.away_score:'VS';document.getElementById('popStatus').innerText='Status: '+(m.status||'NS')+' '+(m.minute? '('+m.minute+"')" : '');try{let dt=new Date(m.kickoff_utc);document.getElementById('popTime').innerText='Kickoff: '+dt.toLocaleString('en-GB',{timeZone:'Africa/Lagos'});}catch{document.getElementById('popTime').innerText='Date: '+curDate;}document.getElementById('popup').style.display='flex';}
 function closePopup(){document.getElementById('popup').style.display='none';}
 tabs(); load(curDate);
-// Auto refresh live every 60s
 setInterval(()=>{if(cur==='live') load(curDate);},60000);
 </script>
 </body>
