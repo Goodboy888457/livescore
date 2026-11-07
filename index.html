@@ -31,21 +31,18 @@ body{background:#000;color:#fff;font-family:Arial;margin:0}
 </div>
 <div id="list" style="padding:20px;text-align:center">Loading...</div>
 <script>
-// FORCE CLEAR OLD NOV 9 CACHE
 localStorage.removeItem('lastDate');
 let all=[],cur='all',curDate=new Date().toISOString().split('T')[0];
 const FLAGS={"England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Spain":"🇪🇸","France":"🇫🇷","Germany":"🇩🇪","Italy":"🇮🇹","Netherlands":"🇳🇱","Portugal":"🇵🇹","Belgium":"🇧🇪","Malta":"🇲🇹","Austria":"🇦🇹","Brazil":"🇧🇷","World":"🌍","WORLD":"🌍","Europe":"🏆","Australia":"🇦🇺","USA":"🇺🇸","Japan":"🇯🇵","Nigeria":"🇳🇬"};
 function getFlag(c){return FLAGS[c]||"⚽";}
 const TOP_ORDER=[{k:'CHAMPIONS LEAGUE',p:1},{k:'EUROPA',p:2},{k:'PREMIER LEAGUE',p:3},{k:'LALIGA',p:5},{k:'LIGUE 1',p:6},{k:'BUNDESLIGA',p:7},{k:'SERIE A',p:8}];
 function getP(n){let f=n.toUpperCase();for(let t of TOP_ORDER) if(f.includes(t.k)) return t.p; return 80;}
-
 function tabs(){
   let h=''; let today=new Date();
-  // === ONLY 3 TABS ===
   let dates = [-1,0,1].map(i=>{let d=new Date(today);d.setDate(today.getDate()+i);return d.toISOString().split('T')[0];});
   let labels = ['Yesterday','Today','Tomorrow'];
   dates.forEach((ds,idx)=>{
-    let ac = (idx===1) ? 'active' : ''; // Today active by default
+    let ac = (idx===1) ? 'active' : '';
     if(ac) curDate=ds;
     h+=`<button class="${ac}" onclick="goDate('${ds}',this)">${labels[idx]}</button>`;
   });
@@ -54,19 +51,18 @@ function tabs(){
 function goDate(ds,el){document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));el.classList.add('active');curDate=ds;load(ds);}
 async function load(d){
   curDate=d;
-  document.getElementById('list').innerHTML='Loading '+d+'...';
+  document.getElementById('list').innerHTML='Loading...';
   try{
     let r=await fetch('/api/fixtures?date='+d+'&t='+Date.now());
     let j=await r.json();
     if(!j.success) throw new Error(j.error||'API error');
     all=j.data||[];
-    if(!all.length){document.getElementById('list').innerHTML='<div style="color:#aaa;padding:30px">No matches for '+d+'<br>API-Football free sometimes returns 0 for old dates.<br>Click Today.</div>';return;}
     show();
   }catch(e){document.getElementById('list').innerHTML='<div style="color:#ff3b30">Error: '+e.message+'</div>';all=[];}
 }
 function setFilter(f){cur=f;document.querySelectorAll('.filter button').forEach(b=>b.classList.remove('active'));document.getElementById('f-'+(f==='finished'?'fin':f)).classList.add('active');show();}
 function getTime(m){let st=(m.status||'').toUpperCase();if(['1H','2H','HT','LIVE','IN_PLAY'].includes(st)) return {t:(m.minute?m.minute+"'":'LIVE'),c:'#ff3b30'};if(['FT','AET','PEN','FINISHED'].includes(st)) return {t:'FT',c:'#00c853'};try{if(m.kickoff_utc){let dt=new Date(m.kickoff_utc);return {t:dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Lagos'}),c:'#00c853'}}}catch(e){}return {t:'NS',c:'#00c853'};}
-function show(){let data=[...all];if(cur==='live') data=data.filter(x=>['LIVE','1H','2H','HT'].includes((x.status||'').toUpperCase()));if(cur==='finished') data=data.filter(x=>['FT','AET','PEN','FINISHED'].includes((x.status||'').toUpperCase()));if(!data.length){document.getElementById('list').innerHTML='No '+cur+' matches for '+curDate;return}let g={};data.forEach(m=>{let k=m.league_zone+' - '+m.league_name;if(!g[k]) g[k]={name:k,country:m.league_zone,pri:getP(m.league_name),games:[]};g[k].games.push(m);});let keys=Object.keys(g).sort((a,b)=>g[a].pri-g[b].pri);let html='<div style="color:#666;font-size:11px;padding:6px">api-football: '+data.length+' matches • '+keys.length+' leagues • '+curDate+'</div>';keys.forEach(k=>{let gr=g[k];let flag=getFlag(gr.country);html+='<div class="league-head">'+flag+' '+gr.name+' ('+gr.games.length+')</div>';gr.games.forEach(x=>{let sc=(x.home_score!=null&&x.away_score!=null)?x.home_score+' - '+x.away_score:'- : -';let tm=getTime(x);html+='<div class="match"><div class="time" style="color:'+tm.c+';border-color:'+tm.c+'">'+tm.t+'</div><div class="teams"><div>'+x.home_team+'</div><div>'+x.away_team+'</div></div><div class="score">'+sc+'</div></div>';});});document.getElementById('list').innerHTML=html;}
+function show(){let data=[...all];if(cur==='live') data=data.filter(x=>['LIVE','1H','2H','HT'].includes((x.status||'').toUpperCase()));if(cur==='finished') data=data.filter(x=>['FT','AET','PEN','FINISHED'].includes((x.status||'').toUpperCase()));if(!data.length){document.getElementById('list').innerHTML='<div style="color:#555;padding:40px">No games</div>';return}let g={};data.forEach(m=>{let k=m.league_zone+' - '+m.league_name;if(!g[k]) g[k]={name:k,country:m.league_zone,pri:getP(m.league_name),games:[]};g[k].games.push(m);});let keys=Object.keys(g).sort((a,b)=>g[a].pri-g[b].pri);let html='<div style="color:#666;font-size:11px;padding:6px">api-football: '+data.length+' matches • '+keys.length+' leagues • '+curDate+'</div>';keys.forEach(k=>{let gr=g[k];let flag=getFlag(gr.country);html+='<div class="league-head">'+flag+' '+gr.name+' ('+gr.games.length+')</div>';gr.games.forEach(x=>{let sc=(x.home_score!=null&&x.away_score!=null)?x.home_score+' - '+x.away_score:'- : -';let tm=getTime(x);html+='<div class="match"><div class="time" style="color:'+tm.c+';border-color:'+tm.c+'">'+tm.t+'</div><div class="teams"><div>'+x.home_team+'</div><div>'+x.away_team+'</div></div><div class="score">'+sc+'</div></div>';});});document.getElementById('list').innerHTML=html;}
 tabs(); load(curDate);
 </script>
 </body>
